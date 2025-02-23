@@ -1,0 +1,27 @@
+# Direct runtime dependencies. Lock with:
+#   uv pip compile requirements.in --python-version 3.13 --generate-hashes -o requirements.txt
+Django>=5.2,<5.3
+dj-database-url
+django-cors-headers
+djangorestframework
+drf-spectacular
+firebase-admin
+gunicorn; platform_system != "Windows"
+httpx
+psycopg[binary]
+pgvector
+python-dotenv
+whitenoise
+
+# Error tracking (optional, active only when SENTRY_DSN is set)
+sentry-sdk[django]
+
+# LLM providers
+google-genai
+openai
+
+# Document ingestion
+openpyxl
+pypdf
+python-docx
+trafilatura

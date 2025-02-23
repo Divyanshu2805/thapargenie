@@ -1,0 +1,16 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = [
+  "Backend/backend/*/migrations",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "S", "DJ"]
+ignore = [
+  "S101",  # Assertions are expected in tests.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"Backend/backend/**/tests.py" = ["S105", "S106"]
+"Backend/backend/backend/settings/test.py" = ["S105"]
