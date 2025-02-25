@@ -6,6 +6,8 @@ from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
 from .base import (
+    FIREBASE_ALLOWED_SIGN_IN_PROVIDERS,
+    FIREBASE_AUTH_EMULATOR_HOST,
     database_config,
     env_bool,
     env_list,
@@ -35,6 +37,12 @@ CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS')
 CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
 if any(not origin.startswith('https://') for origin in CORS_ALLOWED_ORIGINS + CSRF_TRUSTED_ORIGINS):
     raise ImproperlyConfigured('Production browser origins must use HTTPS.')
+
+FIREBASE_PROJECT_ID = required('FIREBASE_PROJECT_ID')
+if FIREBASE_AUTH_EMULATOR_HOST:
+    raise ImproperlyConfigured('FIREBASE_AUTH_EMULATOR_HOST is forbidden outside local/test use.')
+if not FIREBASE_ALLOWED_SIGN_IN_PROVIDERS:
+    raise ImproperlyConfigured('FIREBASE_ALLOWED_SIGN_IN_PROVIDERS cannot be empty.')
 
 DATABASES = {
     'default': database_config(

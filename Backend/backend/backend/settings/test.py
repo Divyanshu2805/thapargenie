@@ -29,3 +29,4 @@ STORAGES = {
 }
 # Throttle behaviour is tested explicitly; keep it out of every other test.
 REST_FRAMEWORK = {**REST_FRAMEWORK, 'DEFAULT_THROTTLE_CLASSES': ()}
+FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID') or 'demo-thapargpt'

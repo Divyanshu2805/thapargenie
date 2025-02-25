@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from corsheaders.defaults import default_headers
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -70,10 +71,12 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "corsheaders",
     "userauths",
+    "api",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "api.middleware.RequestIDMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -131,6 +134,12 @@ EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.Em
 DEFAULT_FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@localhost")
 
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ("api.authentication.FirebaseAuthentication",),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+        "api.permissions.HasVerifiedEligibleIdentity",
+    ),
+    "EXCEPTION_HANDLER": "api.errors.api_exception_handler",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.UserRateThrottle",),
@@ -142,6 +151,23 @@ REST_FRAMEWORK = {
     # their address and dodge the per-address rate limit.
     "NUM_PROXIES": env_int("TRUSTED_PROXY_COUNT", 0),
 }
+
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
+CORS_ALLOW_HEADERS = (*default_headers, "x-request-id")
+FIREBASE_AUTH_EMULATOR_HOST = os.getenv("FIREBASE_AUTH_EMULATOR_HOST", "").strip()
+FIREBASE_ALLOWED_SIGN_IN_PROVIDERS = tuple(
+    env_list("FIREBASE_ALLOWED_SIGN_IN_PROVIDERS", "password,google.com")
+)
+FIREBASE_RECENT_AUTH_SECONDS = int(os.getenv("FIREBASE_RECENT_AUTH_SECONDS", "300"))
+# A freshly issued token is "used too early" if this server's clock trails Google's by even
+# a second, so the first request after signing in would fail. Allow a little drift.
+FIREBASE_CLOCK_SKEW_SECONDS = int(os.getenv("FIREBASE_CLOCK_SKEW_SECONDS", "10"))
+if FIREBASE_RECENT_AUTH_SECONDS < 0:
+    raise ValueError("FIREBASE_RECENT_AUTH_SECONDS cannot be negative.")
+if not 0 <= FIREBASE_CLOCK_SKEW_SECONDS <= 60:
+    raise ValueError("FIREBASE_CLOCK_SKEW_SECONDS must be between 0 and 60.")
+if FIREBASE_AUTH_EMULATOR_HOST and "://" in FIREBASE_AUTH_EMULATOR_HOST:
+    raise ValueError("FIREBASE_AUTH_EMULATOR_HOST must omit the URL scheme.")
 
 EXTERNAL_HTTP_TIMEOUT_SECONDS = float(os.getenv("EXTERNAL_HTTP_TIMEOUT_SECONDS", "10"))
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024)))
