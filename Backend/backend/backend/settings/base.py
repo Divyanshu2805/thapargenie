@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "userauths",
     "api",
+    "common",
 ]
 
 MIDDLEWARE = [
@@ -139,7 +140,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
         "api.permissions.HasVerifiedEligibleIdentity",
     ),
-    "EXCEPTION_HANDLER": "api.errors.api_exception_handler",
+    "EXCEPTION_HANDLER": "common.errors.exception_handler",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.UserRateThrottle",),
