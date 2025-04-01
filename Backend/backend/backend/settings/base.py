@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "userauths",
     "api",
     "common",
+    "knowledge",
 ]
 
 MIDDLEWARE = [
