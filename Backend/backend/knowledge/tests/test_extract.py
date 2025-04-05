@@ -1,0 +1,67 @@
+from django.test import SimpleTestCase
+
+from knowledge.ingest import extract as ex
+from knowledge.ingest.filetypes import UnsupportedFile, detect
+from knowledge.models import SourceType
+from knowledge.tests.factories import make_docx, make_pdf
+
+PROSE = 'The hostel fee for first year students is payable before registration. ' * 4
+
+
+class DetectTests(SimpleTestCase):
+    def test_by_content(self):
+        self.assertEqual(detect(make_pdf([['x']]), 'x.docx'), SourceType.PDF)
+        self.assertEqual(detect(make_docx(), 'x.pdf'), SourceType.DOCX)
+        self.assertEqual(detect('plain text'.encode()), SourceType.TEXT)
+
+    def test_rejects_unknown_binary_and_empty(self):
+        for data in (b'', b'\x7fELF\x02\x01\x00\x00', b'PK\x03\x04not-a-zip'):
+            with self.subTest(data=data[:8]), self.assertRaises(UnsupportedFile):
+                detect(data)
+
+
+class PdfTests(SimpleTestCase):
+    def test_fast_path_adds_page_markers_and_strips_repeated_footer(self):
+        pages = [[f'Page body {n}', PROSE, 'Thapar Institute - Confidential'] for n in range(1, 5)]
+        result = ex.extract_pdf(make_pdf(pages))
+        self.assertEqual(result.page_count, 4)
+        self.assertIn('[[page 1]]\nPage body 1', result.markdown)
+        self.assertIn('[[page 4]]', result.markdown)
+        self.assertNotIn('Confidential', result.markdown)
+
+    def test_page_limit(self):
+        with self.assertRaises(UnsupportedFile):
+            ex.extract_pdf(make_pdf([[PROSE]] * 3), max_pages=2)
+
+    def test_garbage_is_rejected(self):
+        with self.assertRaises(UnsupportedFile):
+            ex.extract_pdf(b'%PDF-1.4 garbage')
+
+
+class OfficeAndTextTests(SimpleTestCase):
+    def test_docx_structure(self):
+        result = ex.extract_docx(make_docx())
+        self.assertEqual(result.title, 'Hostel Rules')
+        self.assertIn('# Hostel Rules', result.markdown)
+        self.assertIn('## Timings', result.markdown)
+        self.assertIn('- Visitors must sign the register.', result.markdown)
+        self.assertIn('| Hall A | 1,20,000 |', result.markdown)
+
+    def test_html_main_content(self):
+        html = (
+            '<html><head><title>Library</title></head><body><nav>Home | About</nav>'
+            '<article><h1>Library timings</h1><p>' + 'The central library opens at 8 am. ' * 10 +
+            '</p><table><tr><th>Day</th><th>Hours</th></tr><tr><td>Sunday</td><td>10-5</td></tr>'
+            '</table></article></body></html>'
+        )
+        result = ex.extract_html(html, url='https://www.thapar.edu/library')
+        self.assertIn('central library opens', result.markdown)
+        self.assertIn('Sunday', result.markdown)
+
+    def test_empty_html_is_rejected(self):
+        with self.assertRaises(UnsupportedFile):
+            ex.extract_html('<html><body></body></html>')
+
+    def test_markdown_table_helper(self):
+        table = ex.markdown_table([['A', 'B'], ['1', None], ['', '']])
+        self.assertEqual(table, '| A | B |\n|---|---|\n| 1 |  |')
