@@ -193,6 +193,11 @@ SPECTACULAR_SETTINGS = {
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
 }
 
+# Supabase Storage (private bucket for uploaded originals).
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "documents").strip()
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
