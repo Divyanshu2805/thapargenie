@@ -198,6 +198,13 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "documents").strip()
 
+# Ingestion limits.
+INGEST_URL_ALLOWLIST = tuple(
+    env_list("INGEST_URL_ALLOWLIST", "thapar.edu,*.thapar.edu,static.npfs.co")
+)
+INGEST_MAX_FILE_MB = env_int("INGEST_MAX_FILE_MB", 25)
+INGEST_MAX_PAGES = env_int("INGEST_MAX_PAGES", 300)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
