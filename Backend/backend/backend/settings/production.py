@@ -6,8 +6,10 @@ from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
 from .base import (
+    EMBED_PROVIDER,
     FIREBASE_ALLOWED_SIGN_IN_PROVIDERS,
     FIREBASE_AUTH_EMULATOR_HOST,
+    LLM_PROVIDER,
     database_config,
     env_bool,
     env_list,
@@ -52,6 +54,10 @@ DATABASES = {
     ),
 }
 
+if LLM_PROVIDER == 'gemini' or EMBED_PROVIDER == 'gemini':
+    required('GEMINI_API_KEY')
+for model_setting in ('CHAT_MODEL', 'FAST_MODEL', 'EMBED_MODEL'):
+    required(model_setting)
 SUPABASE_URL = required('SUPABASE_URL')
 SUPABASE_SERVICE_ROLE_KEY = required('SUPABASE_SERVICE_ROLE_KEY')
 

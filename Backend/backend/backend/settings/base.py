@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "api",
     "common",
     "knowledge",
+    "rag",
 ]
 
 MIDDLEWARE = [
@@ -193,6 +194,19 @@ SPECTACULAR_SETTINGS = {
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
 }
 
+# LLM providers. Model names come from env so they can change without a deploy.
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
+EMBED_PROVIDER = os.getenv("EMBED_PROVIDER", "gemini").strip().lower()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+CHAT_MODEL = os.getenv("CHAT_MODEL", "").strip()
+FAST_MODEL = os.getenv("FAST_MODEL", "").strip()
+EMBED_MODEL = os.getenv("EMBED_MODEL", "").strip()
+EMBED_DIMENSIONS = env_int("EMBED_DIMENSIONS", 768)
+LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "60"))
+LLM_MAX_ATTEMPTS = env_int("LLM_MAX_ATTEMPTS", 3)
+# Texts per embedding request; lower it if the free tier returns 429s.
+EMBED_BATCH_SIZE = env_int("EMBED_BATCH_SIZE", 50)
+
 # Supabase Storage (private bucket for uploaded originals).
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
@@ -204,6 +218,18 @@ INGEST_URL_ALLOWLIST = tuple(
 )
 INGEST_MAX_FILE_MB = env_int("INGEST_MAX_FILE_MB", 25)
 INGEST_MAX_PAGES = env_int("INGEST_MAX_PAGES", 300)
+
+PROVIDERS = {"gemini"}
+if LLM_PROVIDER not in PROVIDERS or EMBED_PROVIDER not in PROVIDERS:
+    raise ImproperlyConfigured("LLM_PROVIDER and EMBED_PROVIDER must be gemini.")
+if EMBED_DIMENSIONS != 768:
+    raise ImproperlyConfigured("EMBED_DIMENSIONS must be 768 to match the vector columns.")
+if SUPABASE_URL and not SUPABASE_URL.startswith("https://"):
+    raise ImproperlyConfigured("SUPABASE_URL must use https.")
+if not 1 <= INGEST_MAX_FILE_MB <= 50:
+    raise ImproperlyConfigured("INGEST_MAX_FILE_MB must be between 1 and 50.")
+if not 1 <= INGEST_MAX_PAGES <= 2000:
+    raise ImproperlyConfigured("INGEST_MAX_PAGES must be between 1 and 2000.")
 
 LOGGING = {
     "version": 1,
