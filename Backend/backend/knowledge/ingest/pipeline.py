@@ -131,19 +131,28 @@ def process_document(document_id, *, llm=None):
         return None
     llm = llm or get_llm()
     try:
-        progress(document, 'Extracting text')
-        extracted = extract(
-            load_source(document),
-            document.source_type,
-            max_pages=settings.INGEST_MAX_PAGES,
-            url=document.source_url or None,
-        )
-        if extracted.title and not document.title:
-            document.title = extracted.title[:300]
-            Document.objects.filter(pk=document.pk).update(title=document.title)
-        if extracted.page_count:
-            Document.objects.filter(pk=document.pk).update(page_count=extracted.page_count)
-        drafts = build_chunks(extracted.markdown)
+        if document.source_type == SourceType.CRAWLER:
+            # Imported chunks have no source file: rebuild search text and re-embed.
+            drafts = [
+                ChunkDraft(c.content, c.heading_path, c.page_start, c.page_end)
+                for c in document.chunks.order_by('chunk_index')
+            ]
+            markdown = '\n\n'.join(draft.content for draft in drafts)
+        else:
+            progress(document, 'Extracting text')
+            extracted = extract(
+                load_source(document),
+                document.source_type,
+                max_pages=settings.INGEST_MAX_PAGES,
+                url=document.source_url or None,
+            )
+            if extracted.title and not document.title:
+                document.title = extracted.title[:300]
+                Document.objects.filter(pk=document.pk).update(title=document.title)
+            if extracted.page_count:
+                Document.objects.filter(pk=document.pk).update(page_count=extracted.page_count)
+            markdown = extracted.markdown
+            drafts = build_chunks(markdown)
         if not drafts:
             raise ProcessingError('No text could be extracted from this document.')
 

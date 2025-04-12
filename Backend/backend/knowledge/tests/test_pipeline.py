@@ -1,10 +1,18 @@
+import gzip
+import json
+import tempfile
+from pathlib import Path
+
 from api.models import AuditEvent
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 from rag.llm import QuotaExhausted, RetryableError, use_provider
 from rag.llm.fake import FakeProvider
 from userauths.models import User
 
 from knowledge import services
+from knowledge.ingest import crawler_import
 from knowledge.ingest.filetypes import UnsupportedFile
 from knowledge.ingest.pipeline import process_document
 from knowledge.models import Chunk, Document, DocumentStatus, SourceType
@@ -177,3 +185,126 @@ class ServiceTests(KnowledgeTestCase):
         services.delete_document(document, user=self.admin)
         actions = list(AuditEvent.objects.values_list('action', flat=True).order_by('created_at'))
         self.assertEqual(actions, ['document.created', 'document.disabled', 'document.deleted'])
+
+
+def write_export(folder, rows):
+    path = Path(folder) / 'chunks.jsonl.gz'
+    with gzip.open(path, 'wt', encoding='utf-8') as handle:
+        for row in rows:
+            handle.write(json.dumps(row) + '\n')
+    return path
+
+
+def row(record, index, text, category='hostel_campus_life', status='keep', **meta):
+    return {
+        'chunk_id': f'{record}-{index}',
+        'record_id': record,
+        'chunk_index': index,
+        'text': text,
+        'metadata': {
+            'url': f'https://www.thapar.edu/{record}',
+            'title': meta.pop('title', f'{record} 2026-27'),
+            'category': category,
+            'status': status,
+            'is_current': True,
+            'date': '2026-05-12',
+            'department': None,
+            **meta,
+        },
+    }
+
+
+class CrawlerImportTests(KnowledgeTestCase):
+    def export(self, rows):
+        folder = tempfile.mkdtemp()
+        write_export(folder, rows)
+        return folder
+
+    def test_import_groups_records_and_is_resumable(self):
+        folder = self.export([
+            row('hostel', 1, 'Hostels | Campus life\n\n[page 2]\nHall B fee is 1,10,000.'),
+            row('hostel', 0, 'Hostels | Campus life\n\n[page 1]\nHall A fee is 1,20,000.'),
+            row('news', 0, 'Won a prize.', category='news_events'),
+            row('draft', 0, 'Unreviewed.', status='review'),
+        ])
+        call_command('import_crawler_export', folder, stdout=_Null())
+        document = Document.objects.get()
+        self.assertEqual(document.source_type, SourceType.CRAWLER)
+        self.assertEqual(document.academic_year, '2026-27')
+        self.assertEqual(document.metadata['record_id'], 'hostel')
+        chunks = list(document.chunks.order_by('chunk_index'))
+        self.assertEqual([c.content for c in chunks],
+                         ['Hall A fee is 1,20,000.', 'Hall B fee is 1,10,000.'])
+        self.assertEqual((chunks[1].page_start, chunks[1].page_end), (2, 2))
+        self.assertTrue(all(c.is_searchable and c.embedding is not None for c in chunks))
+
+        calls = len(self.fake.embed_calls)
+        call_command('import_crawler_export', folder, stdout=_Null())
+        self.assertEqual(len(self.fake.embed_calls), calls)  # nothing re-embedded
+
+    def test_changed_record_replaces_old_version(self):
+        call_command('import_crawler_export', self.export([row('fee', 0, 'Fee is 10.')]),
+                     stdout=_Null())
+        call_command('import_crawler_export', self.export([row('fee', 0, 'Fee is 12.')]),
+                     stdout=_Null())
+        document = Document.objects.get()
+        self.assertEqual(document.chunks.get().content, 'Fee is 12.')
+
+    def test_embeddings_are_batched_across_records(self):
+        rows = [row(f'r{n}', 0, f'Text {n}.') for n in range(6)]
+        records = crawler_import.read_records(
+            write_export(tempfile.mkdtemp(), rows), categories={'hostel_campus_life'}
+        )
+        from rag.llm import get_llm
+
+        crawler_import.import_records(records, get_llm(embed_batch_size=50), batch_texts=100)
+        self.assertEqual(len(self.fake.embed_calls), 1)
+
+    def test_quota_stop_keeps_finished_records(self):
+        rows = [row(f'r{n}', 0, f'Text {n}.') for n in range(4)]
+        folder = self.export(rows)
+        records = crawler_import.read_records(Path(folder) / 'chunks.jsonl.gz',
+                                              categories={'hostel_campus_life'})
+        from rag.llm import get_llm
+
+        llm = get_llm(embed_batch_size=2)
+        self.fake.embed = _fail_after(self.fake.embed, calls=1)
+        with self.assertRaises(QuotaExhausted):
+            crawler_import.import_records(records, llm, batch_texts=2)
+        self.assertEqual(Document.objects.filter(status=DocumentStatus.READY).count(), 2)
+
+    def test_dry_run_calls_no_api(self):
+        call_command('import_crawler_export', self.export([row('a', 0, 'x')]), '--dry-run',
+                     stdout=_Null())
+        self.assertFalse(Document.objects.exists())
+        self.assertEqual(self.fake.embed_calls, [])
+
+    def test_missing_file(self):
+        with self.assertRaises(CommandError):
+            call_command('import_crawler_export', tempfile.mkdtemp(), stdout=_Null())
+
+    def test_transient_errors_are_retried(self):
+        self.fake.fail_next(RetryableError('busy', retry_after=0))
+        call_command('import_crawler_export', self.export([row('a', 0, 'x y z')]),
+                     stdout=_Null())
+        self.assertEqual(Document.objects.get().status, DocumentStatus.READY)
+
+
+def _fail_after(embed, calls):
+    state = {'n': 0}
+
+    def wrapper(*args, **kwargs):
+        state['n'] += 1
+        if state['n'] > calls:
+            raise QuotaExhausted('daily')
+        return embed(*args, **kwargs)
+
+    return wrapper
+
+
+class _Null:
+    def write(self, *args, **kwargs):
+        pass
+
+    def flush(self):
+        pass
