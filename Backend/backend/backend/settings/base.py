@@ -148,6 +148,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.UserRateThrottle",),
     "DEFAULT_THROTTLE_RATES": {
         "user": os.getenv("THROTTLE_USER", "120/min"),
+        "admin_write": os.getenv("THROTTLE_ADMIN_WRITE", "30/min"),
     },
     # How many proxies sit in front of the app and append X-Forwarded-For. 0 (local)
     # ignores the header; Render needs 1. Without it, anonymous clients could forge
