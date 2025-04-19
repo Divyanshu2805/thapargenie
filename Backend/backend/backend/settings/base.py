@@ -187,6 +187,7 @@ CACHES = {
 }
 
 DJANGO_ADMIN_ENABLED = env_bool("DJANGO_ADMIN_ENABLED", True)
+SSE_INLINE = False
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "ThaparGenie API",
