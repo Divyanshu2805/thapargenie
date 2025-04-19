@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "common",
     "knowledge",
     "rag",
+    "chat",
 ]
 
 MIDDLEWARE = [
