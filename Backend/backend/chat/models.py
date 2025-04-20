@@ -226,6 +226,7 @@ class ChatSettings(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     daily_question_limit = models.PositiveIntegerField(default=40)
     global_daily_llm_calls = models.PositiveIntegerField(default=5000)
+    auto_title_enabled = models.BooleanField(default=True)
     starter_questions = models.JSONField(default=default_starter_questions)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,

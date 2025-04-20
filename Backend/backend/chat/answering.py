@@ -21,7 +21,7 @@ from django.utils import timezone
 from rag.llm import LLMError, QuotaExhausted, get_llm
 from rag.pipeline import answer_events
 
-from chat import quota
+from chat import background, memory, quota
 from chat.errors import (
     ConversationBusy,
     ConversationFull,
@@ -196,6 +196,14 @@ def _finish(turn, result, llm, started):
     quota.record_answer(turn.conversation.user, llm.usage)
 
 
+def _after_answer(turn, result, first_turn):
+    settings = ChatSettings.load()
+    conversation = turn.conversation
+    if first_turn and settings.auto_title_enabled and \
+            conversation.title_source == Conversation.TitleSource.AUTO:
+        background.submit(memory.make_title, conversation.pk, turn.user_message.content)
+
+
 def _fail(turn, code, partial=''):
     Message.objects.filter(pk=turn.assistant_message.pk).update(
         status=Message.Status.FAILED if not partial else Message.Status.STOPPED,
@@ -255,6 +263,9 @@ def stream_turn(turn):
             if event == 'done':
                 _finish(turn, data, llm, started)
                 finished = True
+                # Before the final yield: a client that disconnects right after `done`
+                # must not skip caching, titling or memory.
+                _after_answer(turn, data, first_turn=not prior)
                 turn.assistant_message.refresh_from_db()
                 yield 'done', {
                     'message': message_payload(turn.assistant_message),
