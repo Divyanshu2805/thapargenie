@@ -9,6 +9,7 @@ urlpatterns = [
     path('health/live/', api_views.health_live, name='health-live'),
     path('health/ready/', api_views.health_ready, name='health-ready'),
     path('api/v1/', include('api.urls')),
+    path('api/v1/', include('chat.urls')),
     path('api/v1/admin/', include('knowledge.admin_urls')),
     path('api/v1/schema/', SpectacularAPIView.as_view(), name='openapi-schema'),
     path(

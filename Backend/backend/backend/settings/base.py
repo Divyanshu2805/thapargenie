@@ -149,6 +149,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.UserRateThrottle",),
     "DEFAULT_THROTTLE_RATES": {
         "user": os.getenv("THROTTLE_USER", "120/min"),
+        "ask": os.getenv("THROTTLE_ASK", "6/min"),
         "admin_write": os.getenv("THROTTLE_ADMIN_WRITE", "30/min"),
     },
     # How many proxies sit in front of the app and append X-Forwarded-For. 0 (local)
@@ -195,6 +196,10 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/api/v1",
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+    # Several components have a "role" field; name the chat message one explicitly.
+    "ENUM_NAME_OVERRIDES": {
+        "MessageRoleEnum": "chat.models.Role",
+    },
 }
 
 # LLM providers. Model names come from env so they can change without a deploy.

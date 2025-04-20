@@ -2,6 +2,12 @@ from rest_framework.permissions import SAFE_METHODS
 from rest_framework.throttling import UserRateThrottle
 
 
+class AskThrottle(UserRateThrottle):
+    """Limits how fast one user can send questions."""
+
+    scope = 'ask'
+
+
 class AdminWriteThrottle(UserRateThrottle):
     """Limits admin mutations; reads are not counted."""
 
