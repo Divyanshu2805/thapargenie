@@ -42,6 +42,13 @@ class AskSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
         return value
 
 
+class FeedbackSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    rating = serializers.ChoiceField(choices=(-1, 1))
+    reason = serializers.ChoiceField(choices=Feedback.Reason.choices, required=False,
+                                     allow_null=True)
+    comment = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+
+
 def source_payload(source):
     """A cited source. The current flag is read live from the document, so an answer
     shows a later "replaced" warning too; load `document` with select_related."""

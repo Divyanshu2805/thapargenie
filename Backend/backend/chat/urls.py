@@ -15,4 +15,10 @@ urlpatterns = [
         views.MessageListView.as_view(),
         name='conversation-messages',
     ),
+    path(
+        'messages/<uuid:message_id>/feedback/',
+        views.FeedbackView.as_view(),
+        name='message-feedback',
+    ),
+    path('sources/<uuid:source_id>/open/', views.SourceOpenView.as_view(), name='source-open'),
 ]

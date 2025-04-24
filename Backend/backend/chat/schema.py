@@ -59,6 +59,10 @@ class AppConfigOut(serializers.Serializer):
     remaining_today = serializers.IntegerField(allow_null=True)
 
 
+class UrlOut(serializers.Serializer):
+    url = serializers.URLField()
+
+
 EVENT_STREAM = OpenApiResponse(
     response=OpenApiTypes.STR,
     description=(

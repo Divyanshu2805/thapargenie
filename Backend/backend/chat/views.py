@@ -2,12 +2,15 @@
 
 import logging
 
+from common.admin_api import error_response
 from common.sse import event_stream_response
 from common.throttles import (
     AskThrottle,
 )
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
+from knowledge.storage import StorageError, get_storage
 from rest_framework import status
 from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
@@ -24,13 +27,17 @@ from chat.models import (
 from chat.schema import (
     EVENT_STREAM,
     AppConfigOut,
+    FeedbackOut,
     MessagesOut,
+    UrlOut,
 )
 from chat.serializers import (
     AskSerializer,
     ConversationCreateSerializer,
     ConversationSerializer,
     ConversationUpdateSerializer,
+    FeedbackSerializer,
+    feedback_payload,
     message_payload,
 )
 
@@ -153,6 +160,58 @@ class MessageListView(APIView):
             client_request_id=data['client_request_id'],
         )
         return event_stream_response(answering.stream_turn(turn))
+
+
+class FeedbackView(APIView):
+    @extend_schema(operation_id='feedback_set', tags=['chat'], request=FeedbackSerializer,
+                   responses=FeedbackOut)
+    def put(self, request, message_id):
+        message = owned_message(request, message_id)
+        if message.role != Message.Role.ASSISTANT or message.status != Message.Status.COMPLETE:
+            raise Http404
+        serializer = FeedbackSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        feedback, _ = Feedback.objects.update_or_create(
+            message=message,
+            defaults={
+                'user': request.user,
+                'rating': data['rating'],
+                'reason': data.get('reason') if data['rating'] < 0 else None,
+                'comment': data.get('comment', ''),
+            },
+        )
+        return Response(feedback_payload(feedback))
+
+    @extend_schema(operation_id='feedback_delete', tags=['chat'], responses={204: None})
+    def delete(self, request, message_id):
+        message = owned_message(request, message_id)
+        Feedback.objects.filter(message=message).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SourceOpenView(APIView):
+    @extend_schema(operation_id='sources_open', tags=['chat'], responses=UrlOut)
+    def get(self, request, source_id):
+        source = get_object_or_404(
+            MessageSource.objects.select_related('document'),
+            pk=source_id,
+            message__conversation__user=request.user,
+        )
+        if source.url:
+            return Response({'url': source.url})
+        document = source.document
+        if document is None or not document.storage_path:
+            raise Http404
+        try:
+            url = get_storage().signed_url(
+                document.storage_path, filename=document.original_filename or None
+            )
+        except StorageError:
+            logger.warning('Could not sign a link for source %s', source.pk, exc_info=True)
+            return error_response(request, status.HTTP_503_SERVICE_UNAVAILABLE,
+                                  'source_unavailable', 'The source file is unavailable right now.')
+        return Response({'url': url})
 
 
 class AppConfigView(APIView):
