@@ -172,6 +172,20 @@ function ConversationView({ conversationId }) {
     if (node && stickToBottom.current) node.scrollTop = node.scrollHeight;
   }, [thread.length, lastContent, stream.state.stage]);
 
+  // The answer keeps growing after its text arrives (the typing reveal, sources, actions),
+  // so follow the thread's height itself, not just incoming data.
+  const threadRef = useRef(null);
+  useEffect(() => {
+    const node = scrollRef.current;
+    const content = threadRef.current;
+    if (!node || !content || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => {
+      if (stickToBottom.current) node.scrollTop = node.scrollHeight;
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [isPending]);
+
   const topbarConversation = data?.conversation;
   const topbarActions = useMemo(
     () => (topbarConversation ? <ConversationMenu conversation={topbarConversation} /> : null),
@@ -209,7 +223,7 @@ function ConversationView({ conversationId }) {
         {isPending && !thread.length ? (
           <ThreadSkeleton />
         ) : (
-          <div className="chat-column space-y-8 pt-6 pb-10 sm:pt-8">
+          <div ref={threadRef} className="chat-column space-y-8 pt-6 pb-10 sm:pt-8">
             {thread.map((message, index) =>
               message.role === 'user' ? (
                 <UserMessage
