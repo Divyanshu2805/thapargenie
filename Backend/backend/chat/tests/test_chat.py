@@ -256,16 +256,22 @@ class OwnershipTests(ChatTestCase):
 
 
 class ConversationApiTests(ChatTestCase):
-    def test_list_newest_first(self):
-        Conversation.objects.create(user=self.user, title='Hostel fees')
+    def test_list_filters(self):
+        a = Conversation.objects.create(user=self.user, title='Hostel fees', is_pinned=True)
         Conversation.objects.create(user=self.user, title='Library hours')
-        titles = [c['title'] for c in self.client.get('/api/v1/conversations/').data['results']]
-        self.assertEqual(titles, ['Library hours', 'Hostel fees'])
+        Conversation.objects.create(user=self.user, title='Old', is_archived=True)
+        titles = lambda qs: [c['title'] for c in self.client.get(  # noqa: E731
+            f'/api/v1/conversations/{qs}').data['results']]
+        self.assertEqual(sorted(titles('')), ['Hostel fees', 'Library hours'])
+        self.assertEqual(titles('?pinned=true'), ['Hostel fees'])
+        self.assertEqual(titles('?archived=true'), ['Old'])
+        self.assertEqual(str(a.pk), self.client.get('/api/v1/conversations/?pinned=true')
+                         .data['results'][0]['id'])
 
     def test_create_rename_delete(self):
         created = self.client.post('/api/v1/conversations/', {}, format='json').data
         response = self.client.patch(f'/api/v1/conversations/{created["id"]}/',
-                                     {'title': '  My   fees  '}, format='json')
+                                     {'title': '  My   fees  ', 'is_pinned': True}, format='json')
         self.assertEqual(response.data['title'], 'My fees')
         conversation = Conversation.objects.get(pk=created['id'])
         self.assertEqual(conversation.title_source, Conversation.TitleSource.USER)

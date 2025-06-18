@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -108,6 +108,35 @@ export default function ConversationMenu({ conversation, className, align = 'end
           <DropdownMenuItem onSelect={() => setDialog('rename')}>
             <Pencil /> Rename
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => update.mutate({ is_pinned: !conversation.is_pinned })}>
+            {conversation.is_pinned ? (
+              <>
+                <PinOff /> Unpin
+              </>
+            ) : (
+              <>
+                <Pin /> Pin
+              </>
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() =>
+              update.mutate(
+                { is_archived: !conversation.is_archived },
+                { onSuccess: () => toast.success(conversation.is_archived ? 'Chat restored' : 'Chat archived') },
+              )
+            }
+          >
+            {conversation.is_archived ? (
+              <>
+                <ArchiveRestore /> Unarchive
+              </>
+            ) : (
+              <>
+                <Archive /> Archive
+              </>
+            )}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setDialog('delete')}>
             <Trash2 /> Delete
@@ -159,8 +188,8 @@ function ToolbarButton({ label, onClick, danger, children }) {
 }
 
 /**
- * The chat's actions as icons in its header (desktop). `group="start"` holds rename
- * (beside the title); `group="end"` holds delete (right edge).
+ * The chat's actions as icons in its header (desktop). `group="start"` holds rename and
+ * pin (beside the title); `group="end"` holds archive and delete (right edge).
  */
 export function ConversationToolbar({ conversation, group }) {
   const { update, remove } = useConversationActions(conversation);
@@ -173,9 +202,23 @@ export function ConversationToolbar({ conversation, group }) {
           <ToolbarButton label="Rename" onClick={() => setDialog('rename')}>
             <Pencil />
           </ToolbarButton>
+          <ToolbarButton label={conversation.is_pinned ? 'Unpin' : 'Pin'} onClick={() => update.mutate({ is_pinned: !conversation.is_pinned })}>
+            {conversation.is_pinned ? <PinOff /> : <Pin />}
+          </ToolbarButton>
         </>
       ) : (
         <>
+          <ToolbarButton
+            label={conversation.is_archived ? 'Unarchive' : 'Archive'}
+            onClick={() =>
+              update.mutate(
+                { is_archived: !conversation.is_archived },
+                { onSuccess: () => toast.success(conversation.is_archived ? 'Chat restored' : 'Chat archived') },
+              )
+            }
+          >
+            {conversation.is_archived ? <ArchiveRestore /> : <Archive />}
+          </ToolbarButton>
           <ToolbarButton label="Delete" danger onClick={() => setDialog('delete')}>
             <Trash2 />
           </ToolbarButton>

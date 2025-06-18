@@ -32,6 +32,8 @@ class Conversation(UUIDModel, TimestampedModel):
     title_source = models.CharField(
         max_length=8, choices=TitleSource.choices, default=TitleSource.AUTO
     )
+    is_pinned = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
     message_count = models.PositiveIntegerField(default=0)
     last_message_at = models.DateTimeField(default=timezone.now)
 
@@ -40,7 +42,10 @@ class Conversation(UUIDModel, TimestampedModel):
     class Meta:
         ordering = ('-last_message_at',)
         indexes = [
-            models.Index(fields=('user', '-last_message_at'), name='conversation_sidebar_idx'),
+            models.Index(
+                fields=('user', 'is_archived', 'is_pinned', '-last_message_at'),
+                name='conversation_sidebar_idx',
+            ),
         ]
         constraints = [
             choices_check('title_source', TitleSource, 'conversation_title_source_valid'),

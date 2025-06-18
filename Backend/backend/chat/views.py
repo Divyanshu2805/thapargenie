@@ -9,7 +9,7 @@ from common.throttles import (
 )
 from django.http import Http404
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from knowledge.storage import StorageError, get_storage
 from rest_framework import status
 from rest_framework.pagination import CursorPagination
@@ -51,6 +51,13 @@ class ConversationPagination(CursorPagination):
     ordering = ('-last_message_at', '-id')
 
 
+def _bool_param(request, name):
+    value = request.query_params.get(name)
+    if value is None:
+        return None
+    return value.lower() in ('1', 'true', 'yes')
+
+
 def owned_conversation(request, conversation_id, *, lock=False):
     return get_object_or_404(Conversation.objects.owned_by(request.user), pk=conversation_id)
 
@@ -64,10 +71,22 @@ def owned_message(request, message_id):
 
 
 class ConversationListView(APIView):
-    @extend_schema(operation_id='conversations_list', tags=['chat'],
-                   responses=ConversationSerializer(many=True))
+    @extend_schema(
+        operation_id='conversations_list',
+        tags=['chat'],
+        parameters=[
+            OpenApiParameter('archived', bool),
+            OpenApiParameter('pinned', bool),
+        ],
+        responses=ConversationSerializer(many=True),
+    )
     def get(self, request):
-        conversations = Conversation.objects.owned_by(request.user)
+        conversations = Conversation.objects.owned_by(request.user).filter(
+            is_archived=bool(_bool_param(request, 'archived'))
+        )
+        pinned = _bool_param(request, 'pinned')
+        if pinned is not None:
+            conversations = conversations.filter(is_pinned=pinned)
         paginator = ConversationPagination()
         page = paginator.paginate_queryset(conversations, request, view=self)
         data = ConversationSerializer(page, many=True).data
@@ -106,6 +125,10 @@ class ConversationDetailView(APIView):
             conversation.title = data['title']
             conversation.title_source = Conversation.TitleSource.USER
             fields += ['title', 'title_source']
+        for flag in ('is_pinned', 'is_archived'):
+            if flag in data:
+                setattr(conversation, flag, data[flag])
+                fields.append(flag)
         if fields:
             conversation.save(update_fields=[*fields, 'updated_at'])
         return Response(ConversationSerializer(conversation).data)

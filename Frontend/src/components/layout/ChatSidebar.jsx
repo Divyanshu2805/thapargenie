@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { MessageSquare, Pin, SquarePen } from 'lucide-react';
+import { Archive, ArrowLeft, MessageSquare, Pin, SquarePen } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
@@ -166,11 +166,17 @@ export default function ChatSidebar({ onNavigate: onNavigateProp }) {
   const sidebar = useSidebar();
   const onNavigate = onNavigateProp || sidebar.onNavigate;
   const rail = sidebar.collapsed && !sidebar.inDrawer;
+  const [archived, setArchived] = useState(false);
   const navigate = useNavigate();
 
   const startNewChat = () => {
     onNavigate?.();
     navigate('/chat/');
+  };
+
+  const toggleArchived = () => {
+    if (rail) sidebar.toggle();
+    setArchived((value) => !value);
   };
 
   // One tree for the open sidebar and the rail (see SidebarLayout): icons keep their place,
@@ -192,10 +198,11 @@ export default function ChatSidebar({ onNavigate: onNavigateProp }) {
       </nav>
 
       <div inert={rail} className={cn('sidebar-label scrollbar-thin min-h-0 flex-1', rail ? 'overflow-hidden' : 'overflow-y-auto')}>
-        <ConversationList onNavigate={onNavigate} />
+        <ConversationList archived={archived} onNavigate={onNavigate} />
       </div>
 
       <div className="flex flex-col gap-0.5 border-t border-sidebar-border px-3 py-2">
+        <SidebarItem icon={archived ? ArrowLeft : Archive} label={archived ? 'Back to chats' : 'Archived chats'} onClick={toggleArchived} pressed={archived} />
         <UserMenu compact={rail} />
       </div>
     </div>

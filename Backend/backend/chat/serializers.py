@@ -13,7 +13,8 @@ class ConversationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
         fields = (
-            'id', 'title', 'message_count', 'last_message_at', 'created_at',
+            'id', 'title', 'is_pinned', 'is_archived', 'message_count', 'last_message_at',
+            'created_at',
         )
         read_only_fields = fields
 
@@ -24,6 +25,8 @@ class ConversationCreateSerializer(RejectUnknownFieldsMixin, serializers.Seriali
 
 class ConversationUpdateSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     title = serializers.CharField(max_length=120, required=False, allow_blank=False)
+    is_pinned = serializers.BooleanField(required=False)
+    is_archived = serializers.BooleanField(required=False)
 
     def validate_title(self, value):
         value = ' '.join(value.split())
