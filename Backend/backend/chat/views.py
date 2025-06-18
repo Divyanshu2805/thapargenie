@@ -1,14 +1,21 @@
 """Student chat API. Every query is scoped to request.user."""
 
+import json
 import logging
 
-from common.admin_api import error_response
+from api.permissions import HasRecentFirebaseAuthentication
+from common.admin_api import error_response, request_id
+from common.audit import audit
 from common.sse import event_stream_response
 from common.throttles import (
     AskThrottle,
+    ExportThrottle,
 )
-from django.http import Http404
+from django.db.models import Prefetch
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from knowledge.storage import StorageError, get_storage
 from rest_framework import status
@@ -39,6 +46,7 @@ from chat.serializers import (
     FeedbackSerializer,
     feedback_payload,
     message_payload,
+    source_payload,
 )
 
 logger = logging.getLogger(__name__)
@@ -71,6 +79,13 @@ def owned_message(request, message_id):
 
 
 class ConversationListView(APIView):
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        # Deleting every conversation is irreversible: ask for a recent sign-in.
+        if self.request.method == 'DELETE':
+            permissions.append(HasRecentFirebaseAuthentication())
+        return permissions
+
     @extend_schema(
         operation_id='conversations_list',
         tags=['chat'],
@@ -105,6 +120,15 @@ class ConversationListView(APIView):
             Conversation.TitleSource.AUTO,
         )
         return Response(ConversationSerializer(conversation).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(operation_id='conversations_delete_all', tags=['chat'], responses={204: None})
+    def delete(self, request):
+        owned = Conversation.objects.owned_by(request.user)
+        count = owned.count()
+        owned.delete()
+        audit(request.user, 'privacy.deleted_all', 'user', request.user.pk,
+              request_id=request_id(request), conversations=count)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ConversationDetailView(APIView):
@@ -246,3 +270,49 @@ class AppConfigView(APIView):
             'daily_limit': None if request.user.is_staff else settings.daily_question_limit,
             'remaining_today': quota.remaining(request.user),
         })
+
+
+class ExportView(APIView):
+    """Everything the student has said and received, as a JSON download."""
+
+    throttle_classes = [ExportThrottle]
+
+    @extend_schema(operation_id='me_export', tags=['me'],
+                   responses={(200, 'application/json'): OpenApiTypes.OBJECT})
+    def get(self, request):
+        conversations = Conversation.objects.owned_by(request.user).prefetch_related(
+            Prefetch('messages', queryset=Message.objects.order_by('created_at')),
+            'messages__sources__document',
+        )
+        data = {
+            'exported_at': timezone.now().isoformat(),
+            'email': request.user.email,
+            'conversations': [
+                {
+                    'id': str(conversation.pk),
+                    'title': conversation.title,
+                    'created_at': conversation.created_at.isoformat(),
+                    'messages': [
+                        {
+                            'id': str(message.pk),
+                            'parent_id': str(message.parent_id) if message.parent_id else None,
+                            'role': message.role,
+                            'content': message.content,
+                            'status': message.status,
+                            'created_at': message.created_at.isoformat(),
+                            'sources': [source_payload(s) for s in message.sources.all()],
+                        }
+                        for message in conversation.messages.all()
+                    ],
+                }
+                for conversation in conversations
+            ],
+        }
+        response = HttpResponse(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            content_type='application/json; charset=utf-8',
+        )
+        response['Content-Disposition'] = 'attachment; filename="thapargpt-export.json"'
+        audit(request.user, 'privacy.exported', 'user', request.user.pk,
+              request_id=request_id(request), conversations=len(data['conversations']))
+        return response

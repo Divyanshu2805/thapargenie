@@ -279,12 +279,23 @@ class ConversationApiTests(ChatTestCase):
                          .status_code, 204)
         self.assertFalse(Conversation.objects.exists())
 
-    def test_app_config(self):
+    def test_delete_all_only_touches_own(self):
+        self.conversation()
+        other = approved_user('b@thapar.edu')
+        Conversation.objects.create(user=other)
+        self.assertEqual(self.client.delete('/api/v1/conversations/').status_code, 204)
+        self.assertEqual(list(Conversation.objects.values_list('user', flat=True)), [other.pk])
+
+    def test_app_config_and_export(self):
         conversation = self.conversation()
         self.answered(conversation)
         config = self.client.get('/api/v1/app-config/').data
         self.assertEqual(config['remaining_today'], 39)
         self.assertTrue(config['starter_questions'])
+        export = self.client.get('/api/v1/me/export/')
+        self.assertIn('attachment', export['Content-Disposition'])
+        data = json.loads(export.content)
+        self.assertEqual(len(data['conversations'][0]['messages']), 2)
 
 
 class FeedbackAndSourceTests(ChatTestCase):

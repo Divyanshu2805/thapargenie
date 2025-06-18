@@ -1,7 +1,9 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   BadgeCheck,
   Check,
+  Database,
+  Download,
   GraduationCap,
   LogOut,
   Monitor,
@@ -10,6 +12,7 @@ import {
   Palette,
   ShieldCheck,
   Sun,
+  Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -26,7 +29,8 @@ import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useRecentAuth } from '@/components/recent-auth';
 import { SectionFields, SectionRow, SplitSection } from '@/components/split-section';
-import { revokeAllSessions, updatePreferences } from '@/lib/api/chat';
+import { deleteAllConversations, exportMyData, revokeAllSessions, updatePreferences } from '@/lib/api/chat';
+import { downloadBlob } from '@/lib/download';
 import { logout } from '@/utils/auth';
 import { cn } from '@/lib/utils';
 
@@ -202,6 +206,62 @@ function AppearanceCard() {
   );
 }
 
+function DataCard() {
+  const queryClient = useQueryClient();
+  const withRecentAuth = useRecentAuth();
+  const [confirming, setConfirming] = useState(false);
+
+  const exportData = useMutation({
+    mutationFn: exportMyData,
+    onSuccess: ({ blob }) => downloadBlob(blob, `thapargenie-export-${new Date().toISOString().slice(0, 10)}.json`),
+    onError: (error) => toast.error('Couldn’t export your chats', { description: error.message }),
+  });
+
+  const deleteAll = useMutation({
+    // Irreversible, so the API asks for a recent sign-in first.
+    mutationFn: () => withRecentAuth(deleteAllConversations),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['conversation'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setConfirming(false);
+      toast.success('All chats deleted');
+    },
+    onError: (error) => {
+      setConfirming(false);
+      if (error.code !== 'request_cancelled') toast.error('Couldn’t delete your chats', { description: error.message });
+    },
+  });
+
+  return (
+    <SplitSection icon={Database} title="Your data" description="Chats with no activity for 180 days are deleted automatically.">
+      <SectionRow title="Export your chats" description="Download every conversation as a JSON file.">
+        <Button variant="outline" onClick={() => exportData.mutate()} disabled={exportData.isPending}>
+          <Download /> {exportData.isPending ? 'Preparing…' : 'Export'}
+        </Button>
+      </SectionRow>
+      <SectionRow title="Delete all chats" description="Removes every conversation and your feedback. This can’t be undone.">
+        <Button
+          variant="outline"
+          className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => setConfirming(true)}
+        >
+          <Trash2 /> Delete all
+        </Button>
+      </SectionRow>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Delete all chats?"
+        description="Every conversation, answer and piece of feedback you’ve given will be permanently deleted. This can’t be undone."
+        confirmLabel="Delete everything"
+        pendingLabel="Deleting…"
+        pending={deleteAll.isPending}
+        onConfirm={() => deleteAll.mutate()}
+      />
+    </SplitSection>
+  );
+}
+
 function SessionsCard() {
   const withRecentAuth = useRecentAuth();
   const navigate = useNavigate();
@@ -248,6 +308,7 @@ export default function SettingsPage() {
       <div>
         <PreferencesCard />
         <AppearanceCard />
+        <DataCard />
         <SessionsCard />
       </div>
     </div>

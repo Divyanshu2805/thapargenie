@@ -17,3 +17,9 @@ class AdminWriteThrottle(UserRateThrottle):
         if request.method in SAFE_METHODS:
             return True
         return super().allow_request(request, view)
+
+
+class ExportThrottle(UserRateThrottle):
+    """A full export is the most expensive student request."""
+
+    scope = 'export'
