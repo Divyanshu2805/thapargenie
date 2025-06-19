@@ -24,6 +24,20 @@ class SourceOut(serializers.Serializer):
     cited = serializers.BooleanField()
 
 
+class SearchMatchOut(serializers.Serializer):
+    role = serializers.ChoiceField(choices=Message.Role.choices)
+    snippet = serializers.CharField()
+
+
+class ConversationListOut(ConversationSerializer):
+    match = SearchMatchOut(allow_null=True, required=False, help_text=(
+        'Only when searching: the newest message containing the words, or null when only '
+        'the title matched.'))
+
+    class Meta(ConversationSerializer.Meta):
+        fields = (*ConversationSerializer.Meta.fields, 'match')
+
+
 class FeedbackOut(serializers.Serializer):
     rating = serializers.ChoiceField(choices=(-1, 1))
     reason = serializers.ChoiceField(choices=Feedback.Reason.choices, allow_null=True)

@@ -11,7 +11,7 @@ from common.throttles import (
     AskThrottle,
     ExportThrottle,
 )
-from django.db.models import Prefetch
+from django.db.models import OuterRef, Prefetch, Q, Subquery
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -34,6 +34,7 @@ from chat.models import (
 from chat.schema import (
     EVENT_STREAM,
     AppConfigOut,
+    ConversationListOut,
     FeedbackOut,
     MessagesOut,
     UrlOut,
@@ -46,10 +47,13 @@ from chat.serializers import (
     FeedbackSerializer,
     feedback_payload,
     message_payload,
+    search_snippet,
     source_payload,
 )
 
 logger = logging.getLogger(__name__)
+
+MIN_SEARCH_CHARS = 2
 
 
 class ConversationPagination(CursorPagination):
@@ -92,8 +96,11 @@ class ConversationListView(APIView):
         parameters=[
             OpenApiParameter('archived', bool),
             OpenApiParameter('pinned', bool),
+            OpenApiParameter('q', str, description=(
+                'Search in titles and in every message (questions and answers); at least '
+                f'{MIN_SEARCH_CHARS} characters. Results carry `match` with a snippet.')),
         ],
-        responses=ConversationSerializer(many=True),
+        responses=ConversationListOut(many=True),
     )
     def get(self, request):
         conversations = Conversation.objects.owned_by(request.user).filter(
@@ -102,9 +109,25 @@ class ConversationListView(APIView):
         pinned = _bool_param(request, 'pinned')
         if pinned is not None:
             conversations = conversations.filter(is_pinned=pinned)
+        query = ' '.join((request.query_params.get('q') or '').split())[:100]
+        searching = len(query) >= MIN_SEARCH_CHARS
+        if searching:
+            # The newest message in each conversation that contains the words.
+            hits = Message.objects.filter(conversation=OuterRef('pk'),
+                                          content__icontains=query).order_by('-created_at')
+            conversations = conversations.annotate(
+                match_role=Subquery(hits.values('role')[:1]),
+                match_content=Subquery(hits.values('content')[:1]),
+            ).filter(Q(title__icontains=query) | Q(match_role__isnull=False))
         paginator = ConversationPagination()
         page = paginator.paginate_queryset(conversations, request, view=self)
         data = ConversationSerializer(page, many=True).data
+        if searching:
+            for item, conversation in zip(data, page, strict=True):
+                item['match'] = {
+                    'role': conversation.match_role,
+                    'snippet': search_snippet(conversation.match_content, query),
+                } if conversation.match_role else None
         return paginator.get_paginated_response(data)
 
     @extend_schema(operation_id='conversations_create', tags=['chat'],

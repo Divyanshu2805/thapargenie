@@ -2,6 +2,7 @@ import time
 
 from common.mixins import TimestampedModel, UUIDModel, choices_check, max_length_check
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.utils import timezone
 from knowledge.models import Category
@@ -45,6 +46,9 @@ class Conversation(UUIDModel, TimestampedModel):
             models.Index(
                 fields=('user', 'is_archived', 'is_pinned', '-last_message_at'),
                 name='conversation_sidebar_idx',
+            ),
+            GinIndex(
+                fields=('title',), opclasses=('gin_trgm_ops',), name='conversation_title_trgm'
             ),
         ]
         constraints = [

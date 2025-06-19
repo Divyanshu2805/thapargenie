@@ -19,6 +19,16 @@ class ConversationSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+def search_snippet(content, query, width=60):
+    """Plain text around the first case-insensitive match of `query` in `content`."""
+    text = ' '.join(content.split())
+    at = text.lower().find(query.lower())
+    if at < 0:
+        return text[: width * 2] + ('…' if len(text) > width * 2 else '')
+    start, end = max(0, at - width), min(len(text), at + len(query) + width)
+    return ('…' if start else '') + text[start:end] + ('…' if end < len(text) else '')
+
+
 class ConversationCreateSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     title = serializers.CharField(max_length=120, required=False, allow_blank=True)
 

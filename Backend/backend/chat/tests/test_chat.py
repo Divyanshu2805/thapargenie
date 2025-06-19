@@ -256,7 +256,7 @@ class OwnershipTests(ChatTestCase):
 
 
 class ConversationApiTests(ChatTestCase):
-    def test_list_filters(self):
+    def test_list_filters_and_search(self):
         a = Conversation.objects.create(user=self.user, title='Hostel fees', is_pinned=True)
         Conversation.objects.create(user=self.user, title='Library hours')
         Conversation.objects.create(user=self.user, title='Old', is_archived=True)
@@ -265,6 +265,7 @@ class ConversationApiTests(ChatTestCase):
         self.assertEqual(sorted(titles('')), ['Hostel fees', 'Library hours'])
         self.assertEqual(titles('?pinned=true'), ['Hostel fees'])
         self.assertEqual(titles('?archived=true'), ['Old'])
+        self.assertEqual(titles('?q=libr'), ['Library hours'])
         self.assertEqual(str(a.pk), self.client.get('/api/v1/conversations/?pinned=true')
                          .data['results'][0]['id'])
 
