@@ -14,6 +14,12 @@ class ConversationFull(APIException):
     default_code = 'conversation_full'
 
 
+class InvalidParent(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = 'That message cannot be edited or regenerated.'
+    default_code = 'invalid_parent'
+
+
 class DailyQuotaExceeded(APIException):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
     default_detail = "You've reached today's question limit. It resets at midnight."

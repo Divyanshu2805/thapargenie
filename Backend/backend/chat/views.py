@@ -23,7 +23,7 @@ from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from chat import answering, quota
+from chat import answering, engine, quota
 from chat.models import (
     ChatSettings,
     Conversation,
@@ -45,6 +45,7 @@ from chat.serializers import (
     ConversationSerializer,
     ConversationUpdateSerializer,
     FeedbackSerializer,
+    RegenerateSerializer,
     feedback_payload,
     message_payload,
     search_snippet,
@@ -178,6 +179,10 @@ class ConversationDetailView(APIView):
                 fields.append(flag)
         if fields:
             conversation.save(update_fields=[*fields, 'updated_at'])
+        if 'current_leaf_id' in data and engine.switch_branch(
+            conversation, data['current_leaf_id']
+        ) is None:
+            raise Http404
         return Response(ConversationSerializer(conversation).data)
 
     @extend_schema(operation_id='conversations_delete', tags=['chat'], responses={204: None})
@@ -187,7 +192,7 @@ class ConversationDetailView(APIView):
 
 
 class MessageListView(APIView):
-    """GET: the thread. POST: ask a question (streams SSE)."""
+    """GET: the active branch. POST: ask a question (streams SSE)."""
 
     def get_throttles(self):
         throttles = super().get_throttles()
@@ -196,7 +201,8 @@ class MessageListView(APIView):
     @extend_schema(operation_id='messages_list', tags=['chat'], responses=MessagesOut)
     def get(self, request, conversation_id):
         conversation = owned_conversation(request, conversation_id)
-        path = list(conversation.messages.order_by('created_at', 'id'))
+        engine.expire_stale_streams(conversation=conversation)
+        path, tree = engine.active_path(conversation)
         ids = [message.pk for message in path]
         sources, feedback = {}, {}
         for source in MessageSource.objects.filter(message_id__in=ids).select_related('document'):
@@ -206,6 +212,7 @@ class MessageListView(APIView):
         messages = [
             message_payload(
                 message,
+                siblings=tree.siblings(message),
                 sources=sorted(sources.get(message.pk, []), key=lambda s: s.position),
                 feedback=feedback.get(message.pk),
             )
@@ -228,6 +235,24 @@ class MessageListView(APIView):
             conversation,
             content=data['content'],
             client_request_id=data['client_request_id'],
+        )
+        return event_stream_response(answering.stream_turn(turn))
+
+
+class RegenerateView(APIView):
+    throttle_classes = [AskThrottle]
+
+    @extend_schema(operation_id='messages_regenerate', tags=['chat'],
+                   request=RegenerateSerializer, responses={200: EVENT_STREAM})
+    def post(self, request, message_id):
+        message = owned_message(request, message_id)
+        serializer = RegenerateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        turn = answering.start_turn(
+            request.user,
+            message.conversation,
+            client_request_id=serializer.validated_data['client_request_id'],
+            regenerate=message,
         )
         return event_stream_response(answering.stream_turn(turn))
 

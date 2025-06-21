@@ -35,6 +35,9 @@ class Conversation(UUIDModel, TimestampedModel):
     )
     is_pinned = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
+    current_leaf = models.ForeignKey(
+        'Message', null=True, blank=True, on_delete=models.SET_NULL, related_name='+'
+    )
     message_count = models.PositiveIntegerField(default=0)
     last_message_at = models.DateTimeField(default=timezone.now)
 

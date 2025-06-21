@@ -15,7 +15,7 @@ from rag.llm.fake import FakeProvider, hashed_embedding
 from rest_framework.test import APIClient
 from userauths.models import EligibilityState, User
 
-from chat import background, memory
+from chat import background, engine, memory
 from chat.models import (
     ChatSettings,
     Conversation,
@@ -120,6 +120,7 @@ class AskTests(ChatTestCase):
         self.assertEqual(source.url, 'https://www.thapar.edu/fees')
 
         conversation.refresh_from_db()
+        self.assertEqual(conversation.current_leaf, assistant)
         self.assertEqual(conversation.message_count, 2)
         self.assertEqual(conversation.title, 'boys hostel fee?')
         usage = UsageDaily.objects.get(user=self.user)
@@ -146,7 +147,8 @@ class AskTests(ChatTestCase):
         self.answered(conversation, content='and for girls?')
         answer_request = self.fake.requests[-1]
         self.assertEqual(answer_request.history[0].content, 'boys hostel fee?')
-        self.assertEqual(Message.objects.filter(conversation=conversation).count(), 4)
+        path, _ = engine.active_path(Conversation.objects.get(pk=conversation.pk))
+        self.assertEqual(len(path), 4)
 
     def test_validation(self):
         conversation = self.conversation()
@@ -219,6 +221,19 @@ class LimitTests(ChatTestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.data['error']['code'], 'conversation_busy')
 
+    def test_stale_stream_does_not_block_forever(self):
+        other = self.conversation()
+        stale = Message.objects.create(conversation=other, role=Message.Role.ASSISTANT,
+                                       status=Message.Status.STREAMING)
+        Message.objects.filter(pk=stale.pk).update(
+            updated_at=timezone.now() - engine.STALE_STREAM * 2
+        )
+        self.answered(self.conversation())  # not blocked
+        self.client.get(f'/api/v1/conversations/{other.pk}/messages/')
+        stale.refresh_from_db()
+        self.assertEqual(stale.status, Message.Status.FAILED)
+        self.assertEqual(stale.error_code, 'interrupted')
+
     def test_full_conversation(self):
         conversation = self.conversation()
         Conversation.objects.filter(pk=conversation.pk).update(message_count=199)
@@ -240,6 +255,8 @@ class OwnershipTests(ChatTestCase):
             intruder.patch(f'/api/v1/conversations/{conversation.pk}/', {'title': 'x'},
                            format='json'),
             intruder.delete(f'/api/v1/conversations/{conversation.pk}/'),
+            intruder.post(f'/api/v1/messages/{assistant.pk}/regenerate/',
+                          {'client_request_id': str(uuid.uuid4())}, format='json'),
             intruder.put(f'/api/v1/messages/{assistant.pk}/feedback/', {'rating': -1},
                          format='json'),
             intruder.get(f'/api/v1/sources/{source.pk}/open/'),

@@ -21,11 +21,12 @@ from django.utils import timezone
 from rag.llm import LLMError, QuotaExhausted, get_llm
 from rag.pipeline import answer_events
 
-from chat import background, memory, quota
+from chat import background, engine, memory, quota
 from chat.errors import (
     ConversationBusy,
     ConversationFull,
     DailyQuotaExceeded,
+    InvalidParent,
     ServiceBusy,
 )
 from chat.models import (
@@ -47,6 +48,7 @@ class Turn:
     conversation: Conversation
     user_message: Message
     assistant_message: Message
+    regenerated: bool = False
     replay: bool = False
     remaining_today: int | None = None
 
@@ -57,7 +59,8 @@ def _check_admission(user, settings):
         raise DailyQuotaExceeded()
     if quota.global_calls_today() >= settings.global_daily_llm_calls:
         raise ServiceBusy()
-    # Streams older than BUSY_WINDOW are abandoned (crash, restart) and do not block.
+    # Streams older than BUSY_WINDOW are abandoned (crash, restart) and do not block;
+    # they are marked failed when their conversation is next loaded.
     busy = Message.objects.filter(
         conversation__user=user,
         status=Message.Status.STREAMING,
@@ -86,7 +89,7 @@ def _replay(conversation, client_request_id):
 
 
 @transaction.atomic
-def start_turn(user, conversation, *, content, client_request_id):
+def start_turn(user, conversation, *, content=None, client_request_id, regenerate=None):
     conversation = Conversation.objects.select_for_update().get(pk=conversation.pk)
     replay = _replay(conversation, client_request_id)
     if replay is not None:
@@ -94,21 +97,33 @@ def start_turn(user, conversation, *, content, client_request_id):
 
     settings = ChatSettings.load()
     usage = _check_admission(user, settings)
-    new_messages = 2
+    new_messages = 1 if regenerate else 2
     if conversation.message_count + new_messages > MAX_MESSAGES_PER_CONVERSATION:
         raise ConversationFull()
 
     now = timezone.now()
-    parent = conversation.messages.filter(role=Message.Role.ASSISTANT).last()
-    user_message = Message.objects.create(
-        conversation=conversation, parent=parent, role=Message.Role.USER,
-        content=content, client_request_id=client_request_id,
-    )
-    assistant = Message.objects.create(
-        conversation=conversation, parent=user_message, role=Message.Role.ASSISTANT,
-        status=Message.Status.STREAMING,
-    )
+    if regenerate is not None:
+        if regenerate.role != Message.Role.ASSISTANT or regenerate.parent_id is None:
+            raise InvalidParent()
+        user_message = regenerate.parent
+        assistant = Message.objects.create(
+            conversation=conversation, parent=user_message, role=Message.Role.ASSISTANT,
+            status=Message.Status.STREAMING, client_request_id=client_request_id,
+        )
+    else:
+        parent = conversation.current_leaf
+        if parent is not None and parent.role != Message.Role.ASSISTANT:
+            parent = None
+        user_message = Message.objects.create(
+            conversation=conversation, parent=parent, role=Message.Role.USER,
+            content=content, client_request_id=client_request_id,
+        )
+        assistant = Message.objects.create(
+            conversation=conversation, parent=user_message, role=Message.Role.ASSISTANT,
+            status=Message.Status.STREAMING,
+        )
 
+    conversation.current_leaf = assistant
     conversation.message_count += new_messages
     conversation.last_message_at = now
     if not conversation.title:
@@ -118,20 +133,9 @@ def start_turn(user, conversation, *, content, client_request_id):
     usage.save(update_fields=['questions'])
     return Turn(
         conversation, user_message, assistant,
+        regenerated=regenerate is not None,
         remaining_today=quota.remaining_from(user, usage, settings),
     )
-
-
-def _history(messages):
-    """Earlier turns the model should see (oldest first); failed answers are skipped."""
-    usable = []
-    for message in messages:
-        if message.role == Message.Role.USER:
-            usable.append({'role': 'user', 'content': message.content})
-        elif message.status in (Message.Status.COMPLETE, Message.Status.STOPPED) and \
-                message.content:
-            usable.append({'role': 'assistant', 'content': message.content})
-    return usable
 
 
 def _profile(user):
@@ -229,6 +233,7 @@ def _meta(turn):
         'conversation_id': str(turn.conversation.pk),
         'user_message_id': str(turn.user_message.pk),
         'assistant_message_id': str(turn.assistant_message.pk),
+        'regenerated': turn.regenerated,
         'remaining_today': turn.remaining_today if not turn.replay
         else quota.remaining(turn.conversation.user),
     }
@@ -241,9 +246,9 @@ def stream_turn(turn):
         return
 
     user = turn.conversation.user
-    prior = list(turn.conversation.messages.filter(
-        created_at__lt=turn.user_message.created_at
-    ))
+    path, _ = engine.active_path(turn.conversation)
+    upto = [m.pk for m in path].index(turn.user_message.pk)
+    prior = path[:upto]
     llm = get_llm()
     started = time.monotonic()
     parts = []
@@ -254,7 +259,7 @@ def stream_turn(turn):
         events = answer_events(
             turn.user_message.content,
             llm=llm,
-            history=_history(prior),
+            history=engine.history(prior),
             profile=_profile(user),
         )
         for event, data in events:

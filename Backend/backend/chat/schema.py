@@ -44,6 +44,12 @@ class FeedbackOut(serializers.Serializer):
     comment = serializers.CharField(allow_blank=True)
 
 
+class SiblingsOut(serializers.Serializer):
+    index = serializers.IntegerField()
+    count = serializers.IntegerField()
+    ids = serializers.ListField(child=serializers.UUIDField())
+
+
 class MessageOut(serializers.Serializer):
     id = serializers.UUIDField()
     parent_id = serializers.UUIDField(allow_null=True)
@@ -55,6 +61,7 @@ class MessageOut(serializers.Serializer):
     created_at = serializers.DateTimeField()
     sources = SourceOut(many=True)
     feedback = FeedbackOut(allow_null=True)
+    siblings = SiblingsOut(required=False)
 
 
 class MessagesOut(serializers.Serializer):
@@ -81,7 +88,7 @@ EVENT_STREAM = OpenApiResponse(
     response=OpenApiTypes.STR,
     description=(
         'text/event-stream. Events, in order: `meta` {conversation_id, user_message_id, '
-        'assistant_message_id, remaining_today}; zero or more `status` '
+        'assistant_message_id, regenerated, remaining_today}; zero or more `status` '
         '{stage: searching|writing, detail?}; `sources` {sources[]}; '
         '`delta` {text} (repeated); then `done` {message, remaining_today} or `error` '
         '{code, message, retryable}. `: ping` comments keep the connection open.'

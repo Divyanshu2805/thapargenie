@@ -37,6 +37,7 @@ class ConversationUpdateSerializer(RejectUnknownFieldsMixin, serializers.Seriali
     title = serializers.CharField(max_length=120, required=False, allow_blank=False)
     is_pinned = serializers.BooleanField(required=False)
     is_archived = serializers.BooleanField(required=False)
+    current_leaf_id = serializers.UUIDField(required=False)
 
     def validate_title(self, value):
         value = ' '.join(value.split())
@@ -53,6 +54,10 @@ class AskSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
         if not value.strip():
             raise serializers.ValidationError('Question cannot be empty.')
         return value
+
+
+class RegenerateSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    client_request_id = serializers.UUIDField()
 
 
 class FeedbackSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
@@ -88,7 +93,7 @@ def feedback_payload(feedback):
     return {'rating': feedback.rating, 'reason': feedback.reason, 'comment': feedback.comment}
 
 
-def message_payload(message, *, sources=None, feedback=None):
+def message_payload(message, *, siblings=None, sources=None, feedback=None):
     """Public JSON for one message. Pass prefetched relations to avoid extra queries."""
     if sources is None:
         sources = (
@@ -109,4 +114,6 @@ def message_payload(message, *, sources=None, feedback=None):
         'sources': [source_payload(source) for source in sources],
         'feedback': feedback_payload(feedback),
     }
+    if siblings is not None:
+        payload['siblings'] = siblings
     return payload
