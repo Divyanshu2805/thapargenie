@@ -1,4 +1,4 @@
-import { Info, SquarePen } from 'lucide-react';
+import { Info, Search, SquarePen } from 'lucide-react';
 import { Suspense, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import ChatSidebar from '@/components/layout/ChatSidebar';
 import SidebarLayout from '@/components/layout/SidebarLayout';
 import { Button } from '@/components/ui/button';
+import { SearchPaletteProvider, useOpenSearch } from '@/features/chat/SearchPalette';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,15 @@ function Notice({ tone, icon: Icon, children }) {
       <Icon className="size-4 shrink-0" aria-hidden="true" />
       <span>{children}</span>
     </div>
+  );
+}
+
+function TopbarSearch() {
+  const openSearch = useOpenSearch();
+  return (
+    <Button variant="ghost" size="icon" aria-label="Search chats" onClick={openSearch}>
+      <Search className="size-5" />
+    </Button>
   );
 }
 
@@ -50,33 +60,36 @@ export default function AppShell() {
   ) : null;
 
   return (
-    <SidebarLayout
-      renderSidebar={() => <ChatSidebar />}
-      title={
-        <Link to="/chat/" className="inline-flex rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-          <Brand markClassName="size-8" />
-        </Link>
-      }
-      topbarActions={
-        <>
-          <Button asChild variant="ghost" size="icon" aria-label="New chat">
-            <Link to="/chat/">
-              <SquarePen className="size-5" />
-            </Link>
-          </Button>
-        </>
-      }
-      notice={notice}
-      backdrop={<Ambient />}
-    >
-      {/* Keyed by path: moving to another page clears an error screen and replays the page entrance. */}
-      <ErrorBoundary key={location.pathname}>
-        <Suspense fallback={null}>
-          <div className="h-full animate-page-in">
-            <Outlet />
-          </div>
-        </Suspense>
-      </ErrorBoundary>
-    </SidebarLayout>
+    <SearchPaletteProvider>
+      <SidebarLayout
+        renderSidebar={() => <ChatSidebar />}
+        title={
+          <Link to="/chat/" className="inline-flex rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+            <Brand markClassName="size-8" />
+          </Link>
+        }
+        topbarActions={
+          <>
+            <TopbarSearch />
+            <Button asChild variant="ghost" size="icon" aria-label="New chat">
+              <Link to="/chat/">
+                <SquarePen className="size-5" />
+              </Link>
+            </Button>
+          </>
+        }
+        notice={notice}
+        backdrop={<Ambient />}
+      >
+        {/* Keyed by path: moving to another page clears an error screen and replays the page entrance. */}
+        <ErrorBoundary key={location.pathname}>
+          <Suspense fallback={null}>
+            <div className="h-full animate-page-in">
+              <Outlet />
+            </div>
+          </Suspense>
+        </ErrorBoundary>
+      </SidebarLayout>
+    </SearchPaletteProvider>
   );
 }

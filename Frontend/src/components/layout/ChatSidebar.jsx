@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Archive, ArrowLeft, MessageSquare, Pin, SquarePen } from 'lucide-react';
+import { Archive, ArrowLeft, MessageSquare, Pin, Search, SquarePen } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Kbd, MOD, SHIFT } from '@/components/ui/kbd';
 import ConversationMenu, { InlineRename } from '@/features/chat/ConversationMenu';
+import { useOpenSearch } from '@/features/chat/SearchPalette';
 import { chatKeys, listConversations } from '@/lib/api/chat';
 import { cursorFrom } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
@@ -168,10 +169,16 @@ export default function ChatSidebar({ onNavigate: onNavigateProp }) {
   const rail = sidebar.collapsed && !sidebar.inDrawer;
   const [archived, setArchived] = useState(false);
   const navigate = useNavigate();
+  const openSearch = useOpenSearch();
 
   const startNewChat = () => {
     onNavigate?.();
     navigate('/chat/');
+  };
+
+  const searchChats = () => {
+    onNavigate?.();
+    openSearch();
   };
 
   const toggleArchived = () => {
@@ -194,6 +201,15 @@ export default function ChatSidebar({ onNavigate: onNavigateProp }) {
           trailing={<Kbd keys={[MOD, SHIFT, 'O']} className="sidebar-label opacity-80" />}
         >
           New chat
+        </SidebarItem>
+        <SidebarItem
+          icon={Search}
+          label={`Search chats (${MOD}+K)`}
+          onClick={searchChats}
+          className="bg-sidebar-accent/70 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+          trailing={<Kbd keys={[MOD, 'K']} className="sidebar-label" />}
+        >
+          Search chats
         </SidebarItem>
       </nav>
 
