@@ -230,11 +230,17 @@ class MessageListView(APIView):
         serializer = AskSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        edit_of = None
+        if 'edit_of' in data:
+            edit_of = get_object_or_404(
+                Message, pk=data['edit_of'], conversation=conversation
+            )
         turn = answering.start_turn(
             request.user,
             conversation,
             content=data['content'],
             client_request_id=data['client_request_id'],
+            edit_of=edit_of,
         )
         return event_stream_response(answering.stream_turn(turn))
 

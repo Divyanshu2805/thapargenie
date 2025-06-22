@@ -89,7 +89,8 @@ def _replay(conversation, client_request_id):
 
 
 @transaction.atomic
-def start_turn(user, conversation, *, content=None, client_request_id, regenerate=None):
+def start_turn(user, conversation, *, content=None, client_request_id, edit_of=None,
+               regenerate=None):
     conversation = Conversation.objects.select_for_update().get(pk=conversation.pk)
     replay = _replay(conversation, client_request_id)
     if replay is not None:
@@ -111,9 +112,14 @@ def start_turn(user, conversation, *, content=None, client_request_id, regenerat
             status=Message.Status.STREAMING, client_request_id=client_request_id,
         )
     else:
-        parent = conversation.current_leaf
-        if parent is not None and parent.role != Message.Role.ASSISTANT:
-            parent = None
+        if edit_of is not None:
+            if edit_of.role != Message.Role.USER:
+                raise InvalidParent()
+            parent = edit_of.parent
+        else:
+            parent = conversation.current_leaf
+            if parent is not None and parent.role != Message.Role.ASSISTANT:
+                parent = None
         user_message = Message.objects.create(
             conversation=conversation, parent=parent, role=Message.Role.USER,
             content=content, client_request_id=client_request_id,

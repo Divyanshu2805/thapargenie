@@ -49,6 +49,7 @@ class ConversationUpdateSerializer(RejectUnknownFieldsMixin, serializers.Seriali
 class AskSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     content = serializers.CharField(max_length=MAX_QUESTION_CHARS, trim_whitespace=True)
     client_request_id = serializers.UUIDField()
+    edit_of = serializers.UUIDField(required=False)
 
     def validate_content(self, value):
         if not value.strip():
