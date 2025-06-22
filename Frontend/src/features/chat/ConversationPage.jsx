@@ -14,7 +14,7 @@ import { AssistantMessage, UserMessage } from '@/features/chat/Message';
 import { buildThread, hasStreamingMessage } from '@/features/chat/thread';
 import { useAskStream } from '@/features/chat/use-ask-stream';
 import { useAppConfig } from '@/hooks/use-app-config';
-import { chatKeys, clearFeedback, getMessages, setFeedback } from '@/lib/api/chat';
+import { chatKeys, clearFeedback, getMessages, setFeedback, updateConversation } from '@/lib/api/chat';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NEAR_BOTTOM_PX = 120;
@@ -126,6 +126,12 @@ function ConversationView({ conversationId }) {
     stream.ask(conversationId, question);
   }, [location.state, location.pathname, navigate, conversationId, stream]);
 
+  const switchBranch = useMutation({
+    mutationFn: (messageId) => updateConversation(conversationId, { current_leaf_id: messageId }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: messagesKey }),
+    onError: (error) => toast.error('Couldn’t switch versions', { description: error.message }),
+  });
+
   const feedback = useMutation({
     mutationFn: ({ messageId, value }) => (value ? setFeedback(messageId, value) : clearFeedback(messageId)),
     onMutate: async ({ messageId, value }) => {
@@ -197,7 +203,7 @@ function ConversationView({ conversationId }) {
 
   const conversation = data?.conversation;
   const blocked = composerBlock(config);
-  const busy = streaming;
+  const busy = streaming || switchBranch.isPending;
   const lastIndex = thread.length - 1;
 
   const submit = () => {
@@ -230,6 +236,11 @@ function ConversationView({ conversationId }) {
                   key={message.key || message.id}
                   message={message}
                   busy={busy}
+                  onSwitch={(id) => switchBranch.mutate(id)}
+                  onEdit={(messageId, content) => {
+                    stickToBottom.current = true;
+                    stream.ask(conversationId, content, { editOf: messageId });
+                  }}
                 />
               ) : (
                 <AssistantMessage
@@ -238,6 +249,11 @@ function ConversationView({ conversationId }) {
                   question={thread[index - 1]?.role === 'user' ? thread[index - 1].content : ''}
                   busy={busy}
                   isLast={index === lastIndex}
+                  onSwitch={(id) => switchBranch.mutate(id)}
+                  onRegenerate={(id) => {
+                    stickToBottom.current = true;
+                    stream.regenerate(conversationId, id);
+                  }}
                   onFeedback={(messageId, value) => feedback.mutate({ messageId, value })}
                   onRetry={stream.retry}
                 />

@@ -1,7 +1,11 @@
 import {
   AlertTriangle,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
+  Pencil,
+  RefreshCw,
   RotateCcw,
   Square,
   ThumbsDown,
@@ -61,8 +65,75 @@ function CopyAction({ text }) {
   );
 }
 
-export function UserMessage({ message }) {
+export function BranchSwitcher({ siblings, onSwitch, disabled }) {
+  if (!siblings || siblings.count < 2) return null;
+  const { index, count, ids } = siblings;
+  return (
+    <div className="flex items-center text-xs text-muted-foreground tabular-nums" aria-label="Versions">
+      <IconAction label="Previous version" disabled={disabled || index === 0} onClick={() => onSwitch(ids[index - 1])}>
+        <ChevronLeft />
+      </IconAction>
+      <span aria-live="polite">
+        {index + 1} / {count}
+      </span>
+      <IconAction label="Next version" disabled={disabled || index === count - 1} onClick={() => onSwitch(ids[index + 1])}>
+        <ChevronRight />
+      </IconAction>
+    </div>
+  );
+}
+
+export function UserMessage({ message, busy, onEdit, onSwitch }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(message.content);
   const pending = !message.id;
+
+  if (editing) {
+    const submit = () => {
+      const content = draft.trim();
+      if (!content) return;
+      setEditing(false);
+      if (content !== message.content) onEdit(message.id, content);
+    };
+    return (
+      <div className="flex justify-end">
+        <form
+          className="w-full max-w-[85%] rounded-2xl border bg-card p-3 shadow-soft"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+        >
+          <label htmlFor={`edit-${message.id}`} className="sr-only">
+            Edit your question
+          </label>
+          <textarea
+            id={`edit-${message.id}`}
+            autoFocus
+            value={draft}
+            maxLength={2000}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                submit();
+              }
+              if (event.key === 'Escape') setEditing(false);
+            }}
+            className="field-sizing-content block max-h-60 min-h-12 w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none"
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" type="submit" disabled={!draft.trim()}>
+              Send
+            </Button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className={cn('group flex flex-col items-end gap-1', message.key && 'animate-rise')}>
@@ -71,7 +142,18 @@ export function UserMessage({ message }) {
       </div>
       {!pending ? (
         <div className="flex items-center opacity-100 transition-opacity focus-within:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 print:hidden">
+          <BranchSwitcher siblings={message.siblings} onSwitch={onSwitch} disabled={busy} />
           <CopyAction text={message.content} />
+          <IconAction
+            label="Edit question"
+            disabled={busy}
+            onClick={() => {
+              setDraft(message.content);
+              setEditing(true);
+            }}
+          >
+            <Pencil />
+          </IconAction>
         </div>
       ) : null}
     </div>
@@ -101,6 +183,7 @@ export function AssistantMessage({
   busy,
   isLast,
   onRegenerate,
+  onSwitch,
   onFeedback,
   onRetry,
 }) {
@@ -171,6 +254,10 @@ export function AssistantMessage({
                 </IconAction>
               </>
             ) : null}
+            <IconAction label="Regenerate" disabled={busy} onClick={() => onRegenerate(message.id)}>
+              <RefreshCw />
+            </IconAction>
+            <BranchSwitcher siblings={message.siblings} onSwitch={onSwitch} disabled={busy} />
           </div>
         ) : null}
       </div>
