@@ -242,6 +242,58 @@ class LimitTests(ChatTestCase):
         self.assertEqual(response.data['error']['code'], 'conversation_full')
 
 
+class BranchTests(ChatTestCase):
+    def messages(self, conversation):
+        response = self.client.get(f'/api/v1/conversations/{conversation.pk}/messages/')
+        self.assertEqual(response.status_code, 200)
+        return response.data['messages']
+
+    def test_regenerate_creates_sibling_and_switches(self):
+        conversation = self.conversation()
+        self.answered(conversation)
+        first = Message.objects.get(role=Message.Role.ASSISTANT)
+        self.fake.queue('Second try: Rs 1,20,000 [1].')
+        response = self.client.post(f'/api/v1/messages/{first.pk}/regenerate/',
+                                    {'client_request_id': str(uuid.uuid4())}, format='json')
+        read_events(response)
+        messages = self.messages(conversation)
+        self.assertEqual(len(messages), 2)
+        self.assertTrue(messages[1]['content'].startswith('Second try'))
+        self.assertEqual(messages[1]['siblings']['count'], 2)
+        self.assertEqual(messages[1]['siblings']['index'], 1)
+
+        self.client.patch(f'/api/v1/conversations/{conversation.pk}/',
+                          {'current_leaf_id': str(first.pk)}, format='json')
+        self.assertEqual(self.messages(conversation)[1]['id'], str(first.pk))
+
+    def test_edit_creates_new_branch_and_old_one_survives(self):
+        conversation = self.conversation()
+        self.answered(conversation)
+        self.answered(conversation, content='and mess fee?')
+        second_question = Message.objects.get(content='and mess fee?')
+        self.answered(conversation, content='and girls hostel fee?',
+                      edit_of=str(second_question.pk))
+        path = self.messages(conversation)
+        self.assertEqual([m['content'] for m in path if m['role'] == 'user'],
+                         ['boys hostel fee?', 'and girls hostel fee?'])
+        self.assertEqual(path[2]['siblings']['count'], 2)
+        # Switching to the old question restores its answer.
+        self.client.patch(f'/api/v1/conversations/{conversation.pk}/',
+                          {'current_leaf_id': str(second_question.pk)}, format='json')
+        path = self.messages(conversation)
+        self.assertEqual(path[2]['content'], 'and mess fee?')
+        self.assertEqual(len(path), 4)
+
+    def test_cannot_regenerate_a_question(self):
+        conversation = self.conversation()
+        self.answered(conversation)
+        question = Message.objects.get(role=Message.Role.USER)
+        response = self.client.post(f'/api/v1/messages/{question.pk}/regenerate/',
+                                    {'client_request_id': str(uuid.uuid4())}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['error']['code'], 'invalid_parent')
+
+
 class OwnershipTests(ChatTestCase):
     def test_other_users_see_nothing(self):
         conversation = self.conversation()
