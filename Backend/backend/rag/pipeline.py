@@ -6,9 +6,11 @@ just prints it.
 """
 
 import re
+import time
 from dataclasses import dataclass, field
 
 from rag import prompt
+from rag.analysis import Intent, QueryAnalysis, analyze
 from rag.context import build_sources
 from rag.llm import StreamEnd, get_llm
 from rag.retrieve import retrieve
@@ -17,11 +19,30 @@ KEEP = 8
 HISTORY_MESSAGES = 4
 HISTORY_CHARS = 1200
 
+CANNED = {
+    Intent.GREETING: (
+        "Hi! I'm ThaparGenie. Ask me anything about Thapar Institute: admissions, fees and "
+        'scholarships, hostels, the academic calendar, courses and syllabus, rules, '
+        'departments, faculty or placements.'
+    ),
+    Intent.PERSONAL_RECORD: (
+        "I can't see personal records such as your marks, attendance, results or fee dues. "
+        'Please check them on Webkiosk (https://webkiosk.thapar.edu), or contact the '
+        'relevant office if something looks wrong.'
+    ),
+    Intent.OUT_OF_SCOPE: (
+        'I can only help with questions about Thapar Institute of Engineering and '
+        'Technology: admissions, fees, hostels, academics, rules and campus life. '
+        'Is there something about TIET I can help you with?'
+    ),
+}
+
 NOT_FOUND_OPENING = "i couldn't find"
 NOT_FOUND = (
     "I couldn't find this in the official TIET documents I have access to. Please check "
     'the official website (https://www.thapar.edu) or contact the relevant office directly.'
 )
+
 
 _CITATION = re.compile(r'\[(\d+(?:\s*,\s*\d+)*)\]')
 
@@ -29,16 +50,48 @@ _CITATION = re.compile(r'\[(\d+(?:\s*,\s*\d+)*)\]')
 class AnswerType:
     ANSWERED = 'answered'
     NO_ANSWER = 'no_answer'
+    SMALLTALK = 'smalltalk'
+    OUT_OF_SCOPE = 'out_of_scope'
+    PERSONAL_RECORD = 'personal_record'
+
+
+_INTENT_TYPES = {
+    Intent.GREETING: AnswerType.SMALLTALK,
+    Intent.OUT_OF_SCOPE: AnswerType.OUT_OF_SCOPE,
+    Intent.PERSONAL_RECORD: AnswerType.PERSONAL_RECORD,
+}
 
 
 @dataclass
 class AnswerResult:
     text: str
     answer_type: str
-    question: str
+    analysis: QueryAnalysis
     sources: list = field(default_factory=list)
     cited: list = field(default_factory=list)
     model: str = ''
+    retrieval_trace: dict = field(default_factory=dict)
+    timings: dict = field(default_factory=dict)
+
+
+class _Timer:
+    def __init__(self):
+        self.timings = {}
+        self._start = time.monotonic()
+        self._last = self._start
+
+    def lap(self, name):
+        now = time.monotonic()
+        self.timings[name] = round((now - self._last) * 1000)
+        self._last = now
+
+    def mark(self, name):
+        """Record the time since the start (not a lap), e.g. the first answer word."""
+        self.timings.setdefault(name, round((time.monotonic() - self._start) * 1000))
+
+    def total(self):
+        self.timings['total'] = round((time.monotonic() - self._start) * 1000)
+        return self.timings
 
 
 def cited_numbers(answer, max_source):
@@ -62,24 +115,63 @@ def _history_messages(history):
     return messages
 
 
-def answer_events(question, *, llm=None, history=(), profile=None, today=None):
+def answer_events(
+    question,
+    *,
+    llm=None,
+    history=(),
+    profile=None,
+    today=None,
+):
     llm = llm or get_llm()
+    timer = _Timer()
+
+    yield 'status', {'stage': 'understanding'}
+    analysis = analyze(llm, question, history=history, profile=profile, today=today)
+    timer.lap('analysis')
+
+    if analysis.intent != Intent.COLLEGE:
+        text = CANNED[analysis.intent]
+        timer.mark('first_token')
+        yield 'delta', {'text': text}
+        yield 'done', AnswerResult(
+            text=text,
+            answer_type=_INTENT_TYPES[analysis.intent],
+            analysis=analysis,
+            timings=timer.total(),
+        )
+        return
 
     yield 'status', {'stage': 'searching'}
-    retrieval = retrieve(llm, question)
-    sources = build_sources(retrieval.candidates[:KEEP])
+    queries = analysis.search_queries
+    vectors = llm.embed_queries(queries)
+    timer.lap('embedding')
+
+    retrieval = retrieve(llm, analysis, vectors=vectors)
+    timer.lap('retrieval')
+
+    candidates = retrieval.candidates[:KEEP]
+
+    sources = build_sources(candidates)
+    timer.lap('context')
     yield 'sources', {'sources': [source.public() for source in sources]}
 
     if not sources:
+        timer.mark('first_token')
         yield 'delta', {'text': NOT_FOUND}
-        yield 'done', AnswerResult(text=NOT_FOUND, answer_type=AnswerType.NO_ANSWER,
-                                   question=question)
+        yield 'done', AnswerResult(
+            text=NOT_FOUND,
+            answer_type=AnswerType.NO_ANSWER,
+            analysis=analysis,
+            retrieval_trace=retrieval.trace(),
+            timings=timer.total(),
+        )
         return
 
     yield 'status', {'stage': 'writing', 'detail': f'Reading {len(sources)} sources'}
     parts, model = [], ''
     for item in llm.stream(
-        prompt.answer_prompt(question, sources, profile=profile, today=today),
+        prompt.answer_prompt(analysis, sources, profile=profile, today=today),
         system=prompt.SYSTEM,
         history=_history_messages(history),
         temperature=0.2,
@@ -88,8 +180,10 @@ def answer_events(question, *, llm=None, history=(), profile=None, today=None):
         if isinstance(item, StreamEnd):
             model = item.generation.model
         else:
+            timer.mark('first_token')
             parts.append(item)
             yield 'delta', {'text': item}
+    timer.lap('generation')
 
     text = ''.join(parts).strip()
     cited = cited_numbers(text, len(sources))
@@ -99,10 +193,12 @@ def answer_events(question, *, llm=None, history=(), profile=None, today=None):
     yield 'done', AnswerResult(
         text=text,
         answer_type=answer_type,
-        question=question,
+        analysis=analysis,
         sources=sources,
         cited=cited,
         model=model,
+        retrieval_trace=retrieval.trace(),
+        timings=timer.total(),
     )
 
 

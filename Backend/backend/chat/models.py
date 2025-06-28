@@ -77,6 +77,9 @@ class Status(models.TextChoices):
 class AnswerType(models.TextChoices):
     ANSWERED = 'answered', 'Answered'
     NO_ANSWER = 'no_answer', 'Not found'
+    SMALLTALK = 'smalltalk', 'Small talk'
+    OUT_OF_SCOPE = 'out_of_scope', 'Out of scope'
+    PERSONAL_RECORD = 'personal_record', 'Personal record'
     ERROR = 'error', 'Error'
 
 

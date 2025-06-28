@@ -1,3 +1,5 @@
+import json
+
 from django.core.management.base import BaseCommand
 
 from rag.pipeline import answer_events
@@ -8,8 +10,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('question')
+        parser.add_argument('--trace', action='store_true', help='Print retrieval details.')
 
-    def handle(self, question, **options):
+    def handle(self, question, trace, **options):
         result = None
         for event, data in answer_events(question):
             if event == 'status':
@@ -20,10 +23,16 @@ class Command(BaseCommand):
             elif event == 'done':
                 result = data
         self.stdout.write('\n')
+        self.stdout.write(json.dumps(result.analysis.as_dict(), indent=2, ensure_ascii=False))
         for source in result.sources:
             mark = '*' if source.number in result.cited else ' '
             self.stdout.write(
                 f' {mark}[{source.number}] {source.title} › {source.heading_path} '
                 f'(p.{source.page_start or "-"}) {source.url}'
             )
-        self.stdout.write(f'type={result.answer_type} model={result.model}')
+        self.stdout.write(
+            f'type={result.answer_type} model={result.model} '
+            f'timings={result.timings}'
+        )
+        if trace:
+            self.stdout.write(json.dumps(result.retrieval_trace, indent=2, ensure_ascii=False))

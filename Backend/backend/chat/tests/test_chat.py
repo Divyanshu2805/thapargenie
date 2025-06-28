@@ -25,6 +25,11 @@ from chat.models import (
     UsageDaily,
 )
 
+ANALYSIS = {
+    'intent': 'college_query', 'standalone_query': 'boys hostel fee 2026-27',
+    'alternate_queries': [], 'keywords': 'hostel fee', 'categories': [],
+    'academic_year': '', 'needs_current': True, 'language': 'english',
+}
 ANSWER = 'The boys hostel fee is Rs 1,20,000 per year [1].'
 
 
@@ -94,7 +99,7 @@ class ChatTestCase(TestCase):
         )
 
     def answered(self, conversation, answer=ANSWER, **kwargs):
-        self.fake.queue(answer)
+        self.fake.queue(ANALYSIS, answer)
         response = self.ask(conversation, **kwargs)
         self.assertEqual(response.status_code, 200, getattr(response, 'data', None))
         return read_events(response)
@@ -145,6 +150,8 @@ class AskTests(ChatTestCase):
         conversation = self.conversation()
         self.answered(conversation)
         self.answered(conversation, content='and for girls?')
+        analysis_prompt = self.fake.requests[-2].prompt
+        self.assertIn('Student: boys hostel fee?', analysis_prompt)
         answer_request = self.fake.requests[-1]
         self.assertEqual(answer_request.history[0].content, 'boys hostel fee?')
         path, _ = engine.active_path(Conversation.objects.get(pk=conversation.pk))
@@ -165,7 +172,7 @@ class AskTests(ChatTestCase):
 
     def test_llm_failure_keeps_question_and_marks_failed(self):
         conversation = self.conversation()
-        self.fake.queue(LLMError('boom'))
+        self.fake.queue(ANALYSIS, LLMError('boom'))
         events = read_events(self.ask(conversation))
         self.assertEqual(events[-1][0], 'error')
         self.assertEqual(events[-1][1]['code'], 'llm_unavailable')
@@ -176,7 +183,7 @@ class AskTests(ChatTestCase):
 
     def test_client_disconnect_saves_partial_answer(self):
         conversation = self.conversation()
-        self.fake.queue('The boys hostel fee is Rs 1,20,000 per year [1].')
+        self.fake.queue(ANALYSIS, 'The boys hostel fee is Rs 1,20,000 per year [1].')
         response = self.ask(conversation)
         stream = iter(response.streaming_content)
         received = b''
@@ -188,6 +195,14 @@ class AskTests(ChatTestCase):
         assistant = Message.objects.get(role=Message.Role.ASSISTANT)
         self.assertEqual(assistant.status, Message.Status.STOPPED)
         self.assertTrue(assistant.content.startswith('The'))
+
+    def test_greeting_is_answered_without_sources(self):
+        conversation = self.conversation()
+        self.fake.queue({**ANALYSIS, 'intent': 'greeting'})
+        read_events(self.ask(conversation, content='hi'))
+        assistant = Message.objects.get(role=Message.Role.ASSISTANT)
+        self.assertEqual(assistant.answer_type, Message.AnswerType.SMALLTALK)
+        self.assertFalse(assistant.sources.exists())
 
 
 class LimitTests(ChatTestCase):
@@ -252,7 +267,7 @@ class BranchTests(ChatTestCase):
         conversation = self.conversation()
         self.answered(conversation)
         first = Message.objects.get(role=Message.Role.ASSISTANT)
-        self.fake.queue('Second try: Rs 1,20,000 [1].')
+        self.fake.queue(ANALYSIS, 'Second try: Rs 1,20,000 [1].')
         response = self.client.post(f'/api/v1/messages/{first.pk}/regenerate/',
                                     {'client_request_id': str(uuid.uuid4())}, format='json')
         read_events(response)
@@ -401,7 +416,7 @@ class MemoryAndTitleTests(ChatTestCase):
         ChatSettings.objects.filter(pk=1).update(auto_title_enabled=True)
         ChatSettings.forget()
         conversation = self.conversation()
-        self.fake.queue(ANSWER, 'Boys hostel fee')
+        self.fake.queue(ANALYSIS, ANSWER, 'Boys hostel fee')
         read_events(self.ask(conversation))
         conversation.refresh_from_db()
         self.assertEqual(conversation.title, 'Boys hostel fee')

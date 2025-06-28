@@ -89,7 +89,7 @@ EVENT_STREAM = OpenApiResponse(
     description=(
         'text/event-stream. Events, in order: `meta` {conversation_id, user_message_id, '
         'assistant_message_id, regenerated, remaining_today}; zero or more `status` '
-        '{stage: searching|writing, detail?}; `sources` {sources[]}; '
+        '{stage: understanding|searching|writing, detail?}; `sources` {sources[]}; '
         '`delta` {text} (repeated); then `done` {message, remaining_today} or `error` '
         '{code, message, retryable}. `: ping` comments keep the connection open.'
     ),

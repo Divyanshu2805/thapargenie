@@ -4,6 +4,8 @@ from datetime import date
 
 from knowledge.models import Category
 
+from rag.analysis import current_session
+
 SYSTEM = """You are ThaparGenie, the student help assistant of Thapar Institute of Engineering \
 and Technology (TIET), Patiala, India.
 
@@ -57,9 +59,9 @@ def _attr(value):
     return value.replace('"', "'").replace('\n', ' ')
 
 
-def answer_prompt(question, sources, *, profile=None, today=None):
+def answer_prompt(analysis, sources, *, profile=None, today=None):
     today = today or date.today()
-    lines = [f'Today is {today.isoformat()}.']
+    lines = [f'Today is {today.isoformat()} (academic session {current_session(today)}).']
     if profile:
         details = ', '.join(f'{key}: {value}' for key, value in profile.items() if value)
         if details:
@@ -67,6 +69,9 @@ def answer_prompt(question, sources, *, profile=None, today=None):
     lines.append('')
     lines.append(format_sources(sources) if sources else '<sources>\n(none found)\n</sources>')
     lines.append('')
-    question = question.strip()
+    question = analysis.question.strip()
     lines.append(f'<question>{question}</question>')
+    standalone = analysis.standalone_query.strip()
+    if standalone and standalone.lower() != question.lower():
+        lines.append(f'(Interpreted as: {standalone})')
     return '\n'.join(lines)

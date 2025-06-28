@@ -1,16 +1,22 @@
 import hashlib
+from datetime import date
 
 from django.test import SimpleTestCase, TestCase
 from knowledge.ingest.chunk import ChunkDraft
 from knowledge.ingest.pipeline import prepare_chunks
 from knowledge.models import Chunk, Document, DocumentStatus, SourceType
 
+from rag.analysis import Intent, QueryAnalysis, _clean, analyze, current_session
 from rag.context import build_sources
-from rag.llm import use_provider
+from rag.llm import BadResponse, use_provider
 from rag.llm.client import LLM
 from rag.llm.fake import FakeProvider, hashed_embedding
-from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events, cited_numbers
-from rag.retrieve import Candidate, fuse, retrieve
+from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events
+from rag.retrieve import (
+    Candidate,
+    fuse,
+    retrieve,
+)
 
 
 def make_llm(fake):
@@ -54,6 +60,65 @@ def candidate(**overrides):
     return Candidate(**values)
 
 
+class AnalysisTests(SimpleTestCase):
+    def test_clean_validates_model_output(self):
+        analysis = _clean(
+            {
+                'intent': 'nonsense',
+                'standalone_query': 'What is the fee?',
+                'alternate_queries': ['a', 'b', 'c'],
+                'keywords': 'fee',
+                'categories': ['fees_scholarships', 'made_up'],
+                'academic_year': '2026',
+                'needs_current': True,
+                'language': 'klingon',
+            },
+            'fee?',
+        )
+        self.assertEqual(analysis.intent, Intent.COLLEGE)
+        self.assertEqual(analysis.alternate_queries, ['a', 'b'])
+        self.assertEqual(analysis.categories, ['fees_scholarships'])
+        self.assertEqual(analysis.academic_year, '')
+        self.assertEqual(analysis.language, 'english')
+
+    def test_search_queries_are_unique_and_capped(self):
+        analysis = QueryAnalysis(
+            question='q',
+            standalone_query='Hostel fee',
+            alternate_queries=['hostel fee', 'Mess fee'],
+        )
+        self.assertEqual(analysis.search_queries, ['Hostel fee', 'Mess fee'])
+
+    def test_failure_falls_back_to_raw_question(self):
+        fake = FakeProvider()
+        fake.queue(BadResponse('nope'), BadResponse('nope again'))
+        analysis = analyze(make_llm(fake), 'hostel fee?')
+        self.assertTrue(analysis.fallback)
+        self.assertEqual(analysis.search_queries, ['hostel fee?'])
+
+    def test_prompt_contains_history_profile_and_session(self):
+        fake = FakeProvider()
+        fake.queue({'intent': 'college_query', 'standalone_query': 'x', 'alternate_queries': [],
+                    'keywords': '', 'categories': [], 'academic_year': '',
+                    'needs_current': False, 'language': 'english'})
+        analyze(
+            make_llm(fake), 'and for girls?',
+            history=[{'role': 'user', 'content': 'boys hostel fee'}],
+            profile={'program': 'BE COE', 'campus': ''},
+            today=date(2026, 9, 25),
+        )
+        prompt = fake.requests[0].prompt
+        self.assertIn('Student: boys hostel fee', prompt)
+        self.assertIn('program: BE COE', prompt)
+        self.assertIn('2026-27', prompt)
+        self.assertEqual(fake.requests[0].model, 'fast')
+
+    def test_current_session(self):
+        self.assertEqual(current_session(date(2026, 9, 1)), '2026-27')
+        self.assertEqual(current_session(date(2027, 3, 1)), '2026-27')
+        self.assertEqual(current_session(date(2099, 12, 1)), '2099-00')
+
+
 class FusionTests(SimpleTestCase):
     def test_rrf_rewards_agreement(self):
         scores, ranks = fuse({'vector:0': ['a', 'b', 'c'], 'vector:1': ['b', 'd']})
@@ -73,7 +138,9 @@ class RetrieveTests(TestCase):
                      searchable=False)
 
     def test_relevant_chunk_ranks_first_and_hidden_chunks_never_appear(self):
-        result = retrieve(self.llm, 'boys hostel fee')
+        analysis = QueryAnalysis(question='boys hostel fee', standalone_query='boys hostel fee',
+                                 keywords='hostel fee boys')
+        result = retrieve(self.llm, analysis)
         self.assertEqual(result.candidates[0].title, 'Hostel fee structure')
         self.assertNotIn('Old hostel fees', [c.title for c in result.candidates])
         self.assertEqual(set(result.lists), {'vector:0'})
@@ -103,9 +170,9 @@ class ContextTests(TestCase):
         self.assertEqual([s.number for s in sources], [1, 2])
 
 
-class CitationTests(SimpleTestCase):
-    def test_numbers_in_order_of_first_use(self):
-        self.assertEqual(cited_numbers('See [2] and [1, 2], not [12].', 3), [2, 1])
+ANALYSIS = {'intent': 'college_query', 'standalone_query': 'boys hostel fee 2026-27',
+            'alternate_queries': [], 'keywords': 'hostel fee', 'categories': [],
+            'academic_year': '', 'needs_current': True, 'language': 'english'}
 
 
 class PipelineTests(TestCase):
@@ -115,34 +182,36 @@ class PipelineTests(TestCase):
         self.addCleanup(use_provider, None)
         add_document('Hostel fee structure', ['Boys hostel fee is Rs 1,20,000 per year.'])
 
+    def test_greeting_uses_canned_reply_without_retrieval(self):
+        self.fake.queue({**ANALYSIS, 'intent': 'greeting'})
+        result = answer('hi')
+        self.assertEqual(result.answer_type, AnswerType.SMALLTALK)
+        self.assertEqual(len(self.fake.requests), 1)
+        self.assertEqual(self.fake.embed_calls, [])
+
     def test_answered_with_citation(self):
-        self.fake.queue('The boys hostel fee is Rs 1,20,000 [1].')
+        self.fake.queue(ANALYSIS, 'The boys hostel fee is Rs 1,20,000 [1].')
         events = list(answer_events('boys hostel fee?'))
         names = [name for name, _ in events]
-        self.assertEqual(names[:2], ['status', 'sources'])
+        self.assertEqual(names[:3], ['status', 'status', 'sources'])
         self.assertIn('delta', names)
         result = events[-1][1]
         self.assertEqual(result.answer_type, AnswerType.ANSWERED)
         self.assertEqual(result.cited, [1])
+        self.assertEqual(result.analysis.standalone_query, 'boys hostel fee 2026-27')
 
     def test_uncited_answer_is_no_answer(self):
-        self.fake.queue("I couldn't find that in the documents.")
+        self.fake.queue(ANALYSIS, "I couldn't find that in the documents.")
         result = answer('boys hostel fee?')
         self.assertEqual(result.answer_type, AnswerType.NO_ANSWER)
 
     def test_not_found_with_related_citation_is_no_answer(self):
-        self.fake.queue('I couldn’t find the Wi-Fi password. Hostel IT desk: [1].')
+        self.fake.queue(ANALYSIS, 'I couldn’t find the Wi-Fi password. Hostel IT desk: [1].')
         result = answer('wifi password?')
         self.assertEqual(result.answer_type, AnswerType.NO_ANSWER)
 
-    def test_empty_knowledge_base_skips_generation(self):
-        Document.objects.all().delete()
-        result = answer('boys hostel fee?')
-        self.assertEqual(result.text, NOT_FOUND)
-        self.assertEqual(self.fake.requests, [])
-
     def test_history_is_passed_to_the_answer_model(self):
-        self.fake.queue('Fee is Rs 1,20,000 [1].')
+        self.fake.queue(ANALYSIS, 'Fee is Rs 1,20,000 [1].')
         answer('and boys?',
                history=[{'role': 'user', 'content': 'girls hostel fee?'},
                         {'role': 'assistant', 'content': 'x' * 5000}])

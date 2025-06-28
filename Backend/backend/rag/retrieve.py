@@ -146,9 +146,10 @@ class Retrieval:
         }
 
 
-def retrieve(llm, query, *, vectors=None, limit=25):
+def retrieve(llm, analysis, *, vectors=None, limit=25):
     if vectors is None:
-        vectors = llm.embed_queries([query])
+        queries = analysis.search_queries
+        vectors = llm.embed_queries(queries) if queries else []
     lists = vector_lists(vectors)
     scores, ranks = fuse(lists)
     best = sorted(scores, key=scores.get, reverse=True)[: limit * 2]
