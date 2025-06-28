@@ -65,6 +65,7 @@ class PipelineTests(KnowledgeTestCase):
         table = next(c for c in chunks if c.content.startswith('| Hostel'))
         self.assertEqual(table.heading_path, 'Hostel Fee Structure 2026-27')
         self.assertTrue(table.search_text.startswith('Hostel fees | Fees & scholarships'))
+        self.assertIn('halls of residence', table.search_text)  # alias expansion
         self.assertEqual(table.category, 'fees_scholarships')
         self.assertTrue(self.changes)
 

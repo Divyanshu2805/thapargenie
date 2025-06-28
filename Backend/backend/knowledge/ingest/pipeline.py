@@ -13,6 +13,7 @@ from common.text import truncate
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from rag.aliases import expand
 from rag.llm import LLMError, QuotaExhausted, get_llm
 
 from knowledge.ingest.chunk import ChunkDraft, build_chunks, search_header
@@ -55,7 +56,7 @@ def build_search_text(document, content, heading_path=''):
         academic_year=document.academic_year,
     )
     parts = [header, content]
-    return '\n\n'.join(part for part in parts if part)
+    return expand('\n\n'.join(part for part in parts if part))
 
 
 def prepare_chunks(document, drafts):
