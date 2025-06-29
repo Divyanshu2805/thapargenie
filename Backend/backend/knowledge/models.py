@@ -1,6 +1,7 @@
 from common.mixins import TimestampedModel, UUIDModel, choices_check, max_length_check
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.db import models
 from pgvector.django import HalfVectorField, HnswIndex
 
@@ -122,6 +123,13 @@ class Chunk(UUIDModel, TimestampedModel):
     is_current = models.BooleanField(default=True)
     is_searchable = models.BooleanField(default=False)
 
+    fts = models.GeneratedField(
+        expression=SearchVector('heading_path', weight='A', config='english')
+        + SearchVector('search_text', weight='B', config='english'),
+        output_field=SearchVectorField(),
+        db_persist=True,
+    )
+
     class Meta:
         ordering = ('document', 'chunk_index')
         indexes = [
@@ -133,6 +141,7 @@ class Chunk(UUIDModel, TimestampedModel):
                 opclasses=('halfvec_cosine_ops',),
                 condition=models.Q(is_searchable=True),
             ),
+            GinIndex(fields=('fts',), name='chunk_fts_gin'),
             models.Index(fields=('category', 'is_current'), name='chunk_category_idx'),
         ]
         constraints = [

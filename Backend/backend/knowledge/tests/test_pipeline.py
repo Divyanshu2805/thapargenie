@@ -69,6 +69,11 @@ class PipelineTests(KnowledgeTestCase):
         self.assertEqual(table.category, 'fees_scholarships')
         self.assertTrue(self.changes)
 
+    def test_full_text_column_is_populated(self):
+        document = process_document(self.text_document().pk)
+        hit = Chunk.objects.filter(document=document, fts='hostel').exists()
+        self.assertTrue(hit)
+
     def test_claim_is_single_use(self):
         document = self.text_document()
         self.assertIsNotNone(process_document(document.pk))
