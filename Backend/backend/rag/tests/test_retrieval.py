@@ -15,6 +15,7 @@ from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events
 from rag.retrieve import (
     Candidate,
     fuse,
+    keyword_query,
     retrieve,
 )
 
@@ -121,9 +122,14 @@ class AnalysisTests(SimpleTestCase):
 
 class FusionTests(SimpleTestCase):
     def test_rrf_rewards_agreement(self):
-        scores, ranks = fuse({'vector:0': ['a', 'b', 'c'], 'vector:1': ['b', 'd']})
+        scores, ranks = fuse({'vector:0': ['a', 'b', 'c'], 'keyword': ['b', 'd']})
         self.assertEqual(max(scores, key=scores.get), 'b')
-        self.assertEqual(ranks['b'], {'vector:0': 2, 'vector:1': 1})
+        self.assertEqual(ranks['b'], {'vector:0': 2, 'keyword': 1})
+
+    def test_keyword_query_is_safe_or_query(self):
+        self.assertEqual(keyword_query("UCS301 fee's & (drop) 2026-27"),
+                         'ucs301 | fee | s | drop | 2026 | 27')
+        self.assertEqual(keyword_query('!!!'), '')
 
 
 class RetrieveTests(TestCase):
@@ -143,7 +149,16 @@ class RetrieveTests(TestCase):
         result = retrieve(self.llm, analysis)
         self.assertEqual(result.candidates[0].title, 'Hostel fee structure')
         self.assertNotIn('Old hostel fees', [c.title for c in result.candidates])
-        self.assertEqual(set(result.lists), {'vector:0'})
+        self.assertEqual(set(result.lists), {'vector:0', 'keyword'})
+
+    def test_course_codes_found_by_keyword(self):
+        add_document('CSE scheme', ['UCS301 Data Structures laboratory work.'],
+                     category='courses_syllabus')
+        analysis = QueryAnalysis(question='ucs301 lab', standalone_query='ucs301 lab',
+                                 keywords='UCS301')
+        result = retrieve(self.llm, analysis)
+        self.assertEqual(result.lists['keyword'][0],
+                         str(Chunk.objects.get(content__startswith='UCS301').pk))
 
 
 class ContextTests(TestCase):

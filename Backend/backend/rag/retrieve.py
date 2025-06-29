@@ -1,10 +1,12 @@
-"""Vector search over document chunks with pgvector.
+"""Hybrid retrieval: pgvector similarity + Postgres full-text search, fused with RRF.
 
-Each query phrasing gets its own nearest-neighbour list, all in one SQL round trip.
-Reciprocal rank fusion merges the lists; it only looks at ranks, so a chunk that is near
-the top for several phrasings beats one that is close for a single phrasing.
+The vector lists (one per query phrasing) come back in one SQL round trip; the keyword
+list is a second query that runs while the queries are embedded. Reciprocal rank fusion
+then merges them; it only looks at ranks, so cosine distances and ts_rank scores never
+need to be put on the same scale.
 """
 
+import re
 from dataclasses import dataclass, field
 
 from common.db import HNSW_EF_SEARCH
@@ -12,8 +14,12 @@ from django.conf import settings
 from django.db import connection, transaction
 from knowledge.models import Chunk
 
+from rag.aliases import expansions
+
 RRF_K = 60
 LIST_SIZE = 40
+
+_TOKEN = re.compile(r'[a-z0-9]+')
 
 
 @dataclass
@@ -53,6 +59,19 @@ def vector_literal(vector):
     return '[' + ','.join(f'{value:.6f}' for value in vector) + ']'
 
 
+def keyword_query(text):
+    """OR-query of normalised words. Postgres drops stop words and stems the rest.
+
+    OR (not AND) keeps recall high for conversational questions; ts_rank_cd still
+    ranks chunks that match more of the words higher.
+    """
+    words = []
+    for word in _TOKEN.findall(text.lower()):
+        if word not in words:
+            words.append(word)
+    return ' | '.join(words[:40])
+
+
 def vector_lists(vectors, *, size=LIST_SIZE):
     """{'vector:N': [chunk_id, ...best first]} for each query vector, in one round trip.
 
@@ -89,6 +108,39 @@ def vector_lists(vectors, *, size=LIST_SIZE):
     lists = {}
     for name, chunk_id, _distance in rows:
         lists.setdefault(name, []).append(str(chunk_id))
+    return lists
+
+
+def keyword_list(keywords, *, size=LIST_SIZE):
+    """Chunk ids best first for the full-text OR query (empty if no usable words)."""
+    tsquery = keyword_query(keywords)
+    if not tsquery:
+        return []
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT id FROM knowledge_chunk, to_tsquery('english', %s) q "
+            'WHERE is_searchable AND fts @@ q ORDER BY ts_rank_cd(fts, q, 1) DESC LIMIT %s',
+            [tsquery, size],
+        )
+        return [str(row[0]) for row in cursor.fetchall()]
+
+
+class KeywordSearch:
+    """The keyword list for one analysis."""
+
+    def __init__(self, analysis):
+        self.text = keyword_text(analysis)
+
+    def result(self):
+        return keyword_list(self.text)
+
+
+def ranked_lists(vectors, keywords, *, size=LIST_SIZE):
+    """{list_name: [chunk_id, ...best first]} for each query vector and the keywords."""
+    lists = vector_lists(vectors, size=size)
+    ids = keyword_list(keywords, size=size)
+    if ids:
+        lists['keyword'] = ids
     return lists
 
 
@@ -134,6 +186,20 @@ def load_candidates(chunk_ids):
     }
 
 
+# Words that occur in nearly every document of a single-institution corpus.
+_INSTITUTE = re.compile(
+    r'(thapar\s+institute\s+of\s+engineering\s+(and|&)\s+technology|thapar\s+university'
+    r'|thapar\s+institute|tiet|thapar)',
+    re.IGNORECASE,
+)
+
+
+def keyword_text(analysis):
+    base = ' '.join(filter(None, [analysis.keywords, analysis.standalone_query]))
+    base = _INSTITUTE.sub(' ', base)
+    return ' '.join([base, *expansions(base)])
+
+
 @dataclass
 class Retrieval:
     candidates: list
@@ -146,11 +212,15 @@ class Retrieval:
         }
 
 
-def retrieve(llm, analysis, *, vectors=None, limit=25):
+def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25):
+    keywords = keywords or KeywordSearch(analysis)
     if vectors is None:
         queries = analysis.search_queries
         vectors = llm.embed_queries(queries) if queries else []
     lists = vector_lists(vectors)
+    keyword_ids = keywords.result()
+    if keyword_ids:
+        lists['keyword'] = keyword_ids
     scores, ranks = fuse(lists)
     best = sorted(scores, key=scores.get, reverse=True)[: limit * 2]
     loaded = load_candidates(best)

@@ -13,7 +13,7 @@ from rag import prompt
 from rag.analysis import Intent, QueryAnalysis, analyze
 from rag.context import build_sources
 from rag.llm import StreamEnd, get_llm
-from rag.retrieve import retrieve
+from rag.retrieve import KeywordSearch, retrieve
 
 KEEP = 8
 HISTORY_MESSAGES = 4
@@ -143,11 +143,13 @@ def answer_events(
         return
 
     yield 'status', {'stage': 'searching'}
+    # The keyword search needs no embeddings: it runs while the queries are embedded.
+    keywords = KeywordSearch(analysis)
     queries = analysis.search_queries
     vectors = llm.embed_queries(queries)
     timer.lap('embedding')
 
-    retrieval = retrieve(llm, analysis, vectors=vectors)
+    retrieval = retrieve(llm, analysis, vectors=vectors, keywords=keywords)
     timer.lap('retrieval')
 
     candidates = retrieval.candidates[:KEEP]
