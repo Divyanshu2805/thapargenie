@@ -4,6 +4,10 @@ The vector lists (one per query phrasing) come back in one SQL round trip; the k
 list is a second query that runs while the queries are embedded. Reciprocal rank fusion
 then merges them; it only looks at ranks, so cosine distances and ts_rank scores never
 need to be put on the same scale.
+
+Boosts from query analysis (category, current, academic year) are soft and bounded:
+each adds at most BOOST x the best fused score, so they reorder close candidates but
+can never pull an irrelevant chunk above a clearly relevant one.
 """
 
 import re
@@ -18,6 +22,7 @@ from rag.aliases import expansions
 
 RRF_K = 60
 LIST_SIZE = 40
+BOOST = 0.10
 
 _TOKEN = re.compile(r'[a-z0-9]+')
 
@@ -40,10 +45,11 @@ class Candidate:
     storage_path: str
     ranks: dict = field(default_factory=dict)
     fused: float = 0.0
+    boost: float = 0.0
 
     @property
     def score(self):
-        return self.fused
+        return self.fused + self.boost
 
     def trace(self):
         return {
@@ -52,6 +58,7 @@ class Candidate:
             'heading_path': self.heading_path,
             'ranks': self.ranks,
             'fused': round(self.fused, 5),
+            'boost': round(self.boost, 5),
         }
 
 
@@ -186,6 +193,21 @@ def load_candidates(chunk_ids):
     }
 
 
+def apply_boosts(candidates, analysis):
+    if not candidates:
+        return
+    top = max(candidate.fused for candidate in candidates)
+    for candidate in candidates:
+        boost = 0.0
+        if analysis.categories and candidate.category in analysis.categories:
+            boost += BOOST
+        if analysis.needs_current and candidate.is_current:
+            boost += BOOST
+        if analysis.academic_year and candidate.academic_year == analysis.academic_year:
+            boost += BOOST
+        candidate.boost = boost * top
+
+
 # Words that occur in nearly every document of a single-institution corpus.
 _INSTITUTE = re.compile(
     r'(thapar\s+institute\s+of\s+engineering\s+(and|&)\s+technology|thapar\s+university'
@@ -232,4 +254,6 @@ def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25):
         candidate.fused = scores[chunk_id]
         candidate.ranks = ranks[chunk_id]
         candidates.append(candidate)
+    apply_boosts(candidates, analysis)
+    candidates.sort(key=lambda c: c.score, reverse=True)
     return Retrieval(candidates[:limit], lists)

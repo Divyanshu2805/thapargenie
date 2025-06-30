@@ -13,7 +13,9 @@ from rag.llm.client import LLM
 from rag.llm.fake import FakeProvider, hashed_embedding
 from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events
 from rag.retrieve import (
+    BOOST,
     Candidate,
+    apply_boosts,
     fuse,
     keyword_query,
     retrieve,
@@ -125,6 +127,16 @@ class FusionTests(SimpleTestCase):
         scores, ranks = fuse({'vector:0': ['a', 'b', 'c'], 'keyword': ['b', 'd']})
         self.assertEqual(max(scores, key=scores.get), 'b')
         self.assertEqual(ranks['b'], {'vector:0': 2, 'keyword': 1})
+
+    def test_boosts_are_bounded(self):
+        strong = candidate(chunk_id='strong', category='other', is_current=False)
+        weak = candidate(chunk_id='weak', category='fees_scholarships', academic_year='2026-27')
+        strong.fused, weak.fused = 1 / 61, 1 / 90
+        analysis = QueryAnalysis(question='q', categories=['fees_scholarships'],
+                                 academic_year='2026-27', needs_current=True)
+        apply_boosts([strong, weak], analysis)
+        self.assertAlmostEqual(weak.boost, 3 * BOOST * strong.fused)
+        self.assertLessEqual(weak.boost, 0.3 * strong.fused + 1e-12)
 
     def test_keyword_query_is_safe_or_query(self):
         self.assertEqual(keyword_query("UCS301 fee's & (drop) 2026-27"),
