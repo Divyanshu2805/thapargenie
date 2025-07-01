@@ -213,6 +213,8 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "").strip()
 EMBED_DIMENSIONS = env_int("EMBED_DIMENSIONS", 768)
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "60"))
 LLM_MAX_ATTEMPTS = env_int("LLM_MAX_ATTEMPTS", 3)
+# Run the keyword search on its own connection while the queries are embedded.
+RETRIEVE_PARALLEL = env_bool("RETRIEVE_PARALLEL", True)
 # Texts per embedding request; lower it if the free tier returns 429s.
 EMBED_BATCH_SIZE = env_int("EMBED_BATCH_SIZE", 50)
 

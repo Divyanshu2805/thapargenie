@@ -11,11 +11,12 @@ can never pull an irrelevant chunk above a clearly relevant one.
 """
 
 import re
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 from common.db import HNSW_EF_SEARCH
 from django.conf import settings
-from django.db import connection, transaction
+from django.db import InterfaceError, OperationalError, connection, transaction
 from knowledge.models import Chunk
 
 from rag.aliases import expansions
@@ -119,7 +120,12 @@ def vector_lists(vectors, *, size=LIST_SIZE):
 
 
 def keyword_list(keywords, *, size=LIST_SIZE):
-    """Chunk ids best first for the full-text OR query (empty if no usable words)."""
+    """Chunk ids best first for the full-text OR query (empty if no usable words).
+
+    Broad OR queries match (and score) a large share of the corpus, so this is the
+    slowest part of retrieval (~0.5 s on the dev corpus); it does not need the query
+    embeddings, so `KeywordSearch` starts it while they are computed.
+    """
     tsquery = keyword_query(keywords)
     if not tsquery:
         return []
@@ -132,14 +138,34 @@ def keyword_list(keywords, *, size=LIST_SIZE):
         return [str(row[0]) for row in cursor.fetchall()]
 
 
+def _keyword_list_in_thread(keywords):
+    # A pool thread keeps its own connection between searches; if the server dropped
+    # it while idle, reconnect once.
+    try:
+        return keyword_list(keywords)
+    except (InterfaceError, OperationalError):
+        connection.close()
+        return keyword_list(keywords)
+
+
+_keyword_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix='keyword-search')
+
+
 class KeywordSearch:
-    """The keyword list for one analysis."""
+    """The keyword list for one analysis, started as early as possible.
+
+    With RETRIEVE_PARALLEL it runs on a small thread pool (its own DB connection) while
+    the caller embeds the queries. Tests turn it off: a pool thread cannot see a test
+    transaction, so there it runs when the result is first asked for.
+    """
 
     def __init__(self, analysis):
         self.text = keyword_text(analysis)
+        self._future = (_keyword_executor.submit(_keyword_list_in_thread, self.text)
+                        if settings.RETRIEVE_PARALLEL else None)
 
     def result(self):
-        return keyword_list(self.text)
+        return self._future.result() if self._future else keyword_list(self.text)
 
 
 def ranked_lists(vectors, keywords, *, size=LIST_SIZE):
@@ -235,6 +261,8 @@ class Retrieval:
 
 
 def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25):
+    """`keywords` is a KeywordSearch started earlier (the pipeline starts it before it
+    embeds the queries); without one it is started here, before embedding."""
     keywords = keywords or KeywordSearch(analysis)
     if vectors is None:
         queries = analysis.search_queries

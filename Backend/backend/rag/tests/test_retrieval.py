@@ -1,7 +1,9 @@
 import hashlib
 from datetime import date
+from unittest import mock
 
-from django.test import SimpleTestCase, TestCase
+from django.db import OperationalError, connections
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from knowledge.ingest.chunk import ChunkDraft
 from knowledge.ingest.pipeline import prepare_chunks
 from knowledge.models import Chunk, Document, DocumentStatus, SourceType
@@ -15,6 +17,9 @@ from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events
 from rag.retrieve import (
     BOOST,
     Candidate,
+    KeywordSearch,
+    _keyword_executor,
+    _keyword_list_in_thread,
     apply_boosts,
     fuse,
     keyword_query,
@@ -171,6 +176,44 @@ class RetrieveTests(TestCase):
         result = retrieve(self.llm, analysis)
         self.assertEqual(result.lists['keyword'][0],
                          str(Chunk.objects.get(content__startswith='UCS301').pk))
+
+
+class ParallelKeywordSearchTests(TransactionTestCase):
+    """The keyword list runs on a pool thread with its own connection."""
+
+    def tearDown(self):
+        # The pool thread keeps its connection for the next search; close it so the test
+        # database can be dropped. One search at a time uses a single pool thread.
+        _keyword_executor.submit(connections.close_all).result()
+
+    def test_same_lists_as_inline(self):
+        add_document('Hostel fee structure', ['Boys hostel fee is Rs 1,20,000 per year.'])
+        add_document('Library timings', ['The central library opens at 8 am daily.'])
+        llm = make_llm(FakeProvider())
+        analysis = QueryAnalysis(question='boys hostel fee', standalone_query='boys hostel fee',
+                                 keywords='hostel fee boys')
+        inline = retrieve(llm, analysis)
+        with override_settings(RETRIEVE_PARALLEL=True):
+            search = KeywordSearch(analysis)
+            self.assertIsNotNone(search._future)
+            parallel = retrieve(llm, analysis, keywords=search)
+        self.assertEqual(parallel.lists, inline.lists)
+        self.assertEqual([c.chunk_id for c in parallel.candidates],
+                         [c.chunk_id for c in inline.candidates])
+
+    def test_a_dropped_pool_connection_is_reopened(self):
+        add_document('Hostel fee structure', ['Boys hostel fee is Rs 1,20,000 per year.'])
+        calls = []
+
+        def flaky(keywords, *, size=40):
+            calls.append(keywords)
+            if len(calls) == 1:
+                raise OperationalError('server closed the connection unexpectedly')
+            return ['chunk-id']
+
+        with mock.patch('rag.retrieve.keyword_list', side_effect=flaky):
+            self.assertEqual(_keyword_list_in_thread('hostel fee'), ['chunk-id'])
+        self.assertEqual(len(calls), 2)
 
 
 class ContextTests(TestCase):
