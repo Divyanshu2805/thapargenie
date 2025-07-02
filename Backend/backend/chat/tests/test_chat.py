@@ -80,7 +80,7 @@ class ChatTestCase(TestCase):
         background.RUN_INLINE = True
         self.addCleanup(setattr, background, 'RUN_INLINE', False)
         ChatSettings.objects.update_or_create(
-            pk=1, defaults={'auto_title_enabled': False}
+            pk=1, defaults={'rerank_enabled': False, 'auto_title_enabled': False}
         )
         ChatSettings.forget()
         self.addCleanup(ChatSettings.forget)

@@ -10,11 +10,12 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('question')
+        parser.add_argument('--rerank', action='store_true')
         parser.add_argument('--trace', action='store_true', help='Print retrieval details.')
 
-    def handle(self, question, trace, **options):
+    def handle(self, question, rerank, trace, **options):
         result = None
-        for event, data in answer_events(question):
+        for event, data in answer_events(question, rerank_enabled=rerank):
             if event == 'status':
                 self.stderr.write(f'… {data["stage"]} {data.get("detail", "")}')
             elif event == 'delta':
@@ -32,7 +33,7 @@ class Command(BaseCommand):
             )
         self.stdout.write(
             f'type={result.answer_type} model={result.model} '
-            f'timings={result.timings}'
+            f'reranked={result.reranked} timings={result.timings}'
         )
         if trace:
             self.stdout.write(json.dumps(result.retrieval_trace, indent=2, ensure_ascii=False))

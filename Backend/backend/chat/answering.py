@@ -255,6 +255,7 @@ def stream_turn(turn):
     path, _ = engine.active_path(turn.conversation)
     upto = [m.pk for m in path].index(turn.user_message.pk)
     prior = path[:upto]
+    settings = ChatSettings.load()
     llm = get_llm()
     started = time.monotonic()
     parts = []
@@ -267,6 +268,7 @@ def stream_turn(turn):
             llm=llm,
             history=engine.history(prior),
             profile=_profile(user),
+            rerank_enabled=settings.rerank_enabled,
         )
         for event, data in events:
             if event == 'delta':

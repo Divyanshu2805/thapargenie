@@ -14,6 +14,7 @@ from rag.llm import BadResponse, use_provider
 from rag.llm.client import LLM
 from rag.llm.fake import FakeProvider, hashed_embedding
 from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events
+from rag.rerank import MIN_SCORE, rerank
 from rag.retrieve import (
     BOOST,
     Candidate,
@@ -216,6 +217,35 @@ class ParallelKeywordSearchTests(TransactionTestCase):
         self.assertEqual(len(calls), 2)
 
 
+class RerankTests(SimpleTestCase):
+    def test_orders_by_score_and_drops_irrelevant(self):
+        fake = FakeProvider()
+        fake.queue({'scores': [{'id': 0, 'score': 2}, {'id': 1, 'score': 9},
+                               {'id': 2, 'score': 6}]})
+        items = [candidate(chunk_id=str(i)) for i in range(3)]
+        kept, reranked = rerank(make_llm(fake), 'q', items)
+        self.assertTrue(reranked)
+        # '0' scored low but is the top fused candidate, so it is kept (after the others).
+        self.assertEqual([c.chunk_id for c in kept], ['1', '2', '0'])
+        self.assertTrue(all(c.rerank_score >= MIN_SCORE for c in kept[:2]))
+
+    def test_top_fused_candidate_is_dropped_only_at_zero(self):
+        fake = FakeProvider()
+        fake.queue({'scores': [{'id': 0, 'score': 0}, {'id': 1, 'score': 1},
+                               {'id': 2, 'score': 7}]})
+        items = [candidate(chunk_id=str(i)) for i in range(3)]
+        kept, _ = rerank(make_llm(fake), 'q', items)
+        self.assertEqual([c.chunk_id for c in kept], ['2', '1'])
+
+    def test_failure_keeps_fused_order(self):
+        fake = FakeProvider()
+        fake.queue(BadResponse('x'))
+        items = [candidate(chunk_id=str(i)) for i in range(10)]
+        kept, reranked = rerank(make_llm(fake), 'q', items)
+        self.assertFalse(reranked)
+        self.assertEqual(len(kept), 8)
+
+
 class ContextTests(TestCase):
     def test_adjacent_chunks_share_one_number(self):
         document = add_document('Fee table', [
@@ -261,7 +291,7 @@ class PipelineTests(TestCase):
 
     def test_answered_with_citation(self):
         self.fake.queue(ANALYSIS, 'The boys hostel fee is Rs 1,20,000 [1].')
-        events = list(answer_events('boys hostel fee?'))
+        events = list(answer_events('boys hostel fee?', rerank_enabled=False))
         names = [name for name, _ in events]
         self.assertEqual(names[:3], ['status', 'status', 'sources'])
         self.assertIn('delta', names)
@@ -272,17 +302,24 @@ class PipelineTests(TestCase):
 
     def test_uncited_answer_is_no_answer(self):
         self.fake.queue(ANALYSIS, "I couldn't find that in the documents.")
-        result = answer('boys hostel fee?')
+        result = answer('boys hostel fee?', rerank_enabled=False)
         self.assertEqual(result.answer_type, AnswerType.NO_ANSWER)
 
     def test_not_found_with_related_citation_is_no_answer(self):
         self.fake.queue(ANALYSIS, 'I couldn’t find the Wi-Fi password. Hostel IT desk: [1].')
-        result = answer('wifi password?')
+        result = answer('wifi password?', rerank_enabled=False)
+        self.assertEqual(result.answer_type, AnswerType.NO_ANSWER)
+
+    def test_nothing_relevant_after_rerank_skips_generation(self):
+        add_document('Library', ['The library opens at 8 am.'], category='hostel_campus_life')
+        self.fake.queue(ANALYSIS, {'scores': [{'id': 0, 'score': 0}, {'id': 1, 'score': 0}]})
+        result = answer('boys hostel fee?', rerank_enabled=True)
+        self.assertEqual(result.text, NOT_FOUND)
         self.assertEqual(result.answer_type, AnswerType.NO_ANSWER)
 
     def test_history_is_passed_to_the_answer_model(self):
         self.fake.queue(ANALYSIS, 'Fee is Rs 1,20,000 [1].')
-        answer('and boys?',
+        answer('and boys?', rerank_enabled=False,
                history=[{'role': 'user', 'content': 'girls hostel fee?'},
                         {'role': 'assistant', 'content': 'x' * 5000}])
         final = self.fake.requests[-1]

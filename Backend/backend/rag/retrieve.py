@@ -47,6 +47,7 @@ class Candidate:
     ranks: dict = field(default_factory=dict)
     fused: float = 0.0
     boost: float = 0.0
+    rerank_score: float | None = None
 
     @property
     def score(self):
@@ -60,6 +61,7 @@ class Candidate:
             'ranks': self.ranks,
             'fused': round(self.fused, 5),
             'boost': round(self.boost, 5),
+            'rerank': self.rerank_score,
         }
 
 

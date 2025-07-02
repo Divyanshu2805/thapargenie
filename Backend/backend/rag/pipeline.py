@@ -13,9 +13,9 @@ from rag import prompt
 from rag.analysis import Intent, QueryAnalysis, analyze
 from rag.context import build_sources
 from rag.llm import StreamEnd, get_llm
+from rag.rerank import KEEP, rerank
 from rag.retrieve import KeywordSearch, retrieve
 
-KEEP = 8
 HISTORY_MESSAGES = 4
 HISTORY_CHARS = 1200
 
@@ -70,6 +70,7 @@ class AnswerResult:
     sources: list = field(default_factory=list)
     cited: list = field(default_factory=list)
     model: str = ''
+    reranked: bool = False
     retrieval_trace: dict = field(default_factory=dict)
     timings: dict = field(default_factory=dict)
 
@@ -121,6 +122,7 @@ def answer_events(
     llm=None,
     history=(),
     profile=None,
+    rerank_enabled=False,
     today=None,
 ):
     llm = llm or get_llm()
@@ -152,7 +154,12 @@ def answer_events(
     retrieval = retrieve(llm, analysis, vectors=vectors, keywords=keywords)
     timer.lap('retrieval')
 
-    candidates = retrieval.candidates[:KEEP]
+    candidates, reranked = retrieval.candidates[:KEEP], False
+    if rerank_enabled and retrieval.candidates:
+        detail = f'Checking {len(retrieval.candidates)} passages'
+        yield 'status', {'stage': 'reading', 'detail': detail}
+        candidates, reranked = rerank(llm, analysis.standalone_query, retrieval.candidates)
+        timer.lap('rerank')
 
     sources = build_sources(candidates)
     timer.lap('context')
@@ -165,6 +172,7 @@ def answer_events(
             text=NOT_FOUND,
             answer_type=AnswerType.NO_ANSWER,
             analysis=analysis,
+            reranked=reranked,
             retrieval_trace=retrieval.trace(),
             timings=timer.total(),
         )
@@ -199,6 +207,7 @@ def answer_events(
         sources=sources,
         cited=cited,
         model=model,
+        reranked=reranked,
         retrieval_trace=retrieval.trace(),
         timings=timer.total(),
     )
