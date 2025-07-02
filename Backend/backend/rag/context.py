@@ -1,14 +1,19 @@
-"""Turn ranked chunks into numbered sources for the answer prompt.
+"""Turn ranked chunks into numbered sources for the answer prompt ("small to big").
 
-Adjacent chunks from one document are merged into a single source, so a fee table split
-in two comes back whole under one citation number.
+Retrieval works on small chunks for precision; answering needs enough surrounding text.
+For each kept chunk, the chunk before/after it is added when the chunk is part of a
+table or stops mid-thought. Adjacent chunks from one document are merged into a single
+source, so a fee table split in two comes back whole under one citation number.
 """
 
 from dataclasses import dataclass, field
 
 from common.text import estimate_tokens
+from django.db.models import Q
+from knowledge.models import Chunk
 
 BUDGET_TOKENS = 6000
+_ENDINGS = ('.', '!', '?', ':', ')', '|', '"')
 
 
 @dataclass
@@ -49,8 +54,32 @@ class Source:
         }
 
 
-def build_sources(candidates, *, budget=BUDGET_TOKENS):
+def _needs_neighbours(content):
+    text = content.strip()
+    return text.startswith('|') or not text.endswith(_ENDINGS)
+
+
+def _neighbours(candidates):
+    wanted = {}
+    for candidate in candidates:
+        if _needs_neighbours(candidate.content):
+            for index in (candidate.chunk_index - 1, candidate.chunk_index + 1):
+                if index >= 0:
+                    wanted.setdefault(candidate.document_id, set()).add(index)
+    if not wanted:
+        return {}
+    condition = Q()
+    for document_id, indexes in wanted.items():
+        condition |= Q(document_id=document_id, chunk_index__in=indexes)
+    rows = Chunk.objects.filter(condition, is_searchable=True).values(
+        'id', 'document_id', 'chunk_index', 'content', 'heading_path', 'page_start', 'page_end'
+    )
+    return {(str(row.pop('document_id')), row['chunk_index']): row for row in rows}
+
+
+def build_sources(candidates, *, budget=BUDGET_TOKENS, expand=True):
     """Ordered, numbered sources (best first) within the token budget."""
+    extra = _neighbours(candidates) if expand else {}
     # document -> {chunk_index: part}, plus each document's best score and first rank.
     documents = {}
     for rank, candidate in enumerate(candidates):
@@ -64,7 +93,12 @@ def build_sources(candidates, *, budget=BUDGET_TOKENS):
             'heading_path': candidate.heading_path,
             'page_start': candidate.page_start,
             'page_end': candidate.page_end,
+            'primary': True,
         }
+    for (document_id, index), row in extra.items():
+        parts = documents[document_id]['parts']
+        if index not in parts:
+            parts[index] = {**row, 'id': str(row['id']), 'primary': False}
 
     sources = []
     used = 0
@@ -81,6 +115,8 @@ def build_sources(candidates, *, budget=BUDGET_TOKENS):
         runs.append(run)
         for run in runs:
             parts = [doc['parts'][i] for i in run]
+            if not any(part['primary'] for part in parts):
+                continue
             content = '\n\n'.join(part['content'] for part in parts)
             tokens = estimate_tokens(content)
             if sources and used + tokens > budget:
@@ -94,7 +130,7 @@ def build_sources(candidates, *, budget=BUDGET_TOKENS):
                     chunk_ids=[part['id'] for part in parts],
                     title=meta.title,
                     url=meta.url,
-                    heading_path=parts[0]['heading_path'],
+                    heading_path=next((p['heading_path'] for p in parts if p['primary']), ''),
                     page_start=min(pages) if pages else None,
                     page_end=max(pages) if pages else None,
                     academic_year=meta.academic_year,

@@ -247,26 +247,28 @@ class RerankTests(SimpleTestCase):
 
 
 class ContextTests(TestCase):
-    def test_adjacent_chunks_share_one_number(self):
+    def test_split_table_is_rejoined_under_one_number(self):
         document = add_document('Fee table', [
+            'Fee details for 2026-27 are below.',
             '| Programme | Fee |\n|---|---|\n| COE | 2,25,000 |',
             '| Programme | Fee |\n|---|---|\n| ECE | 2,10,000 |',
+            'Unrelated closing notes.',
         ])
-        hits = [
-            candidate(chunk_id=str(chunk.pk), document_id=str(document.pk),
-                      chunk_index=chunk.chunk_index, content=chunk.content, title=document.title)
-            for chunk in document.chunks.order_by('chunk_index')
-        ]
-        sources = build_sources(hits)
+        chunks = list(document.chunks.order_by('chunk_index'))
+        hit = candidate(chunk_id=str(chunks[1].pk), document_id=str(document.pk),
+                        chunk_index=1, content=chunks[1].content, title=document.title)
+        sources = build_sources([hit])
         self.assertEqual(len(sources), 1)
         self.assertIn('COE', sources[0].content)
         self.assertIn('ECE', sources[0].content)
+        self.assertIn('Fee details', sources[0].content)
+        self.assertNotIn('Unrelated', sources[0].content)
         self.assertNotIn('storage_path', sources[0].public())
 
     def test_budget_limits_sources(self):
         items = [candidate(chunk_id=str(i), document_id=str(i), content='word ' * 800 + '.')
                  for i in range(5)]
-        sources = build_sources(items, budget=2500)
+        sources = build_sources(items, budget=2500, expand=False)
         self.assertEqual([s.number for s in sources], [1, 2])
 
 
