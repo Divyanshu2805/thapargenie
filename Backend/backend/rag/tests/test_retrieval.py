@@ -144,6 +144,17 @@ class FusionTests(SimpleTestCase):
         self.assertAlmostEqual(weak.boost, 3 * BOOST * strong.fused)
         self.assertLessEqual(weak.boost, 0.3 * strong.fused + 1e-12)
 
+    def test_near_duplicates_keep_best_ranked_copy(self):
+        from rag.retrieve import drop_near_duplicates
+
+        text = 'Academic calendar odd semester 2026-27 first year classes begin 1 August'
+        items = [
+            candidate(chunk_id='a', content=text, url='https://one'),
+            candidate(chunk_id='b', content='Hostel fee table'),
+            candidate(chunk_id='c', content=text + '.', url='https://two'),
+        ]
+        self.assertEqual([c.chunk_id for c in drop_near_duplicates(items)], ['a', 'b'])
+
     def test_keyword_query_is_safe_or_query(self):
         self.assertEqual(keyword_query("UCS301 fee's & (drop) 2026-27"),
                          'ucs301 | fee | s | drop | 2026 | 27')

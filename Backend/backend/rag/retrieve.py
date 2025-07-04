@@ -24,6 +24,7 @@ from rag.aliases import expansions
 RRF_K = 60
 LIST_SIZE = 40
 BOOST = 0.10
+DUPLICATE_OVERLAP = 0.85
 
 _TOKEN = re.compile(r'[a-z0-9]+')
 
@@ -286,4 +287,23 @@ def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25):
         candidates.append(candidate)
     apply_boosts(candidates, analysis)
     candidates.sort(key=lambda c: c.score, reverse=True)
-    return Retrieval(candidates[:limit], lists)
+    return Retrieval(drop_near_duplicates(candidates)[:limit], lists)
+
+
+def _words(text):
+    return set(_TOKEN.findall(text.lower()))
+
+
+def drop_near_duplicates(candidates, threshold=DUPLICATE_OVERLAP):
+    """Keep the best-ranked copy of content published more than once (same PDF at two
+    URLs, a page and its PDF). Duplicates would otherwise crowd out other sources."""
+    kept, kept_words = [], []
+    for candidate in candidates:
+        words = _words(candidate.content)
+        duplicate = any(
+            len(words & other) / max(1, len(words | other)) >= threshold for other in kept_words
+        )
+        if not duplicate:
+            kept.append(candidate)
+            kept_words.append(words)
+    return kept
