@@ -7,6 +7,7 @@ import {
   Pencil,
   RefreshCw,
   RotateCcw,
+  ShieldAlert,
   Square,
   ThumbsDown,
   ThumbsUp,
@@ -223,6 +224,13 @@ export function AssistantMessage({
         ) : null}
 
         {message.error ? <ErrorNotice error={message.error} onRetry={onRetry} /> : null}
+
+        {complete && !smooth.revealing && message.grounded === false && message.answer_type === 'answered' ? (
+          <p className="mt-3 flex animate-fade-in items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-relaxed">
+            <ShieldAlert className="mt-px size-4 shrink-0 text-warning" aria-hidden="true" />
+            Parts of this answer couldn’t be matched to the sources. Verify the details with the official source before relying on them.
+          </p>
+        ) : null}
 
         {!streaming && !smooth.revealing ? <SourceList sources={message.sources} /> : null}
 
