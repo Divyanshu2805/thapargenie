@@ -8,6 +8,7 @@ from knowledge.ingest.chunk import ChunkDraft
 from knowledge.ingest.pipeline import prepare_chunks
 from knowledge.models import Chunk, Document, DocumentStatus, SourceType
 
+from rag import grounding
 from rag.analysis import Intent, QueryAnalysis, _clean, analyze, current_session
 from rag.context import build_sources
 from rag.llm import BadResponse, use_provider
@@ -283,6 +284,63 @@ class ContextTests(TestCase):
         self.assertEqual([s.number for s in sources], [1, 2])
 
 
+class GroundingTests(SimpleTestCase):
+    def sources(self):
+        return [
+            candidate_source(1, 'Hostel fee is Rs 1,20,000 per year for 2026-27.'),
+            candidate_source(2, 'Mess charges are 45000 per year.'),
+        ]
+
+    def test_supported_figures(self):
+        check = grounding.check('The hostel fee is Rs 1,20,000 for 2026-27 [1].', self.sources())
+        self.assertEqual(check.cited, [1])
+        self.assertTrue(check.grounded)
+
+    def test_calculated_total_is_flagged(self):
+        check = grounding.check('Total is Rs 1,65,000 [1][2].', self.sources())
+        self.assertEqual(check.cited, [1, 2])
+        self.assertEqual(check.unsupported, ['165000'])
+
+    def test_figure_from_uncited_source_is_flagged(self):
+        check = grounding.check('Mess is 45000 [1].', self.sources())
+        self.assertFalse(check.grounded)
+
+    def test_academic_sessions_match_across_dash_styles(self):
+        sources = [candidate_source(1, 'Document verification for the 2026�27 batch.')]
+        for text in ('the 2026-27 batch [1]', 'the 2026–27 batch [1]', 'the 2026-2027 batch [1]'):
+            with self.subTest(text=text):
+                self.assertTrue(grounding.check(text, sources).grounded)
+        self.assertFalse(grounding.check('the 2025-26 batch [1]', sources).grounded)
+
+    def test_figures_from_source_title_count(self):
+        source = candidate_source(1, 'Bring the anti-ragging affidavit.')
+        source.title = 'Document verification - BE/BTech 2026-27 batch'
+        self.assertTrue(grounding.check('For the 2026-27 batch [1].', [source]).grounded)
+
+    def test_dates_match_across_formats(self):
+        sources = [candidate_source(1, 'Last counselling round on 14th August, 2026.')]
+        for text in ('Final round on August 14, 2026 [1].', 'Final round on 14 Aug 2026 [1].',
+                     'Final round on 14.08.2026 [1].'):
+            with self.subTest(text=text):
+                self.assertTrue(grounding.check(text, sources).grounded)
+        self.assertEqual(grounding.check('Final round on August 15, 2026 [1].',
+                                         sources).unsupported, ['date:08-15'])
+
+    def test_citation_numbers_are_not_figures(self):
+        check = grounding.check('See [12] and [1, 2].', self.sources())
+        self.assertEqual(check.cited, [1, 2])
+        self.assertTrue(check.grounded)
+
+
+def candidate_source(number, content):
+    from rag.context import Source
+
+    return Source(number=number, document_id='d', chunk_ids=[], title='t', url='',
+                  heading_path='', page_start=None, page_end=None, academic_year='',
+                  category='other', is_current=True, source_type='text', storage_path='',
+                  content=content)
+
+
 ANALYSIS = {'intent': 'college_query', 'standalone_query': 'boys hostel fee 2026-27',
             'alternate_queries': [], 'keywords': 'hostel fee', 'categories': [],
             'academic_year': '', 'needs_current': True, 'language': 'english'}
@@ -310,6 +368,7 @@ class PipelineTests(TestCase):
         self.assertIn('delta', names)
         result = events[-1][1]
         self.assertEqual(result.answer_type, AnswerType.ANSWERED)
+        self.assertTrue(result.grounded)
         self.assertEqual(result.cited, [1])
         self.assertEqual(result.analysis.standalone_query, 'boys hostel fee 2026-27')
 
@@ -317,6 +376,7 @@ class PipelineTests(TestCase):
         self.fake.queue(ANALYSIS, "I couldn't find that in the documents.")
         result = answer('boys hostel fee?', rerank_enabled=False)
         self.assertEqual(result.answer_type, AnswerType.NO_ANSWER)
+        self.assertIsNone(result.grounded)
 
     def test_not_found_with_related_citation_is_no_answer(self):
         self.fake.queue(ANALYSIS, 'I couldn’t find the Wi-Fi password. Hostel IT desk: [1].')

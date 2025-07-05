@@ -32,7 +32,8 @@ class Command(BaseCommand):
                 f'(p.{source.page_start or "-"}) {source.url}'
             )
         self.stdout.write(
-            f'type={result.answer_type} model={result.model} '
+            f'type={result.answer_type} grounded={result.grounded} '
+            f'unsupported={result.unsupported} model={result.model} '
             f'reranked={result.reranked} timings={result.timings}'
         )
         if trace:

@@ -57,6 +57,7 @@ class MessageOut(serializers.Serializer):
     content = serializers.CharField(allow_blank=True)
     status = serializers.ChoiceField(choices=Message.Status.choices)
     answer_type = serializers.ChoiceField(choices=Message.AnswerType.choices, allow_null=True)
+    grounded = serializers.BooleanField(allow_null=True)
     error_code = serializers.CharField(allow_null=True)
     created_at = serializers.DateTimeField()
     sources = SourceOut(many=True)

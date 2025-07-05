@@ -110,6 +110,7 @@ def message_payload(message, *, siblings=None, sources=None, feedback=None):
         'content': message.content,
         'status': message.status,
         'answer_type': message.answer_type,
+        'grounded': message.grounded,
         'error_code': message.error_code or None,
         'created_at': message.created_at.isoformat(),
         'sources': [source_payload(source) for source in sources],

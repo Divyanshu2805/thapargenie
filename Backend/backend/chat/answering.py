@@ -197,6 +197,7 @@ def _finish(turn, result, llm, started):
         message.content = result.text
         message.status = Message.Status.COMPLETE
         message.answer_type = result.answer_type
+        message.grounded = result.grounded
         message.model = result.model
         message.prompt_tokens = llm.usage.prompt_tokens or None
         message.completion_tokens = llm.usage.completion_tokens or None

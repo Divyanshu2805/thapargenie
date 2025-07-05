@@ -120,6 +120,7 @@ class AskTests(ChatTestCase):
         self.assertEqual(assistant.parent, user_message)
         self.assertEqual(assistant.status, Message.Status.COMPLETE)
         self.assertEqual(assistant.answer_type, Message.AnswerType.ANSWERED)
+        self.assertTrue(assistant.grounded)
         source = MessageSource.objects.get(message=assistant)
         self.assertTrue(source.cited)
         self.assertEqual(source.url, 'https://www.thapar.edu/fees')

@@ -5,11 +5,10 @@ status, sources, delta, done. The chat layer stores the final result; `manage.py
 just prints it.
 """
 
-import re
 import time
 from dataclasses import dataclass, field
 
-from rag import prompt
+from rag import grounding, prompt
 from rag.analysis import Intent, QueryAnalysis, analyze
 from rag.context import build_sources
 from rag.llm import StreamEnd, get_llm
@@ -44,9 +43,6 @@ NOT_FOUND = (
 )
 
 
-_CITATION = re.compile(r'\[(\d+(?:\s*,\s*\d+)*)\]')
-
-
 class AnswerType:
     ANSWERED = 'answered'
     NO_ANSWER = 'no_answer'
@@ -69,6 +65,8 @@ class AnswerResult:
     analysis: QueryAnalysis
     sources: list = field(default_factory=list)
     cited: list = field(default_factory=list)
+    grounded: bool | None = None
+    unsupported: list = field(default_factory=list)
     model: str = ''
     reranked: bool = False
     retrieval_trace: dict = field(default_factory=dict)
@@ -93,17 +91,6 @@ class _Timer:
     def total(self):
         self.timings['total'] = round((time.monotonic() - self._start) * 1000)
         return self.timings
-
-
-def cited_numbers(answer, max_source):
-    """Source numbers cited as [n] or [n, m], in order of first use."""
-    numbers = []
-    for group in _CITATION.findall(answer):
-        for part in group.split(','):
-            number = int(part)
-            if 1 <= number <= max_source and number not in numbers:
-                numbers.append(number)
-    return numbers
 
 
 def _history_messages(history):
@@ -196,16 +183,18 @@ def answer_events(
     timer.lap('generation')
 
     text = ''.join(parts).strip()
-    cited = cited_numbers(text, len(sources))
+    check = grounding.check(text, sources, question=analysis.question)
     # A "not found" reply may still cite a related source; it is still not an answer.
     not_found = text.lower().replace('’', "'").startswith(NOT_FOUND_OPENING)
-    answer_type = AnswerType.ANSWERED if cited and not not_found else AnswerType.NO_ANSWER
+    answer_type = AnswerType.ANSWERED if check.cited and not not_found else AnswerType.NO_ANSWER
     yield 'done', AnswerResult(
         text=text,
         answer_type=answer_type,
         analysis=analysis,
         sources=sources,
-        cited=cited,
+        cited=check.cited,
+        grounded=check.grounded if answer_type == AnswerType.ANSWERED else None,
+        unsupported=check.unsupported,
         model=model,
         reranked=reranked,
         retrieval_trace=retrieval.trace(),

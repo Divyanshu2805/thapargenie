@@ -103,6 +103,7 @@ class Message(UUIDModel, TimestampedModel):
     answer_type = models.CharField(  # noqa: DJ001
         max_length=16, choices=AnswerType.choices, null=True, blank=True
     )
+    grounded = models.BooleanField(null=True, blank=True)
     model = models.CharField(max_length=80, blank=True)
     prompt_tokens = models.PositiveIntegerField(null=True, blank=True)
     completion_tokens = models.PositiveIntegerField(null=True, blank=True)
