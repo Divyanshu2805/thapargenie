@@ -59,13 +59,15 @@ def _attr(value):
     return value.replace('"', "'").replace('\n', ' ')
 
 
-def answer_prompt(analysis, sources, *, profile=None, today=None):
+def answer_prompt(analysis, sources, *, profile=None, memory='', today=None):
     today = today or date.today()
     lines = [f'Today is {today.isoformat()} (academic session {current_session(today)}).']
     if profile:
         details = ', '.join(f'{key}: {value}' for key, value in profile.items() if value)
         if details:
             lines.append(f'Student profile (use only if the question depends on it): {details}.')
+    if memory:
+        lines.append(f'Earlier in this conversation: {memory}')
     lines.append('')
     lines.append(format_sources(sources) if sources else '<sources>\n(none found)\n</sources>')
     lines.append('')

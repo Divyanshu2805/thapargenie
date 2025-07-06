@@ -429,3 +429,17 @@ class MemoryAndTitleTests(ChatTestCase):
         memory.make_title(conversation.pk, 'anything')
         conversation.refresh_from_db()
         self.assertEqual(conversation.title, 'Mine')
+
+    def test_rolling_summary_applies_only_to_its_branch(self):
+        conversation = self.conversation()
+        for index in range(5):
+            self.answered(conversation, content=f'question {index}')
+        self.assertEqual(Conversation.objects.get(pk=conversation.pk).memory_summary, '')
+        # The sixth turn pushes the path past the threshold; the summary runs after it.
+        self.fake.queue(ANALYSIS, ANSWER, 'Student is in BE COE; asked about hostel fees.')
+        read_events(self.ask(conversation, content='question 5'))
+        conversation.refresh_from_db()
+        self.assertIn('BE COE', conversation.memory_summary)
+        path, _ = engine.active_path(conversation)
+        self.assertEqual(engine.valid_memory(conversation, path), conversation.memory_summary)
+        self.assertEqual(engine.valid_memory(conversation, path[:2]), '')

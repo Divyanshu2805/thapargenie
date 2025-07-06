@@ -84,7 +84,7 @@ For other intents, set standalone_query to the message and leave the rest empty/
 language: the language style of the user's message."""
 
 PROMPT = """Today is {today}. The current academic session is {session}.
-{profile}
+{profile}{memory}
 Conversation so far (oldest first):
 {history}
 
@@ -175,12 +175,13 @@ def _clean(data, question):
     )
 
 
-def analyze(llm, question, *, history=(), profile=None, today=None):
+def analyze(llm, question, *, history=(), memory='', profile=None, today=None):
     today = today or date.today()
     prompt = PROMPT.format(
         today=today.isoformat(),
         session=current_session(today),
         profile=_format_profile(profile),
+        memory=f'Earlier in this conversation: {memory}\n' if memory else '',
         history=_format_history(history),
         question=question,
     )

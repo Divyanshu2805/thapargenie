@@ -108,6 +108,7 @@ def answer_events(
     *,
     llm=None,
     history=(),
+    memory='',
     profile=None,
     rerank_enabled=False,
     today=None,
@@ -116,7 +117,8 @@ def answer_events(
     timer = _Timer()
 
     yield 'status', {'stage': 'understanding'}
-    analysis = analyze(llm, question, history=history, profile=profile, today=today)
+    analysis = analyze(llm, question, history=history, memory=memory, profile=profile,
+                       today=today)
     timer.lap('analysis')
 
     if analysis.intent != Intent.COLLEGE:
@@ -168,7 +170,7 @@ def answer_events(
     yield 'status', {'stage': 'writing', 'detail': f'Reading {len(sources)} sources'}
     parts, model = [], ''
     for item in llm.stream(
-        prompt.answer_prompt(analysis, sources, profile=profile, today=today),
+        prompt.answer_prompt(analysis, sources, profile=profile, memory=memory, today=today),
         system=prompt.SYSTEM,
         history=_history_messages(history),
         temperature=0.2,

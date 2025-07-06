@@ -213,6 +213,7 @@ def _after_answer(turn, result, first_turn):
     if first_turn and settings.auto_title_enabled and \
             conversation.title_source == Conversation.TitleSource.AUTO:
         background.submit(memory.make_title, conversation.pk, turn.user_message.content)
+    background.submit(memory.update_summary, conversation.pk)
 
 
 def _fail(turn, code, partial=''):
@@ -268,6 +269,7 @@ def stream_turn(turn):
             turn.user_message.content,
             llm=llm,
             history=engine.history(prior),
+            memory=engine.valid_memory(turn.conversation, prior),
             profile=_profile(user),
             rerank_enabled=settings.rerank_enabled,
         )

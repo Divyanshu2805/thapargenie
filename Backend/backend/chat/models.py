@@ -10,6 +10,7 @@ from knowledge.models import Category
 MAX_QUESTION_CHARS = 2000
 MAX_MESSAGE_CHARS = 20_000
 MAX_MESSAGES_PER_CONVERSATION = 200
+MAX_SUMMARY_CHARS = 1500
 
 
 class ConversationQuerySet(models.QuerySet):
@@ -38,6 +39,10 @@ class Conversation(UUIDModel, TimestampedModel):
     current_leaf = models.ForeignKey(
         'Message', null=True, blank=True, on_delete=models.SET_NULL, related_name='+'
     )
+    memory_summary = models.TextField(blank=True)
+    memory_upto = models.ForeignKey(
+        'Message', null=True, blank=True, on_delete=models.SET_NULL, related_name='+'
+    )
     message_count = models.PositiveIntegerField(default=0)
     last_message_at = models.DateTimeField(default=timezone.now)
 
@@ -56,6 +61,7 @@ class Conversation(UUIDModel, TimestampedModel):
         ]
         constraints = [
             choices_check('title_source', TitleSource, 'conversation_title_source_valid'),
+            max_length_check('memory_summary', MAX_SUMMARY_CHARS, 'conversation_summary_length'),
         ]
 
     def __str__(self):
