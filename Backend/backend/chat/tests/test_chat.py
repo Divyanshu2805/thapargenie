@@ -9,6 +9,7 @@ from django.utils import timezone
 from knowledge.ingest.chunk import ChunkDraft
 from knowledge.ingest.pipeline import prepare_chunks
 from knowledge.models import Chunk, Document, DocumentStatus, SourceType
+from knowledge.signals import knowledge_changed
 from knowledge.storage import MemoryStorage, use_storage
 from rag.llm import LLMError, use_provider
 from rag.llm.fake import FakeProvider, hashed_embedding
@@ -17,6 +18,7 @@ from userauths.models import EligibilityState, User
 
 from chat import background, engine, memory
 from chat.models import (
+    AnswerCache,
     ChatSettings,
     Conversation,
     Feedback,
@@ -410,6 +412,46 @@ class FeedbackAndSourceTests(ChatTestCase):
         MessageSource.objects.filter(pk=source.pk).update(url='')
         url = self.client.get(f'/api/v1/sources/{source.pk}/open/').data['url']
         self.assertTrue(url.startswith('memory://documents/x.pdf'))
+
+
+class CacheTests(ChatTestCase):
+    def setUp(self):
+        super().setUp()
+        ChatSettings.objects.filter(pk=1).update(cache_enabled=True)
+        ChatSettings.forget()
+
+    def test_repeat_question_is_served_from_cache(self):
+        self.answered(self.conversation())
+        self.assertEqual(AnswerCache.objects.count(), 1)
+        self.fake.queue(ANALYSIS)  # only analysis runs on a cache hit
+        events = read_events(self.ask(self.conversation()))
+        cached = Message.objects.filter(answer_type=Message.AnswerType.CACHED).get()
+        self.assertEqual(cached.content, ANSWER)
+        self.assertTrue(cached.sources.get().cited)
+        self.assertEqual(events[-1][0], 'done')
+        self.assertEqual(UsageDaily.objects.get(user=self.user).cached, 1)
+
+    def test_follow_ups_and_regenerations_skip_cache(self):
+        conversation = self.conversation()
+        self.answered(conversation)
+        self.answered(conversation, content='boys hostel fee?')
+        self.assertFalse(Message.objects.filter(answer_type='cached').exists())
+
+    def test_ungrounded_answers_are_not_cached(self):
+        self.answered(self.conversation(), answer='The fee is Rs 99,999 [1].')
+        self.assertFalse(AnswerCache.objects.exists())
+
+    def test_knowledge_change_and_thumbs_down_clear_cache(self):
+        self.answered(self.conversation())
+        with self.captureOnCommitCallbacks(execute=True):
+            knowledge_changed.send(sender=Document)
+        self.assertFalse(AnswerCache.objects.exists())
+
+        self.answered(self.conversation())
+        assistant = Message.objects.filter(role='assistant').order_by('-created_at').first()
+        self.client.put(f'/api/v1/messages/{assistant.pk}/feedback/', {'rating': -1},
+                        format='json')
+        self.assertFalse(AnswerCache.objects.exists())
 
 
 class MemoryAndTitleTests(ChatTestCase):

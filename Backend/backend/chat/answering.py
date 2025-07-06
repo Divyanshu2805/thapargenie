@@ -19,9 +19,9 @@ from common.text import truncate
 from django.db import transaction
 from django.utils import timezone
 from rag.llm import LLMError, QuotaExhausted, get_llm
-from rag.pipeline import answer_events
+from rag.pipeline import AnswerType, answer_events
 
-from chat import background, engine, memory, quota
+from chat import background, cache, engine, memory, quota
 from chat.errors import (
     ConversationBusy,
     ConversationFull,
@@ -155,21 +155,11 @@ def _profile(user):
     }
 
 
-def _source_rows(result):
-    rows = []
-    for source in result.sources:
-        rows.append({
-            **source.public(),
-            'chunk_id': source.chunk_ids[0] if source.chunk_ids else None,
-            'document_id': source.document_id,
-            'cited': source.number in result.cited,
-            'score': source.score,
-        })
-    return rows
-
-
 def _save_sources(message, result):
-    rows = _source_rows(result)
+    if result.cached_sources:
+        rows = result.cached_sources
+    else:
+        rows = cache.source_rows(result)
     MessageSource.objects.bulk_create([
         MessageSource(
             message=message,
@@ -204,11 +194,17 @@ def _finish(turn, result, llm, started):
         message.latency_ms = int((time.monotonic() - started) * 1000)
         message.save()
         _save_sources(message, result)
-    quota.record_answer(turn.conversation.user, llm.usage)
+    quota.record_answer(turn.conversation.user, llm.usage,
+                        cached=result.answer_type == AnswerType.CACHED)
 
 
 def _after_answer(turn, result, first_turn):
     settings = ChatSettings.load()
+    if settings.cache_enabled and cache.eligible(result, first_turn=first_turn):
+        try:
+            cache.store(result)
+        except Exception:
+            logger.exception('Could not store answer in cache')
     conversation = turn.conversation
     if first_turn and settings.auto_title_enabled and \
             conversation.title_source == Conversation.TitleSource.AUTO:
@@ -272,6 +268,8 @@ def stream_turn(turn):
             memory=engine.valid_memory(turn.conversation, prior),
             profile=_profile(user),
             rerank_enabled=settings.rerank_enabled,
+            cache=cache.Cache() if settings.cache_enabled and not prior and
+            not turn.regenerated else None,
         )
         for event, data in events:
             if event == 'delta':

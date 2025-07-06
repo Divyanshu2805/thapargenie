@@ -23,7 +23,7 @@ from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from chat import answering, engine, quota
+from chat import answering, cache, engine, quota
 from chat.models import (
     ChatSettings,
     Conversation,
@@ -282,6 +282,8 @@ class FeedbackView(APIView):
                 'comment': data.get('comment', ''),
             },
         )
+        if data['rating'] < 0:
+            cache.forget_answer(message.content)
         return Response(feedback_payload(feedback))
 
     @extend_schema(operation_id='feedback_delete', tags=['chat'], responses={204: None})

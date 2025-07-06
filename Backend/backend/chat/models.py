@@ -5,7 +5,8 @@ from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.utils import timezone
-from knowledge.models import Category
+from knowledge.models import EMBED_DIMENSIONS, Category
+from pgvector.django import HalfVectorField, HnswIndex
 
 MAX_QUESTION_CHARS = 2000
 MAX_MESSAGE_CHARS = 20_000
@@ -86,6 +87,7 @@ class AnswerType(models.TextChoices):
     SMALLTALK = 'smalltalk', 'Small talk'
     OUT_OF_SCOPE = 'out_of_scope', 'Out of scope'
     PERSONAL_RECORD = 'personal_record', 'Personal record'
+    CACHED = 'cached', 'Cached answer'
     ERROR = 'error', 'Error'
 
 
@@ -204,6 +206,31 @@ class Feedback(UUIDModel, TimestampedModel):
         ]
 
 
+class AnswerCache(UUIDModel):
+    """Semantic cache for first-turn questions. Emptied whenever knowledge changes."""
+
+    query_text = models.TextField()
+    query_embedding = HalfVectorField(dimensions=EMBED_DIMENSIONS)
+    answer = models.TextField()
+    sources = models.JSONField(default=list)
+    model = models.CharField(max_length=80, blank=True)
+    hits = models.PositiveIntegerField(default=0)
+    last_hit_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            HnswIndex(
+                fields=('query_embedding',),
+                name='answer_cache_hnsw',
+                m=16,
+                ef_construction=64,
+                opclasses=('halfvec_cosine_ops',),
+            )
+        ]
+
+
 class UsageDaily(models.Model):
     """Content-free counters for quotas and stats. Survives chat deletion."""
 
@@ -215,6 +242,7 @@ class UsageDaily(models.Model):
     day = models.DateField(db_index=True)
     questions = models.PositiveIntegerField(default=0)
     answers = models.PositiveIntegerField(default=0)
+    cached = models.PositiveIntegerField(default=0)
     llm_calls = models.PositiveIntegerField(default=0)
     prompt_tokens = models.BigIntegerField(default=0)
     completion_tokens = models.BigIntegerField(default=0)
@@ -249,6 +277,7 @@ class ChatSettings(models.Model):
     daily_question_limit = models.PositiveIntegerField(default=40)
     global_daily_llm_calls = models.PositiveIntegerField(default=5000)
     rerank_enabled = models.BooleanField(default=True)
+    cache_enabled = models.BooleanField(default=True)
     auto_title_enabled = models.BooleanField(default=True)
     starter_questions = models.JSONField(default=default_starter_questions)
     updated_by = models.ForeignKey(

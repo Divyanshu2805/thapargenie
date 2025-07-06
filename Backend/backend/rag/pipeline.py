@@ -6,6 +6,7 @@ just prints it.
 """
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 from rag import grounding, prompt
@@ -16,6 +17,9 @@ from rag.rerank import KEEP, rerank
 from rag.retrieve import KeywordSearch, retrieve
 
 HISTORY_MESSAGES = 4
+
+# Runs query analysis alongside the first-turn cache check (HTTP only, no DB access).
+_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix='analysis')
 HISTORY_CHARS = 1200
 
 CANNED = {
@@ -49,6 +53,7 @@ class AnswerType:
     SMALLTALK = 'smalltalk'
     OUT_OF_SCOPE = 'out_of_scope'
     PERSONAL_RECORD = 'personal_record'
+    CACHED = 'cached'
 
 
 _INTENT_TYPES = {
@@ -71,6 +76,10 @@ class AnswerResult:
     reranked: bool = False
     retrieval_trace: dict = field(default_factory=dict)
     timings: dict = field(default_factory=dict)
+    # Embedding of the standalone query (for storing in the answer cache).
+    query_vector: list | None = None
+    # Source rows replayed from the cache (dicts), instead of `sources`.
+    cached_sources: list = field(default_factory=list)
 
 
 class _Timer:
@@ -112,13 +121,33 @@ def answer_events(
     profile=None,
     rerank_enabled=False,
     today=None,
+    cache=None,
 ):
+    """`cache`, if given, has `lookup(vector) -> hit | None`; a hit has `text`, `model`
+    and `sources` (rows with the public source fields)."""
     llm = llm or get_llm()
     timer = _Timer()
 
     yield 'status', {'stage': 'understanding'}
-    analysis = analyze(llm, question, history=history, memory=memory, profile=profile,
-                       today=today)
+    cache_vector = None
+    if cache is not None and not history:
+        # First question of a chat: check the cache with the raw question's embedding
+        # while analysis runs, so a hit returns without waiting for analysis.
+        pending = _executor.submit(
+            analyze, llm, question, history=history, memory=memory, profile=profile,
+            today=today,
+        )
+        cache_vector = llm.embed_queries([question])[0]
+        hit = cache.lookup(cache_vector)
+        timer.lap('cache')
+        if hit is not None:
+            yield from _cached_answer(hit, QueryAnalysis(question=question,
+                                                         standalone_query=question), timer)
+            return
+        analysis = pending.result()
+    else:
+        analysis = analyze(llm, question, history=history, memory=memory, profile=profile,
+                           today=today)
     timer.lap('analysis')
 
     if analysis.intent != Intent.COLLEGE:
@@ -201,7 +230,32 @@ def answer_events(
         reranked=reranked,
         retrieval_trace=retrieval.trace(),
         timings=timer.total(),
+        query_vector=cache_vector,
     )
+
+
+def _cached_answer(hit, analysis, timer):
+    yield 'sources', {'sources': [_public(row) for row in hit.sources]}
+    timer.mark('first_token')
+    yield 'delta', {'text': hit.text}
+    yield 'done', AnswerResult(
+        text=hit.text,
+        answer_type=AnswerType.CACHED,
+        analysis=analysis,
+        cited=[row['position'] for row in hit.sources if row.get('cited')],
+        grounded=True,
+        model=hit.model,
+        timings=timer.total(),
+        cached_sources=hit.sources,
+    )
+
+
+PUBLIC_FIELDS = ('position', 'title', 'url', 'heading_path', 'page_start', 'page_end',
+                 'academic_year', 'category', 'snippet')
+
+
+def _public(row):
+    return {key: row.get(key) for key in PUBLIC_FIELDS}
 
 
 def answer(question, **options):

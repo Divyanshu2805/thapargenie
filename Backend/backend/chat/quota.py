@@ -34,9 +34,10 @@ def global_calls_today():
     return UsageDaily.objects.filter(day=today()).aggregate(total=Sum('llm_calls'))['total'] or 0
 
 
-def record_answer(user, usage):
+def record_answer(user, usage, *, cached=False):
     UsageDaily.objects.filter(user=user, day=today()).update(
         answers=F('answers') + 1,
+        cached=F('cached') + (1 if cached else 0),
         llm_calls=F('llm_calls') + usage.calls,
         prompt_tokens=F('prompt_tokens') + usage.prompt_tokens,
         completion_tokens=F('completion_tokens') + usage.completion_tokens,
