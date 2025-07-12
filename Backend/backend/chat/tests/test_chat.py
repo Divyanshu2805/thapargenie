@@ -19,6 +19,7 @@ from userauths.models import EligibilityState, User
 from chat import background, engine, memory
 from chat.models import (
     AnswerCache,
+    AnswerTrace,
     ChatSettings,
     Conversation,
     Feedback,
@@ -126,6 +127,7 @@ class AskTests(ChatTestCase):
         source = MessageSource.objects.get(message=assistant)
         self.assertTrue(source.cited)
         self.assertEqual(source.url, 'https://www.thapar.edu/fees')
+        self.assertTrue(AnswerTrace.objects.filter(message=assistant).exists())
 
         conversation.refresh_from_db()
         self.assertEqual(conversation.current_leaf, assistant)

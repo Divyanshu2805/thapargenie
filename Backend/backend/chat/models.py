@@ -206,6 +206,22 @@ class Feedback(UUIDModel, TimestampedModel):
         ]
 
 
+class AnswerTrace(models.Model):
+    """How an answer was produced. Admin-only, kept for 30 days."""
+
+    message = models.OneToOneField(
+        Message, primary_key=True, on_delete=models.CASCADE, related_name='trace'
+    )
+    standalone_query = models.TextField(blank=True)
+    analysis = models.JSONField(default=dict)
+    retrieval = models.JSONField(default=dict)
+    timings = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    def __str__(self):
+        return f'trace:{self.message_id}'
+
+
 class AnswerCache(UUIDModel):
     """Semantic cache for first-turn questions. Emptied whenever knowledge changes."""
 

@@ -31,6 +31,7 @@ from chat.errors import (
 )
 from chat.models import (
     MAX_MESSAGES_PER_CONVERSATION,
+    AnswerTrace,
     ChatSettings,
     Conversation,
     Message,
@@ -194,6 +195,14 @@ def _finish(turn, result, llm, started):
         message.latency_ms = int((time.monotonic() - started) * 1000)
         message.save()
         _save_sources(message, result)
+        AnswerTrace.objects.create(
+            message=message,
+            standalone_query=result.analysis.standalone_query,
+            analysis=result.analysis.as_dict(),
+            retrieval={**result.retrieval_trace, 'unsupported': result.unsupported,
+                       'reranked': result.reranked},
+            timings=result.timings,
+        )
     quota.record_answer(turn.conversation.user, llm.usage,
                         cached=result.answer_type == AnswerType.CACHED)
 
