@@ -71,3 +71,9 @@ class FakeProvider(Provider):
         for word in re.findall(r'\S+\s*', text):
             yield word
         yield StreamEnd(Generation(text=text, model=request.model, usage=Usage(calls=1)))
+
+    def read_pdf(self, *, model, pdf, prompt, max_output_tokens):
+        self.requests.append(('read_pdf', model, len(pdf)))
+        self._maybe_fail()
+        text = self.responses.popleft() if self.responses else '# Document\n\nParsed text.'
+        return Generation(text=text, model=model, usage=Usage(calls=1))

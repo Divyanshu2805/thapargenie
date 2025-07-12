@@ -20,6 +20,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -31,7 +32,7 @@ import { Switch } from '@/components/ui/switch';
 import { DatePicker } from '@/components/ui/date-picker';
 import { validateMeta } from '@/features/admin/AddKnowledgeDialog';
 import { ErrorState, StatusBadge } from '@/features/admin/components';
-import { CATEGORIES, SOURCE_TYPES, isInFlight } from '@/features/admin/constants';
+import { CATEGORIES, PARSERS, SOURCE_TYPES, isInFlight } from '@/features/admin/constants';
 import { useRecentAuth } from '@/components/recent-auth';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import {
@@ -162,7 +163,7 @@ function Actions({ document }) {
   });
 
   const reprocess = useMutation({
-    mutationFn: () => reprocessDocument(document.id),
+    mutationFn: (parser) => reprocessDocument(document.id, parser ? { parser } : {}),
     onSuccess: (updated) => onUpdated(updated, 'Reprocessing started'),
     onError: (error) => toast.error('Couldn’t reprocess', { description: error.message }),
   });
@@ -221,9 +222,12 @@ function Actions({ document }) {
             )}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem disabled={busy || reprocess.isPending} onSelect={() => reprocess.mutate()}>
-            <RefreshCw /> Reprocess
-          </DropdownMenuItem>
+          <DropdownMenuLabel>Reprocess with</DropdownMenuLabel>
+          {PARSERS.map((parser) => (
+            <DropdownMenuItem key={parser.value} disabled={busy || reprocess.isPending} onSelect={() => reprocess.mutate(parser.value)}>
+              <RefreshCw /> {parser.label}
+            </DropdownMenuItem>
+          ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setConfirming(true)}>
             <Trash2 /> Delete document
@@ -281,6 +285,7 @@ export default function DocumentDetailPage() {
     ['Source', SOURCE_TYPES[doc.source_type] || doc.source_type],
     ['File', doc.original_filename ? `${doc.original_filename} · ${formatBytes(doc.file_size)}` : '—'],
     ['Pages', doc.page_count ? formatNumber(doc.page_count) : '—'],
+    ['Parser', PARSERS.find((parser) => parser.value === doc.parser)?.label || doc.parser],
     ['Passages', formatNumber(doc.chunk_count)],
     ['Tokens', formatNumber(doc.token_count)],
     ['Added', formatDateTime(doc.created_at)],
@@ -306,7 +311,7 @@ export default function DocumentDetailPage() {
         <div role="alert" className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm">
           <p className="font-medium">Processing failed</p>
           <p className="mt-1 text-muted-foreground">{doc.error}</p>
-          <p className="mt-2 text-muted-foreground">Check the file, then try reprocessing it.</p>
+          <p className="mt-2 text-muted-foreground">Try reprocessing with Smart parsing for scans or complex tables.</p>
         </div>
       ) : null}
 

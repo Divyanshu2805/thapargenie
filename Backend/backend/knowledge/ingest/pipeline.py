@@ -144,6 +144,8 @@ def process_document(document_id, *, llm=None):
             extracted = extract(
                 load_source(document),
                 document.source_type,
+                mode=document.parser,
+                llm=llm,
                 max_pages=settings.INGEST_MAX_PAGES,
                 url=document.source_url or None,
             )

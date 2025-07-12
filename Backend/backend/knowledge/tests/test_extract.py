@@ -1,4 +1,6 @@
 from django.test import SimpleTestCase
+from rag.llm.client import LLM
+from rag.llm.fake import FakeProvider
 
 from knowledge.ingest import extract as ex
 from knowledge.ingest.filetypes import UnsupportedFile, detect
@@ -6,6 +8,17 @@ from knowledge.models import SourceType
 from knowledge.tests.factories import make_docx, make_pdf
 
 PROSE = 'The hostel fee for first year students is payable before registration. ' * 4
+
+
+def fake_llm(provider):
+    return LLM(
+        chat_provider=provider,
+        embed_provider=provider,
+        chat_model='chat',
+        fast_model='fast',
+        embed_model='embed',
+        sleep=lambda _s: None,
+    )
 
 
 class DetectTests(SimpleTestCase):
@@ -24,14 +37,37 @@ class PdfTests(SimpleTestCase):
     def test_fast_path_adds_page_markers_and_strips_repeated_footer(self):
         pages = [[f'Page body {n}', PROSE, 'Thapar Institute - Confidential'] for n in range(1, 5)]
         result = ex.extract_pdf(make_pdf(pages))
+        self.assertFalse(result.used_smart)
         self.assertEqual(result.page_count, 4)
         self.assertIn('[[page 1]]\nPage body 1', result.markdown)
         self.assertIn('[[page 4]]', result.markdown)
         self.assertNotIn('Confidential', result.markdown)
 
+    def test_thin_text_layer_triggers_smart_parsing(self):
+        provider = FakeProvider()
+        provider.queue('[[page 1]]\n# Fee Structure\n\n| Programme | Fee |\n|---|---|\n| COE | 1 |')
+        result = ex.extract_pdf(make_pdf([['scan'], ['scan']]), llm=fake_llm(provider))
+        self.assertTrue(result.used_smart)
+        self.assertIn('| COE | 1 |', result.markdown)
+        self.assertEqual(provider.requests[0][0], 'read_pdf')
+
+    def test_smart_without_llm_is_an_error(self):
+        with self.assertRaises(UnsupportedFile):
+            ex.extract_pdf(make_pdf([['scan']]))
+
+    def test_forced_fast_ignores_thin_text(self):
+        result = ex.extract_pdf(make_pdf([['short']]), mode='fast')
+        self.assertIn('short', result.markdown)
+
     def test_page_limit(self):
         with self.assertRaises(UnsupportedFile):
             ex.extract_pdf(make_pdf([[PROSE]] * 3), max_pages=2)
+
+    def test_smart_windows_cover_every_page(self):
+        provider = FakeProvider()
+        total = ex.SMART_WINDOW_PAGES + 5
+        ex.extract_pdf(make_pdf([['x']] * total), mode='smart', llm=fake_llm(provider))
+        self.assertEqual(len(provider.requests), 2)
 
     def test_garbage_is_rejected(self):
         with self.assertRaises(UnsupportedFile):

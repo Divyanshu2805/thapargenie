@@ -1,7 +1,7 @@
 from api.serializers import RejectUnknownFieldsMixin
 from rest_framework import serializers
 
-from knowledge.models import Category, Document
+from knowledge.models import Category, Document, Parser
 
 ACADEMIC_YEAR = r'^\d{4}-\d{2}$'
 MAX_TEXT_CHARS = 100_000
@@ -14,7 +14,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             'id', 'title', 'source_type', 'source_url', 'original_filename', 'mime_type',
             'file_size', 'page_count', 'category', 'department', 'academic_year',
             'effective_date', 'is_current', 'status', 'status_detail', 'error',
-            'chunk_count', 'token_count', 'embedding_model',
+            'parser', 'chunk_count', 'token_count', 'embedding_model',
             'created_at', 'updated_at', 'processed_at',
         )
         read_only_fields = fields
@@ -29,6 +29,7 @@ class DocumentMetaSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     effective_date = serializers.DateField(required=False, allow_null=True)
     is_current = serializers.BooleanField(required=False)
     source_url = serializers.URLField(max_length=2000, required=False, allow_blank=True)
+    parser = serializers.ChoiceField(choices=Parser.choices, required=False)
 
     def validate_source_url(self, value):
         if value and not value.startswith('https://'):
@@ -56,10 +57,16 @@ class UrlDocumentSerializer(DocumentMetaSerializer):
 class TextDocumentSerializer(DocumentMetaSerializer):
     title = serializers.CharField(max_length=300)
     text = serializers.CharField(max_length=MAX_TEXT_CHARS)
+    parser = None
 
 
 class DocumentUpdateSerializer(DocumentMetaSerializer):
     title = serializers.CharField(max_length=300, required=False)
+    parser = None
+
+
+class ReprocessSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    parser = serializers.ChoiceField(choices=Parser.choices, required=False)
 
 
 class UploadResultSerializer(serializers.Serializer):

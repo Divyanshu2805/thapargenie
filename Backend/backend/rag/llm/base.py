@@ -91,3 +91,7 @@ class Provider(ABC):
     @abstractmethod
     def stream(self, request: GenerateRequest) -> Iterator[str | StreamEnd]:
         """Yield text pieces, then exactly one StreamEnd."""
+
+    @abstractmethod
+    def read_pdf(self, *, model, pdf, prompt, max_output_tokens) -> Generation:
+        """Send a PDF (bytes) with an instruction and return the model's text."""

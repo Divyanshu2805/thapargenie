@@ -14,15 +14,29 @@ import trafilatura
 from common.text import normalize_text
 from docx.table import Table
 from docx.text.paragraph import Paragraph
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
 
 from knowledge.ingest.filetypes import UnsupportedFile, decode_text
 from knowledge.models import SourceType
 
+MIN_CHARS_PER_PAGE = 200
+SMART_WINDOW_PAGES = 20
 EDGE_LINES = 2
 MAX_EDGE_LINE_CHARS = 120
 REPEAT_RATIO = 0.6
+
+SMART_PROMPT = """Convert pages {first}-{last} of this PDF (pages are numbered from {first}) \
+into clean Markdown.
+
+Rules:
+- Before the content of each page, write a line containing only [[page N]] with its page number.
+- Keep all text. Do not summarise, translate, correct or add anything.
+- Use #, ##, ### for headings as they appear.
+- Reproduce every table as a GitHub-flavoured Markdown table with its header row. \
+Merged cells: repeat the value.
+- Drop page headers, footers, page numbers and watermarks that repeat on every page.
+- Output only the Markdown."""
 
 
 @dataclass
@@ -30,6 +44,7 @@ class Extracted:
     markdown: str
     page_count: int | None = None
     title: str = ''
+    used_smart: bool = False
 
 
 def page_marker(number):
@@ -107,6 +122,15 @@ def pdf_text_pages(reader):
     return _strip_repeated_edges(pages)
 
 
+def needs_smart_parsing(pages):
+    """Scanned or garbled PDFs have little usable text in their text layer."""
+    if not pages:
+        return True
+    chars = [sum(len(line) for line in lines) for lines in pages]
+    thin_pages = sum(1 for count in chars if count < MIN_CHARS_PER_PAGE)
+    return thin_pages / len(pages) > 0.5
+
+
 def _fast_pdf(pages):
     parts = []
     for number, lines in enumerate(pages, start=1):
@@ -116,14 +140,43 @@ def _fast_pdf(pages):
     return '\n\n'.join(parts)
 
 
-def extract_pdf(data, *, max_pages=None):
+def _pdf_window(reader, start, stop):
+    writer = PdfWriter()
+    for index in range(start, stop):
+        writer.add_page(reader.pages[index])
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
+
+
+def _smart_pdf(reader, llm):
+    total = len(reader.pages)
+    parts = []
+    for start in range(0, total, SMART_WINDOW_PAGES):
+        stop = min(start + SMART_WINDOW_PAGES, total)
+        prompt = SMART_PROMPT.format(first=start + 1, last=stop)
+        parts.append(llm.read_pdf(_pdf_window(reader, start, stop), prompt).strip())
+    return '\n\n'.join(parts)
+
+
+def extract_pdf(data, *, mode='auto', llm=None, max_pages=None):
     reader = open_pdf(data)
     page_count = len(reader.pages)
     if max_pages and page_count > max_pages:
         raise UnsupportedFile(f'The PDF has {page_count} pages; the limit is {max_pages}.')
     title = (reader.metadata.title if reader.metadata else None) or ''
-    markdown = _fast_pdf(pdf_text_pages(reader))
-    return Extracted(normalize_text(markdown), page_count, str(title).strip())
+    if mode == 'smart':
+        use_smart = True
+    else:
+        pages = pdf_text_pages(reader)
+        use_smart = mode == 'auto' and needs_smart_parsing(pages)
+    if use_smart:
+        if llm is None:
+            raise UnsupportedFile('This PDF needs smart parsing, which is not configured.')
+        markdown = _smart_pdf(reader, llm)
+    else:
+        markdown = _fast_pdf(pages)
+    return Extracted(normalize_text(markdown), page_count, str(title).strip(), use_smart)
 
 
 # -- Office / text ------------------------------------------------------------------
@@ -185,9 +238,9 @@ def extract_html(html, url=None):
     return Extracted(normalize_text(markdown), title=title.strip())
 
 
-def extract(data, source_type, *, max_pages=None, url=None):
+def extract(data, source_type, *, mode='auto', llm=None, max_pages=None, url=None):
     if source_type == SourceType.PDF:
-        return extract_pdf(data, max_pages=max_pages)
+        return extract_pdf(data, mode=mode, llm=llm, max_pages=max_pages)
     if source_type == SourceType.DOCX:
         return extract_docx(data)
     if source_type == SourceType.URL:

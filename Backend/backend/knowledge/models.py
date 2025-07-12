@@ -41,6 +41,12 @@ class DocumentStatus(models.TextChoices):
     DISABLED = 'disabled', 'Disabled'
 
 
+class Parser(models.TextChoices):
+    AUTO = 'auto', 'Auto'
+    FAST = 'fast', 'Fast (text layer)'
+    SMART = 'smart', 'Smart (OCR + tables)'
+
+
 class Document(UUIDModel, TimestampedModel):
     title = models.CharField(max_length=300)
     source_type = models.CharField(max_length=16, choices=SourceType.choices)
@@ -63,6 +69,7 @@ class Document(UUIDModel, TimestampedModel):
     )
     status_detail = models.CharField(max_length=200, blank=True)
     error = models.CharField(max_length=500, blank=True)
+    parser = models.CharField(max_length=8, choices=Parser.choices, default=Parser.AUTO)
 
     chunk_count = models.PositiveIntegerField(default=0)
     token_count = models.PositiveIntegerField(default=0)
@@ -89,6 +96,7 @@ class Document(UUIDModel, TimestampedModel):
             choices_check('source_type', SourceType, 'document_source_type_valid'),
             choices_check('category', Category, 'document_category_valid'),
             choices_check('status', DocumentStatus, 'document_status_valid'),
+            choices_check('parser', Parser, 'document_parser_valid'),
             models.CheckConstraint(
                 condition=models.Q(academic_year='')
                 | models.Q(academic_year__regex=r'^\d{4}-\d{2}$'),

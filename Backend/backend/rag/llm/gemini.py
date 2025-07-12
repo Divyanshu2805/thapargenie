@@ -163,3 +163,23 @@ class GeminiProvider(Provider):
             raise BadResponse('Gemini returned an empty stream.')
         generation = Generation(text=''.join(parts), model=request.model, usage=_usage(metadata))
         yield StreamEnd(generation)
+
+    def read_pdf(self, *, model, pdf, prompt, max_output_tokens):
+        try:
+            response = self._client.models.generate_content(
+                model=model,
+                contents=[
+                    types.Part.from_bytes(data=pdf, mime_type='application/pdf'),
+                    prompt,
+                ],
+                config=types.GenerateContentConfig(
+                    temperature=0,
+                    max_output_tokens=max_output_tokens,
+                    automatic_function_calling=_NO_AFC,
+                ),
+            )
+        except Exception as exc:
+            raise _translate(exc) from exc
+        if not response.text:
+            raise BadResponse('Gemini returned no text for the PDF.')
+        return Generation(text=response.text, model=model, usage=_usage(response.usage_metadata))

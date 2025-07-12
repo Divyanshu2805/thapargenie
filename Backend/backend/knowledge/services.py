@@ -70,7 +70,7 @@ def _check_duplicate(content_hash):
 
 
 def _new_document(*, source_type, content_hash, meta, user):
-    fields = {key: value for key, value in meta.items() if key in EDITABLE_FIELDS}
+    fields = {key: value for key, value in meta.items() if key in EDITABLE_FIELDS + ('parser',)}
     document = Document(
         source_type=source_type,
         content_hash=content_hash,
@@ -187,12 +187,17 @@ def _requeue(document):
 
 
 @transaction.atomic
-def reprocess(document, *, user, request_id=None):
-    """Re-extract, re-chunk and re-embed."""
+def reprocess(document, *, user, parser=None, request_id=None):
+    """Re-extract, re-chunk and re-embed. `parser` switches e.g. a scanned PDF to smart."""
     if document.status in (DocumentStatus.QUEUED, DocumentStatus.PROCESSING):
         raise InvalidTransition('The document is already being processed.')
+    if parser and parser != document.parser:
+        document.parser = parser
+        document.updated_by = user
+        document.full_clean()
+        document.save(update_fields=['parser', 'updated_by', 'updated_at'])
     _requeue(document)
-    _audit(user, 'document.reprocessed', document, request_id)
+    _audit(user, 'document.reprocessed', document, request_id, parser=document.parser)
     return document
 
 

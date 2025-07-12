@@ -8,7 +8,7 @@ from rag.llm.fake import FakeProvider, hashed_embedding
 from knowledge import services
 from knowledge.ingest.chunk import ChunkDraft
 from knowledge.ingest.pipeline import prepare_chunks
-from knowledge.models import Chunk, Document, DocumentStatus
+from knowledge.models import Chunk, Document, DocumentStatus, Parser
 from knowledge.signals import knowledge_changed
 from knowledge.storage import MemoryStorage, use_storage
 from knowledge.tests.factories import make_pdf
@@ -64,7 +64,7 @@ class AdminKnowledgeTestCase(TestCase):
 class UploadTests(AdminKnowledgeTestCase):
     def test_upload_queues_documents_with_metadata(self):
         response = self.upload(pdf_file(), category='fees_scholarships',
-                               academic_year='2026-27', is_current='false')
+                               academic_year='2026-27', is_current='false', parser='smart')
         self.assertEqual(response.status_code, 202, response.data)
         self.assertEqual(response.data['rejected'], [])
         [created] = response.data['created']
@@ -73,8 +73,8 @@ class UploadTests(AdminKnowledgeTestCase):
         self.assertEqual(created['page_count'], 1)
         self.assertNotIn('storage_path', created)
         document = Document.objects.get(pk=created['id'])
-        self.assertEqual((document.category, document.academic_year, document.is_current),
-                         ('fees_scholarships', '2026-27', False))
+        self.assertEqual((document.category, document.academic_year, document.is_current,
+                          document.parser), ('fees_scholarships', '2026-27', False, 'smart'))
         self.assertIn(document.storage_path, self.storage.objects)
         self.assertTrue(self.audited('document.created'))
 
@@ -196,15 +196,18 @@ class DocumentTests(AdminKnowledgeTestCase):
         self.assertTrue(self.audited('document.disabled'))
         self.assertTrue(self.audited('document.enabled'))
 
-    def test_reprocess_requeues_once(self):
+    def test_reprocess_can_force_smart_parsing(self):
         document = self.ready_document()
         with self.captureOnCommitCallbacks(execute=False):
-            response = self.client.post(f'{BASE}/documents/{document.pk}/reprocess/')
+            response = self.client.post(f'{BASE}/documents/{document.pk}/reprocess/',
+                                        {'parser': 'smart'}, format='json')
         self.assertEqual(response.status_code, 202)
         document.refresh_from_db()
-        self.assertEqual(document.status, 'queued')
+        self.assertEqual((document.status, document.parser), ('queued', Parser.SMART))
         response = self.client.post(f'{BASE}/documents/{document.pk}/reprocess/')
         self.assertEqual(response.status_code, 409)
+        event = AuditEvent.objects.get(action='document.reprocessed')
+        self.assertEqual(event.metadata['parser'], 'smart')
 
     def test_delete_removes_row_and_file(self):
         document = self.ready_document()

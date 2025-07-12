@@ -20,6 +20,7 @@ from knowledge.admin_serializers import (
     DocumentSerializer,
     DocumentUpdateSerializer,
     FileUrlSerializer,
+    ReprocessSerializer,
     TextDocumentSerializer,
     UploadResultSerializer,
     UploadSchema,
@@ -240,11 +241,14 @@ class DocumentDetailView(AdminAPIView):
 
 class DocumentReprocessView(AdminAPIView):
     @extend_schema(operation_id='admin_documents_reprocess', tags=TAGS,
-                   request=None, responses={202: DocumentSerializer})
+                   request=ReprocessSerializer, responses={202: DocumentSerializer})
     def post(self, request, document_id):
         document = _document(document_id)
+        serializer = ReprocessSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         document = _run(lambda: services.reprocess(
-            document, user=request.user, request_id=request_id(request),
+            document, user=request.user, parser=serializer.validated_data.get('parser'),
+            request_id=request_id(request),
         ))
         return Response(DocumentSerializer(document).data, status=status.HTTP_202_ACCEPTED)
 

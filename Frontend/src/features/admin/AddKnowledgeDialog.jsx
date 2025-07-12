@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { SectionFields, SectionToggle, SplitSection } from '@/components/split-section';
+import { SectionFields, SectionRow, SectionToggle, SplitSection } from '@/components/split-section';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { CATEGORIES } from '@/features/admin/constants';
+import { CATEGORIES, PARSERS } from '@/features/admin/constants';
 import { addDocumentFromText, addDocumentFromUrl, uploadDocuments } from '@/lib/api/admin';
 import { formatBytes } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -197,6 +197,7 @@ export default function AddKnowledgeDialog({ open, onOpenChange, initial, onCrea
   const [errors, setErrors] = useState({});
   const [files, setFiles] = useState([]);
   const [title, setTitle] = useState(initial?.title || '');
+  const [parser, setParser] = useState('auto');
   const [url, setUrl] = useState('');
   const [text, setText] = useState(initial?.text || '');
   const [duplicateOf, setDuplicateOf] = useState(null);
@@ -213,7 +214,7 @@ export default function AddKnowledgeDialog({ open, onOpenChange, initial, onCrea
       const base = cleanMeta(meta);
       if (tab === 'upload') {
         const single = files.length === 1 && title.trim() ? { title: title.trim() } : {};
-        return uploadDocuments(files, { ...base, ...single });
+        return uploadDocuments(files, { ...base, ...single, parser });
       }
       if (tab === 'url') {
         // A web page is its own source; the URL endpoint takes no separate source_url.
@@ -298,6 +299,14 @@ export default function AddKnowledgeDialog({ open, onOpenChange, initial, onCrea
                       </div>
                     ) : null}
                   </SectionFields>
+                  <SectionRow
+                    className="border-t"
+                    title="Parsing"
+                    description="Smart parsing reads scans and complex tables; Auto chooses per file."
+                    htmlFor="upload-parser"
+                  >
+                    <Select id="upload-parser" className="w-full sm:w-52" value={parser} onChange={(event) => setParser(event.target.value)} options={PARSERS} />
+                  </SectionRow>
                 </TabsContent>
 
                 <TabsContent value="url">

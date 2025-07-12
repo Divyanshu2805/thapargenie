@@ -183,3 +183,19 @@ class LLM:
                     self._wait(attempt, error)
             logger.warning('Streaming with %s failed, trying fallback: %s', model, last_error)
         raise last_error
+
+    def read_pdf(self, pdf, prompt, *, max_output_tokens=16384):
+        last_error = None
+        for model in self._models(fast=False):
+            try:
+                result = self._with_retries(
+                    lambda m=model: self.chat_provider.read_pdf(
+                        model=m, pdf=pdf, prompt=prompt, max_output_tokens=max_output_tokens
+                    )
+                )
+            except (RetryableError, BadResponse) as error:
+                last_error = error
+                continue
+            self.usage.add(result.usage)
+            return result.text
+        raise last_error
