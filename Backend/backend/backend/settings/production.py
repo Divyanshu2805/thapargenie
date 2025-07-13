@@ -56,6 +56,8 @@ DATABASES = {
 
 if LLM_PROVIDER == 'gemini' or EMBED_PROVIDER == 'gemini':
     required('GEMINI_API_KEY')
+if LLM_PROVIDER == 'openai' or EMBED_PROVIDER == 'openai':
+    required('OPENAI_API_KEY')
 for model_setting in ('CHAT_MODEL', 'FAST_MODEL', 'EMBED_MODEL'):
     required(model_setting)
 SUPABASE_URL = required('SUPABASE_URL')

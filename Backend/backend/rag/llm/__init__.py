@@ -27,6 +27,12 @@ def _build(name):
         from rag.llm.gemini import GeminiProvider
 
         return GeminiProvider(settings.GEMINI_API_KEY, settings.LLM_TIMEOUT_SECONDS)
+    if name == 'openai':
+        if not settings.OPENAI_API_KEY:
+            raise ImproperlyConfigured('OPENAI_API_KEY is not set.')
+        from rag.llm.openai_provider import OpenAIProvider
+
+        return OpenAIProvider(settings.OPENAI_API_KEY, settings.LLM_TIMEOUT_SECONDS)
     raise ImproperlyConfigured(f'Unknown LLM provider {name!r}.')
 
 

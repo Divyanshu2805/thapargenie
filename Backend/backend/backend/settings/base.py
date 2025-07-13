@@ -207,6 +207,7 @@ SPECTACULAR_SETTINGS = {
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
 EMBED_PROVIDER = os.getenv("EMBED_PROVIDER", "gemini").strip().lower()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 CHAT_MODEL = os.getenv("CHAT_MODEL", "").strip()
 FAST_MODEL = os.getenv("FAST_MODEL", "").strip()
 EMBED_MODEL = os.getenv("EMBED_MODEL", "").strip()
@@ -230,9 +231,9 @@ INGEST_URL_ALLOWLIST = tuple(
 INGEST_MAX_FILE_MB = env_int("INGEST_MAX_FILE_MB", 25)
 INGEST_MAX_PAGES = env_int("INGEST_MAX_PAGES", 300)
 
-PROVIDERS = {"gemini"}
+PROVIDERS = {"gemini", "openai"}
 if LLM_PROVIDER not in PROVIDERS or EMBED_PROVIDER not in PROVIDERS:
-    raise ImproperlyConfigured("LLM_PROVIDER and EMBED_PROVIDER must be gemini.")
+    raise ImproperlyConfigured("LLM_PROVIDER and EMBED_PROVIDER must be gemini or openai.")
 if EMBED_DIMENSIONS != 768:
     raise ImproperlyConfigured("EMBED_DIMENSIONS must be 768 to match the vector columns.")
 if SUPABASE_URL and not SUPABASE_URL.startswith("https://"):
