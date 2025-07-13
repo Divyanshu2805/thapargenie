@@ -4,12 +4,14 @@ Every extractor returns Markdown in which page boundaries (when the source has p
 are marked by lines of the form `[[page N]]`. The chunker reads and strips them.
 """
 
+import csv
 import io
 import re
 from collections import Counter
 from dataclasses import dataclass
 
 import docx
+import openpyxl
 import trafilatura
 from common.text import normalize_text
 from docx.table import Table
@@ -22,6 +24,7 @@ from knowledge.models import SourceType
 
 MIN_CHARS_PER_PAGE = 200
 SMART_WINDOW_PAGES = 20
+MAX_SHEET_ROWS = 5000
 EDGE_LINES = 2
 MAX_EDGE_LINE_CHARS = 120
 REPEAT_RATIO = 0.6
@@ -221,6 +224,40 @@ def extract_docx(data):
     return Extracted(normalize_text('\n\n'.join(parts)), title=title.strip())
 
 
+def extract_xlsx(data):
+    try:
+        workbook = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    except Exception as exc:
+        raise UnsupportedFile('The Excel file could not be read.') from exc
+    parts = []
+    for sheet in workbook.worksheets:
+        rows = []
+        for row in sheet.iter_rows(values_only=True):
+            if any(cell not in (None, '') for cell in row):
+                rows.append(list(row))
+            if len(rows) >= MAX_SHEET_ROWS:
+                break
+        table = markdown_table(rows)
+        if table:
+            parts.append(f'## {sheet.title}\n\n{table}')
+    workbook.close()
+    return Extracted(normalize_text('\n\n'.join(parts)))
+
+
+def extract_csv(data):
+    text = decode_text(data)
+    try:
+        dialect = csv.Sniffer().sniff(text[:4096], delimiters=',;\t|')
+    except csv.Error:
+        dialect = csv.excel
+    rows = []
+    for row in csv.reader(io.StringIO(text), dialect):
+        rows.append(row)
+        if len(rows) >= MAX_SHEET_ROWS:
+            break
+    return Extracted(markdown_table(rows))
+
+
 def extract_html(html, url=None):
     markdown = trafilatura.extract(
         html,
@@ -243,7 +280,11 @@ def extract(data, source_type, *, mode='auto', llm=None, max_pages=None, url=Non
         return extract_pdf(data, mode=mode, llm=llm, max_pages=max_pages)
     if source_type == SourceType.DOCX:
         return extract_docx(data)
-    if source_type == SourceType.URL:
+    if source_type == SourceType.XLSX:
+        return extract_xlsx(data)
+    if source_type == SourceType.CSV:
+        return extract_csv(data)
+    if source_type in (SourceType.HTML, SourceType.URL):
         return extract_html(decode_text(data), url=url)
     if source_type == SourceType.TEXT:
         return Extracted(normalize_text(decode_text(data)))

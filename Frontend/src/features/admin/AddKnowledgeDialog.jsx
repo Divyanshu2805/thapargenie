@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 
 const MAX_FILES = 10;
 const MAX_FILE_MB = 25;
-const ACCEPT = '.pdf,.docx';
+const ACCEPT = '.pdf,.docx,.xlsx,.csv,.html,.htm';
 const ACADEMIC_YEAR = /^\d{4}-\d{2}$/;
 
 const EMPTY_META = { category: 'other', academic_year: '', department: '', is_current: true, source_url: '' };

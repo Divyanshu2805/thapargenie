@@ -5,7 +5,7 @@ from rag.llm.fake import FakeProvider
 from knowledge.ingest import extract as ex
 from knowledge.ingest.filetypes import UnsupportedFile, detect
 from knowledge.models import SourceType
-from knowledge.tests.factories import make_docx, make_pdf
+from knowledge.tests.factories import make_docx, make_pdf, make_xlsx
 
 PROSE = 'The hostel fee for first year students is payable before registration. ' * 4
 
@@ -25,6 +25,9 @@ class DetectTests(SimpleTestCase):
     def test_by_content(self):
         self.assertEqual(detect(make_pdf([['x']]), 'x.docx'), SourceType.PDF)
         self.assertEqual(detect(make_docx(), 'x.pdf'), SourceType.DOCX)
+        self.assertEqual(detect(make_xlsx()), SourceType.XLSX)
+        self.assertEqual(detect(b'<!DOCTYPE html><html><body>x</body></html>'), SourceType.HTML)
+        self.assertEqual(detect(b'a,b\n1,2', 'fees.csv'), SourceType.CSV)
         self.assertEqual(detect('plain text'.encode()), SourceType.TEXT)
 
     def test_rejects_unknown_binary_and_empty(self):
@@ -82,6 +85,17 @@ class OfficeAndTextTests(SimpleTestCase):
         self.assertIn('## Timings', result.markdown)
         self.assertIn('- Visitors must sign the register.', result.markdown)
         self.assertIn('| Hall A | 1,20,000 |', result.markdown)
+
+    def test_xlsx_sheets_become_tables(self):
+        markdown = ex.extract_xlsx(make_xlsx()).markdown
+        self.assertIn('## Fees 2026-27', markdown)
+        self.assertIn('| Programme | Tuition \\| per sem |', markdown)
+        self.assertIn('| BE ECE | 210000 |', markdown)
+        self.assertNotIn('|  |  |', markdown)
+
+    def test_csv_with_semicolons(self):
+        markdown = ex.extract_csv('Programme;Seats\nCOE;300\n'.encode()).markdown
+        self.assertIn('| COE | 300 |', markdown)
 
     def test_html_main_content(self):
         html = (

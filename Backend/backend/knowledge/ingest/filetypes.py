@@ -13,12 +13,18 @@ class UnsupportedFile(ValueError):
 MIME_TYPES = {
     SourceType.PDF: 'application/pdf',
     SourceType.DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    SourceType.XLSX: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    SourceType.CSV: 'text/csv',
+    SourceType.HTML: 'text/html',
     SourceType.TEXT: 'text/plain',
 }
 
 EXTENSIONS = {
     SourceType.PDF: 'pdf',
     SourceType.DOCX: 'docx',
+    SourceType.XLSX: 'xlsx',
+    SourceType.CSV: 'csv',
+    SourceType.HTML: 'html',
     SourceType.TEXT: 'txt',
 }
 
@@ -33,7 +39,9 @@ def _office_type(data):
         raise UnsupportedFile('Unsupported archive format.')
     if any(name.startswith('word/') for name in names):
         return SourceType.DOCX
-    raise UnsupportedFile('Only Word (.docx) Office files are supported.')
+    if any(name.startswith('xl/') for name in names):
+        return SourceType.XLSX
+    raise UnsupportedFile('Only Word (.docx) and Excel (.xlsx) Office files are supported.')
 
 
 def decode_text(data):
@@ -57,4 +65,8 @@ def detect(data, filename=''):
     if b'\x00' in head:
         raise UnsupportedFile('Binary files of this type are not supported.')
     text = decode_text(head).lstrip().lower()
+    if text.startswith(('<!doctype html', '<html')) or '<body' in text:
+        return SourceType.HTML
+    if filename.lower().endswith('.csv'):
+        return SourceType.CSV
     return SourceType.TEXT

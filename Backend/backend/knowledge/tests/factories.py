@@ -1,8 +1,9 @@
-"""Small in-memory fixtures: real PDF/DOCX bytes without files on disk."""
+"""Small in-memory fixtures: real PDF/DOCX/XLSX bytes without files on disk."""
 
 import io
 
 import docx
+import openpyxl
 
 
 def make_pdf(pages):
@@ -64,4 +65,17 @@ def make_docx():
     table.cell(1, 0).text, table.cell(1, 1).text = 'Hall A', '1,20,000'
     buffer = io.BytesIO()
     document.save(buffer)
+    return buffer.getvalue()
+
+
+def make_xlsx():
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = 'Fees 2026-27'
+    sheet.append(['Programme', 'Tuition | per sem'])
+    sheet.append(['BE COE', 225000])
+    sheet.append([None, None])
+    sheet.append(['BE ECE', 210000])
+    buffer = io.BytesIO()
+    workbook.save(buffer)
     return buffer.getvalue()

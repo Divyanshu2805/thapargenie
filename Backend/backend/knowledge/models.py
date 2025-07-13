@@ -28,6 +28,9 @@ class Category(models.TextChoices):
 class SourceType(models.TextChoices):
     PDF = 'pdf', 'PDF'
     DOCX = 'docx', 'Word'
+    XLSX = 'xlsx', 'Excel'
+    CSV = 'csv', 'CSV'
+    HTML = 'html', 'HTML file'
     URL = 'url', 'Web page'
     TEXT = 'text', 'Text / FAQ'
     CRAWLER = 'crawler', 'Crawler import'
