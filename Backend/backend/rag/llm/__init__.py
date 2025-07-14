@@ -63,6 +63,8 @@ def get_llm(**overrides):
         'dimensions': settings.EMBED_DIMENSIONS,
         'embed_batch_size': settings.EMBED_BATCH_SIZE,
         'max_attempts': settings.LLM_MAX_ATTEMPTS,
+        'fast_thinking': settings.FAST_THINKING,
+        'answer_thinking': settings.ANSWER_THINKING,
     }
     options.update(overrides)
     return LLM(**options)

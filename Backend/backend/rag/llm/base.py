@@ -76,6 +76,8 @@ class GenerateRequest:
     json_schema: dict | None = None
     temperature: float = 0.2
     max_output_tokens: int = 2048
+    # 'minimal' for quick structured calls (analysis, rerank); '' keeps the model default.
+    thinking: str = ''
 
 
 class Provider(ABC):

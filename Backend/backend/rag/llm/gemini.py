@@ -109,6 +109,8 @@ class GeminiProvider(Provider):
         }
         if request.system:
             config['system_instruction'] = request.system
+        if request.thinking:
+            config['thinking_config'] = types.ThinkingConfig(thinking_level=request.thinking)
         if request.json_schema is not None:
             config['response_mime_type'] = 'application/json'
             config['response_json_schema'] = request.json_schema

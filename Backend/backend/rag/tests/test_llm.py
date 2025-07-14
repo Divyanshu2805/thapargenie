@@ -63,6 +63,20 @@ class RetryAndFallbackTests(SimpleTestCase):
         llm.generate('q')
         self.assertEqual(waits, [5, 60.0])
 
+    def test_fast_calls_request_minimal_thinking(self):
+        fake = FakeProvider()
+        llm = make_llm(fake, fast_thinking='minimal')
+        llm.generate('q', fast=True)
+        llm.generate('q')
+        self.assertEqual([r.thinking for r in fake.requests], ['minimal', ''])
+
+    def test_answer_thinking_applies_to_chat_model_only(self):
+        fake = FakeProvider()
+        fake.fail_next(*[RetryableError('busy')] * 3)
+        list(make_llm(fake, answer_thinking='low').stream('q'))
+        self.assertEqual([(r.model, r.thinking) for r in fake.requests][-1], ('fast', ''))
+        self.assertEqual(fake.requests[0].thinking, 'low')
+
     def test_generate_json(self):
         fake = FakeProvider()
         fake.queue({'intent': 'college_query'})

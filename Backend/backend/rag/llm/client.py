@@ -5,6 +5,7 @@ import logging
 import math
 import random
 import time
+from dataclasses import replace
 
 from rag.llm.base import (
     BadResponse,
@@ -40,6 +41,8 @@ class LLM:
         dimensions=768,
         max_attempts=3,
         embed_batch_size=50,
+        fast_thinking='',
+        answer_thinking='',
         sleep=time.sleep,
     ):
         self.chat_provider = chat_provider
@@ -50,6 +53,8 @@ class LLM:
         self.dimensions = dimensions
         self.max_attempts = max_attempts
         self.embed_batch_size = embed_batch_size
+        self.fast_thinking = fast_thinking
+        self.answer_thinking = answer_thinking
         self.usage = Usage()
         self._sleep = sleep
 
@@ -134,6 +139,8 @@ class LLM:
             request = self._request(
                 model, prompt, system, history, json_schema, temperature, max_output_tokens
             )
+            if fast and self.fast_thinking:
+                request = replace(request, thinking=self.fast_thinking)
             try:
                 result = self._with_retries(lambda r=request: self.chat_provider.generate(r))
             except (RetryableError, BadResponse) as error:
@@ -164,6 +171,8 @@ class LLM:
             request = self._request(
                 model, prompt, system, history, None, temperature, max_output_tokens
             )
+            if self.answer_thinking and model == self.chat_model:
+                request = replace(request, thinking=self.answer_thinking)
             for attempt in range(1, self.max_attempts + 1):
                 started = False
                 try:
