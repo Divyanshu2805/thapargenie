@@ -73,6 +73,7 @@ class Document(UUIDModel, TimestampedModel):
     status_detail = models.CharField(max_length=200, blank=True)
     error = models.CharField(max_length=500, blank=True)
     parser = models.CharField(max_length=8, choices=Parser.choices, default=Parser.AUTO)
+    contextualize = models.BooleanField(default=False)
 
     chunk_count = models.PositiveIntegerField(default=0)
     token_count = models.PositiveIntegerField(default=0)

@@ -14,7 +14,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             'id', 'title', 'source_type', 'source_url', 'original_filename', 'mime_type',
             'file_size', 'page_count', 'category', 'department', 'academic_year',
             'effective_date', 'is_current', 'status', 'status_detail', 'error',
-            'parser', 'chunk_count', 'token_count', 'embedding_model',
+            'parser', 'contextualize', 'chunk_count', 'token_count', 'embedding_model',
             'created_at', 'updated_at', 'processed_at',
         )
         read_only_fields = fields
@@ -30,6 +30,7 @@ class DocumentMetaSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     is_current = serializers.BooleanField(required=False)
     source_url = serializers.URLField(max_length=2000, required=False, allow_blank=True)
     parser = serializers.ChoiceField(choices=Parser.choices, required=False)
+    contextualize = serializers.BooleanField(required=False)
 
     def validate_source_url(self, value):
         if value and not value.startswith('https://'):

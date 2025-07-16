@@ -2,6 +2,7 @@
 
 import logging
 
+from chat.models import ChatSettings
 from common.admin_api import AdminAPIView, choice_param, error_response, paginate, request_id
 from common.audit import audit
 from common.safe_http import UnsafeURLError
@@ -50,7 +51,10 @@ def _max_file_bytes():
 
 
 def _meta(validated):
-    return dict(validated)
+    meta = dict(validated)
+    if 'contextualize' not in meta:
+        meta['contextualize'] = ChatSettings.load().contextualize_default
+    return meta
 
 
 def _duplicate(request, exc):

@@ -102,6 +102,15 @@ class PipelineTests(KnowledgeTestCase):
         self.assertEqual(document.status, DocumentStatus.READY, document.error)
         self.assertEqual(document.source_type, SourceType.DOCX)
 
+    def test_contextualize_adds_sentence_to_search_text(self):
+        document = self.text_document(contextualize=True)
+        self.fake.queue({'contexts': [{'index': 0, 'context': 'Intro to boys hostel fees.'},
+                                      {'index': 1, 'context': 'Fee table for 2026-27.'}]})
+        document = process_document(document.pk)
+        texts = [c.search_text for c in document.chunks.all()]
+        self.assertTrue(any('Fee table for 2026-27.' in text for text in texts))
+        self.assertFalse(any('Fee table' in c.content for c in document.chunks.all()))
+
     def test_quota_exhaustion_fails_softly(self):
         document = self.text_document()
         self.fake.fail_next(QuotaExhausted('daily'))

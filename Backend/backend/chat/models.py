@@ -294,6 +294,7 @@ class ChatSettings(models.Model):
     global_daily_llm_calls = models.PositiveIntegerField(default=5000)
     rerank_enabled = models.BooleanField(default=True)
     cache_enabled = models.BooleanField(default=True)
+    contextualize_default = models.BooleanField(default=False)
     auto_title_enabled = models.BooleanField(default=True)
     starter_questions = models.JSONField(default=default_starter_questions)
     updated_by = models.ForeignKey(

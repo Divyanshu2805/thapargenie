@@ -1,4 +1,5 @@
 from api.models import AuditEvent
+from chat.models import ChatSettings
 from common.tests.helpers import client_for, make_user
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -28,6 +29,8 @@ class AdminKnowledgeTestCase(TestCase):
         use_storage(self.storage)
         self.addCleanup(use_provider, None)
         self.addCleanup(use_storage, None)
+        ChatSettings.forget()
+        self.addCleanup(ChatSettings.forget)
         self.admin = make_user('admin@thapar.edu', staff=True)
         self.client = client_for(self.admin)
         self.changes = []
@@ -77,6 +80,14 @@ class UploadTests(AdminKnowledgeTestCase):
                           document.parser), ('fees_scholarships', '2026-27', False, 'smart'))
         self.assertIn(document.storage_path, self.storage.objects)
         self.assertTrue(self.audited('document.created'))
+
+    def test_contextualize_defaults_to_the_setting(self):
+        ChatSettings.objects.update_or_create(pk=1, defaults={'contextualize_default': True})
+        ChatSettings.forget()
+        response = self.upload(pdf_file())
+        self.assertTrue(response.data['created'][0]['contextualize'])
+        response = self.upload(pdf_file('b.pdf', ['Other text.']), contextualize='false')
+        self.assertFalse(response.data['created'][0]['contextualize'])
 
     def test_wrong_magic_bytes_are_rejected(self):
         fake_pdf = SimpleUploadedFile('fees.pdf', b'\x7fELF\x00\x00binary', 'application/pdf')

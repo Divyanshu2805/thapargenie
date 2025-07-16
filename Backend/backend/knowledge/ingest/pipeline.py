@@ -17,6 +17,7 @@ from rag.aliases import expand
 from rag.llm import LLMError, QuotaExhausted, get_llm
 
 from knowledge.ingest.chunk import ChunkDraft, build_chunks, search_header
+from knowledge.ingest.contextualize import contextualize
 from knowledge.ingest.extract import extract
 from knowledge.ingest.filetypes import UnsupportedFile
 from knowledge.models import Category, Chunk, Document, DocumentStatus, SourceType
@@ -24,6 +25,9 @@ from knowledge.signals import knowledge_changed
 from knowledge.storage import StorageError, get_storage
 
 logger = logging.getLogger(__name__)
+
+# Contextual sentences cost one fast-model call per 10 chunks; skip for huge documents.
+CONTEXTUALIZE_MAX_CHUNKS = 60
 
 
 class ProcessingError(Exception):
@@ -47,7 +51,7 @@ def claim(document_id):
     return Document.objects.get(pk=document_id) if updated else None
 
 
-def build_search_text(document, content, heading_path=''):
+def build_search_text(document, content, heading_path='', context=''):
     header = search_header(
         title=document.title,
         category_label=Category(document.category).label,
@@ -55,17 +59,18 @@ def build_search_text(document, content, heading_path=''):
         heading_path=heading_path,
         academic_year=document.academic_year,
     )
-    parts = [header, content]
+    parts = [header, context, content]
     return expand('\n\n'.join(part for part in parts if part))
 
 
-def prepare_chunks(document, drafts):
+def prepare_chunks(document, drafts, contexts=None):
+    contexts = contexts or [''] * len(drafts)
     return [
         Chunk(
             document=document,
             chunk_index=index,
             content=draft.content,
-            search_text=build_search_text(document, draft.content, draft.heading_path),
+            search_text=build_search_text(document, draft.content, draft.heading_path, context),
             heading_path=draft.heading_path[:500],
             page_start=draft.page_start,
             page_end=draft.page_end,
@@ -74,7 +79,7 @@ def prepare_chunks(document, drafts):
             department=document.department,
             is_current=document.is_current,
         )
-        for index, draft in enumerate(drafts)
+        for index, (draft, context) in enumerate(zip(drafts, contexts, strict=True))
     ]
 
 
@@ -159,7 +164,17 @@ def process_document(document_id, *, llm=None):
         if not drafts:
             raise ProcessingError('No text could be extracted from this document.')
 
-        chunks = prepare_chunks(document, drafts)
+        contexts = None
+        if document.contextualize and len(drafts) <= CONTEXTUALIZE_MAX_CHUNKS:
+            progress(document, f'Adding context to {len(drafts)} chunks')
+            contexts = contextualize(
+                llm,
+                title=document.title,
+                document_text=markdown,
+                contents=[draft.content for draft in drafts],
+            )
+
+        chunks = prepare_chunks(document, drafts, contexts)
         progress(document, f'Embedding {len(chunks)} chunks')
         embed_chunks(llm, document, chunks)
         write_chunks(document, chunks, embedding_model=llm.embed_model)

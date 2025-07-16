@@ -23,6 +23,7 @@ EDITABLE_FIELDS = (
     'effective_date',
     'is_current',
     'source_url',
+    'contextualize',
 )
 # Fields that appear in chunk search text: changing them requires re-embedding.
 SEARCH_HEADER_FIELDS = {'title', 'category', 'department', 'academic_year'}
