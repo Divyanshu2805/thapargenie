@@ -1,0 +1,357 @@
+{
+  "version": 1,
+  "notes": "A case passes retrieval when a retrieved chunk comes from an expected URL and contains every `contains` phrase (case-insensitive). URLs survive re-imports; chunk ids do not. Several targets mean any of them is correct (the same PDF is published at two URLs; programme-specific admission status lives on two pages).",
+  "cases": [
+    {
+      "id": "fees-be-cse-2026-27",
+      "question": "What is the 2026-27 programme fee per semester for BE CSE?",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/3/20/9e19a5d83c884f50bd1ca2dfc3ad0cc7_05%20TUITION%20FEE%20AND%20OTHER%20DUES.pdf",
+          "contains": [
+            "Computer Science"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "fee",
+        "table",
+        "current"
+      ]
+    },
+    {
+      "id": "fees-be-coe-hinglish",
+      "question": "BE COE ki semester fees kitni hai 2026-27 me?",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/3/20/9e19a5d83c884f50bd1ca2dfc3ad0cc7_05%20TUITION%20FEE%20AND%20OTHER%20DUES.pdf",
+          "contains": []
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "fee",
+        "hinglish",
+        "abbreviation"
+      ]
+    },
+    {
+      "id": "fees-hostel-derabassi-2026-27",
+      "question": "What are the Dera Bassi hostel and mess fees for the 2026-27 session?",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/3/20/9e19a5d83c884f50bd1ca2dfc3ad0cc7_05%20TUITION%20FEE%20AND%20OTHER%20DUES.pdf",
+          "contains": [
+            "Dera Bassi"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "fee",
+        "hostel",
+        "table",
+        "current"
+      ]
+    },
+    {
+      "id": "refund-policy-2026-27",
+      "question": "How much academic fee is refunded if admission is withdrawn by 20 July 2026?",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/6/18/84f92be4f9d74bb5a5e6656a5f6237b3_Admissions%202026-2027%20Refund%20Policy.pdf",
+          "contains": [
+            "July 20th"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "fee",
+        "refund",
+        "deadline"
+      ]
+    },
+    {
+      "id": "refund-short",
+      "question": "admission withdraw karne pe kitna refund milega",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/6/18/84f92be4f9d74bb5a5e6656a5f6237b3_Admissions%202026-2027%20Refund%20Policy.pdf",
+          "contains": []
+        }
+      ],
+      "answerable": true,
+      "important": false,
+      "tags": [
+        "refund",
+        "hinglish"
+      ]
+    },
+    {
+      "id": "admissions-status-2026-27",
+      "question": "Are applications for the 2026-27 admissions cycle still open?",
+      "expected": [
+        {
+          "url": "https://admission.thapar.edu/",
+          "contains": [
+            "Applications for 2026-27"
+          ]
+        },
+        {
+          "url": "https://www.thapar.edu/admissions",
+          "contains": [
+            "Admissions"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "admissions",
+        "current"
+      ]
+    },
+    {
+      "id": "be-eligibility-2026",
+      "question": "Which entrance examinations and school subjects are used for first-year BE or BTech admission in 2026?",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/5/1/190396079a034243b7aafab0f14d98e1_06%20ADMISSION%20TO%20FIRST%20YEAR%20UG%20PROGRAM.pdf",
+          "contains": [
+            "JEE Main"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "admissions",
+        "eligibility"
+      ]
+    },
+    {
+      "id": "jee-cutoff-first-round-2026",
+      "question": "What was the first online counselling JEE Main 2026 cutoff for Computer Engineering?",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/5/16/c604ce55cd2d47d1aadf6039679377c5_Cut%20off%20-%20First%20online%20counselling%20on%20the%20basis%20of%20JEE%20-%202026.pdf",
+          "contains": []
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "admissions",
+        "cutoff",
+        "table"
+      ]
+    },
+    {
+      "id": "jee-cutoff-second-round-2026",
+      "question": "What was the second online counselling JEE Main 2026 cutoff for Computer Engineering?",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/6/29/f2bfec51bcbb473b99876d6bcc5b56c7_Cut%20off%20-%20Second%20online%20counselling%20on%20the%20basis%20of%20JEE%20-%202026.pdf",
+          "contains": []
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "admissions",
+        "cutoff",
+        "table"
+      ]
+    },
+    {
+      "id": "cutoff-followup",
+      "question": "and what about the second round?",
+      "history": [
+        {
+          "role": "user",
+          "content": "What was the first round JEE Main 2026 cutoff for COE?"
+        },
+        {
+          "role": "assistant",
+          "content": "In the first online counselling round (16 May 2026), the Computer Engineering (COPC) cutoff was listed by category [1]."
+        }
+      ],
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/6/29/f2bfec51bcbb473b99876d6bcc5b56c7_Cut%20off%20-%20Second%20online%20counselling%20on%20the%20basis%20of%20JEE%20-%202026.pdf",
+          "contains": []
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "followup",
+        "cutoff"
+      ]
+    },
+    {
+      "id": "academic-calendar-first-year-2026-27",
+      "question": "What does the odd-semester 2026-27 academic calendar say for first-year UG, PG and PhD students?",
+      "expected": [
+        {
+          "url": "https://static.npfs.co/accounts/664/documents/2026/7/13/30a2a9e40c544b7886d28d4df03c4520_Academic%20Calendar%20-%20UG-1%20PG-1%20PhD-1.pdf",
+          "contains": []
+        },
+        {
+          "url": "https://www.thapar.edu/upload/files/AC%20ODDSEM%202026-27%20(UG-I%20,PG-I,%20PhD%20-I).pdf",
+          "contains": []
+        }
+      ],
+      "answerable": true,
+      "important": true,
+      "tags": [
+        "calendar",
+        "table"
+      ]
+    },
+    {
+      "id": "ucs301-2026",
+      "question": "What laboratory work and learning outcomes are listed for UCS301 Data Structures in the 2026 CSE scheme?",
+      "expected": [
+        {
+          "url": "https://www.thapar.edu/upload/files/BECSE2026Scheme.pdf",
+          "contains": [
+            "UCS301"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": false,
+      "tags": [
+        "syllabus",
+        "course-code"
+      ]
+    },
+    {
+      "id": "anti-ragging-policy",
+      "question": "What does the institute anti-ragging policy require from students and parents?",
+      "expected": [
+        {
+          "url": "https://www.thapar.edu/webroot/upload/files/Anti-Ragging%20Policy.pdf",
+          "contains": [
+            "affidavit"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": false,
+      "tags": [
+        "rules"
+      ]
+    },
+    {
+      "id": "library-hours",
+      "question": "What are the library working hours, including Sundays and gazetted holidays?",
+      "expected": [
+        {
+          "url": "https://cl.thapar.edu/libtime.php",
+          "contains": [
+            "Library Working Hours"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": false,
+      "tags": [
+        "campus"
+      ]
+    },
+    {
+      "id": "library-hinglish",
+      "question": "library sunday ko khuli rehti hai kya?",
+      "expected": [
+        {
+          "url": "https://cl.thapar.edu/libtime.php",
+          "contains": []
+        }
+      ],
+      "answerable": true,
+      "important": false,
+      "tags": [
+        "campus",
+        "hinglish"
+      ]
+    },
+    {
+      "id": "nsp-multiple-scholarships-2026-27",
+      "question": "Can a student apply for multiple NSP scholarships in academic year 2026-27?",
+      "expected": [
+        {
+          "url": "https://www.thapar.edu/upload/files/NSP%20Scholarships-FAQ%20for%20Applicants%202026-27.pdf",
+          "contains": [
+            "multiple scholarships"
+          ]
+        }
+      ],
+      "answerable": true,
+      "important": false,
+      "tags": [
+        "scholarship"
+      ]
+    },
+    {
+      "id": "unanswerable-wifi-password",
+      "question": "What is the wifi password of Hall J?",
+      "expected": [],
+      "answerable": false,
+      "important": true,
+      "tags": [
+        "negative"
+      ]
+    },
+    {
+      "id": "unanswerable-canteen-menu",
+      "question": "What is on the Jaggi canteen menu today and what are the prices?",
+      "expected": [],
+      "answerable": false,
+      "important": false,
+      "tags": [
+        "negative"
+      ]
+    },
+    {
+      "id": "personal-attendance",
+      "question": "What is my attendance in the data structures course?",
+      "expected": [],
+      "answerable": false,
+      "expect_type": "personal_record",
+      "important": true,
+      "tags": [
+        "intent"
+      ]
+    },
+    {
+      "id": "out-of-scope-code",
+      "question": "Write a python function to reverse a linked list",
+      "expected": [],
+      "answerable": false,
+      "expect_type": "out_of_scope",
+      "important": true,
+      "tags": [
+        "intent"
+      ]
+    },
+    {
+      "id": "greeting",
+      "question": "hi, what can you do?",
+      "expected": [],
+      "answerable": false,
+      "expect_type": "smalltalk",
+      "important": false,
+      "tags": [
+        "intent"
+      ]
+    }
+  ]
+}

@@ -8,7 +8,7 @@ from knowledge.ingest.chunk import ChunkDraft
 from knowledge.ingest.pipeline import prepare_chunks
 from knowledge.models import Chunk, Document, DocumentStatus, SourceType
 
-from rag import grounding
+from rag import evaluation, grounding
 from rag.analysis import Intent, QueryAnalysis, _clean, analyze, current_session
 from rag.context import build_sources
 from rag.llm import BadResponse, use_provider
@@ -399,3 +399,31 @@ class PipelineTests(TestCase):
         self.assertEqual(final.history[0].content, 'girls hostel fee?')
         self.assertLess(len(final.history[1].content), 1300)
         self.assertIn('<source n="1"', final.prompt)
+
+
+class EvaluationTests(SimpleTestCase):
+    def test_hit_requires_url_and_phrases(self):
+        expected = [{'url': 'https://a', 'contains': ['Dera Bassi']}]
+        items = [candidate(url='https://a', content='Patiala hostel'),
+                 candidate(url='https://a', content='dera bassi hostel')]
+        self.assertEqual(evaluation.first_hit(items, expected), 2)
+
+    def test_report_metrics(self):
+        cases = [{'id': str(i), 'answerable': True, 'important': True} for i in range(4)]
+        report = evaluation.Report([
+            evaluation.CaseResult(case=cases[0], rank=1),
+            evaluation.CaseResult(case=cases[1], rank=4),
+            evaluation.CaseResult(case=cases[2], rank=8),
+            evaluation.CaseResult(case=cases[3], rank=None),
+        ])
+        self.assertEqual(report.recall(5), 0.5)
+        self.assertEqual(report.recall(10), 0.75)
+        self.assertAlmostEqual(report.mrr(), (1 + 1 / 4 + 1 / 8) / 4)
+        self.assertEqual(report.important_misses(), ['2', '3'])
+
+    def test_golden_file_is_valid(self):
+        cases = evaluation.load_cases()
+        self.assertGreaterEqual(len(cases), 20)
+        self.assertEqual(len({c['id'] for c in cases}), len(cases))
+        for case in cases:
+            self.assertEqual(bool(case['expected']), case['answerable'], case['id'])
