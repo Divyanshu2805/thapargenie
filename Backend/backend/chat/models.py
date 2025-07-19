@@ -296,6 +296,9 @@ class ChatSettings(models.Model):
     cache_enabled = models.BooleanField(default=True)
     contextualize_default = models.BooleanField(default=False)
     auto_title_enabled = models.BooleanField(default=True)
+    maintenance_mode = models.BooleanField(default=False)
+    maintenance_message = models.CharField(max_length=300, blank=True)
+    banner_text = models.CharField(max_length=300, blank=True)
     starter_questions = models.JSONField(default=default_starter_questions)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,

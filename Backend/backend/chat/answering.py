@@ -1,8 +1,8 @@
 """One question-and-answer turn: admission checks, persistence and the event stream.
 
 `start_turn()` runs in the request, inside one transaction: it applies every check
-(daily quota, global budget, one stream per user, conversation size, idempotency)
-and saves the user message plus an empty `streaming` assistant message.
+(maintenance, daily quota, global budget, one stream per user, conversation size,
+idempotency) and saves the user message plus an empty `streaming` assistant message.
 Only then does streaming start, so a question is never lost and a retry with the same
 `client_request_id` can never create a duplicate.
 
@@ -27,6 +27,7 @@ from chat.errors import (
     ConversationFull,
     DailyQuotaExceeded,
     InvalidParent,
+    Maintenance,
     ServiceBusy,
 )
 from chat.models import (
@@ -55,6 +56,8 @@ class Turn:
 
 
 def _check_admission(user, settings):
+    if settings.maintenance_mode and not user.is_staff:
+        raise Maintenance(settings.maintenance_message or None)
     usage = quota.usage_row(user, lock=True)  # serialises concurrent sends per user
     if not user.is_staff and usage.questions >= settings.daily_question_limit:
         raise DailyQuotaExceeded()

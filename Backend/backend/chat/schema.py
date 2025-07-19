@@ -76,6 +76,9 @@ class StarterQuestion(serializers.Serializer):
 
 
 class AppConfigOut(serializers.Serializer):
+    banner = serializers.CharField(allow_null=True)
+    maintenance = serializers.BooleanField()
+    maintenance_message = serializers.CharField(allow_null=True)
     starter_questions = StarterQuestion(many=True)
     daily_limit = serializers.IntegerField(allow_null=True)
     remaining_today = serializers.IntegerField(allow_null=True)

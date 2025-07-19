@@ -322,6 +322,9 @@ class AppConfigView(APIView):
     def get(self, request):
         settings = ChatSettings.load()
         return Response({
+            'banner': settings.banner_text or None,
+            'maintenance': settings.maintenance_mode,
+            'maintenance_message': settings.maintenance_message or None,
             'starter_questions': settings.starter_questions,
             'daily_limit': None if request.user.is_staff else settings.daily_question_limit,
             'remaining_today': quota.remaining(request.user),

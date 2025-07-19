@@ -233,6 +233,14 @@ class LimitTests(ChatTestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.data['error']['code'], 'service_busy')
 
+    def test_maintenance_mode(self):
+        ChatSettings.objects.filter(pk=1).update(maintenance_mode=True,
+                                                 maintenance_message='Back at 5 pm')
+        ChatSettings.forget()
+        response = self.ask(self.conversation())
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data['error']['message'], 'Back at 5 pm')
+
     def test_one_stream_per_user(self):
         other = self.conversation()
         Message.objects.create(conversation=other, role=Message.Role.ASSISTANT,

@@ -30,3 +30,9 @@ class ServiceBusy(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = 'ThaparGenie is very busy right now. Please try again later.'
     default_code = 'service_busy'
+
+
+class Maintenance(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = 'ThaparGenie is under maintenance. Please try again later.'
+    default_code = 'maintenance'
