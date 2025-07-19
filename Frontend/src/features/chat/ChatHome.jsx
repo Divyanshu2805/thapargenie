@@ -16,6 +16,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { LogoMark } from '@/components/brand/Brand';
 import { Skeleton } from '@/components/ui/skeleton';
 import Composer from '@/features/chat/Composer';
+import { MaintenanceCard } from '@/features/chat/Maintenance';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { createConversation } from '@/lib/api/chat';
 
@@ -148,27 +149,32 @@ export default function ChatHome() {
             {greeting()}
             {name ? `, ${name}` : ''}.
             <span className="block text-muted-foreground">
-              What would you like to know?
+              {config?.maintenance ? 'Back with answers shortly.' : 'What would you like to know?'}
             </span>
           </h1>
         </div>
 
         <div className="mt-8 animate-rise [animation-delay:80ms] sm:mt-10">
-          <Composer
-            value={draft}
-            onChange={setDraft}
-            onSubmit={() => start.mutate()}
-            inputRef={inputRef}
-            disabled={Boolean(blocked) || start.isPending}
-            disabledReason={blocked}
-            remaining={config?.remaining_today}
-            suggestions={suggestions}
-            autoFocus
-          />
+          {config?.maintenance ? (
+            <MaintenanceCard message={config.maintenance_message} />
+          ) : (
+            <Composer
+              value={draft}
+              onChange={setDraft}
+              onSubmit={() => start.mutate()}
+              inputRef={inputRef}
+              disabled={Boolean(blocked) || start.isPending}
+              disabledReason={blocked}
+              remaining={config?.remaining_today}
+              suggestions={suggestions}
+              autoFocus
+            />
+          )}
         </div>
 
         <div className="mt-6">
-          <StarterQuestions onPick={pickStarter} />
+          {/* Nothing can be asked during maintenance, so no starter questions then. */}
+          {config?.maintenance ? null : <StarterQuestions onPick={pickStarter} />}
         </div>
       </div>
 

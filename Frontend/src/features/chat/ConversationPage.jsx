@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { composerBlock } from '@/features/chat/ChatHome';
 import Composer from '@/features/chat/Composer';
+import { MaintenanceBar } from '@/features/chat/Maintenance';
 import ConversationMenu, { ConversationToolbar } from '@/features/chat/ConversationMenu';
 import { AssistantMessage, UserMessage } from '@/features/chat/Message';
 import { buildThread, hasStreamingMessage } from '@/features/chat/thread';
@@ -265,19 +266,23 @@ function ConversationView({ conversationId }) {
 
       <div className="shrink-0 bg-gradient-to-t from-background via-background to-transparent pb-3 print:hidden">
         <div className="chat-column">
-          <Composer
-            value={draft}
-            onChange={setDraft}
-            onSubmit={submit}
-            onStop={handleStop}
-            streaming={streaming}
-            inputRef={inputRef}
-            disabled={Boolean(blocked)}
-            disabledReason={blocked}
-            remaining={config?.remaining_today}
-            placeholder="Ask a follow-up…"
-            autoFocus
-          />
+          {config?.maintenance ? (
+            <MaintenanceBar message={config.maintenance_message} />
+          ) : (
+            <Composer
+              value={draft}
+              onChange={setDraft}
+              onSubmit={submit}
+              onStop={handleStop}
+              streaming={streaming}
+              inputRef={inputRef}
+              disabled={Boolean(blocked)}
+              disabledReason={blocked}
+              remaining={config?.remaining_today}
+              placeholder="Ask a follow-up…"
+              autoFocus
+            />
+          )}
           <p className="mt-2 text-center text-xs text-muted-foreground">ThaparGenie can make mistakes. Check the linked source.</p>
         </div>
       </div>
