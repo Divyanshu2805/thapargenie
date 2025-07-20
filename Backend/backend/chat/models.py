@@ -123,6 +123,12 @@ class Message(UUIDModel, TimestampedModel):
         ordering = ('created_at',)
         indexes = [
             models.Index(fields=('conversation', 'created_at'), name='message_conversation_idx'),
+            models.Index(
+                fields=('answer_type', 'created_at'),
+                name='message_answer_type_idx',
+                condition=models.Q(role='assistant'),
+            ),
+            models.Index(fields=('created_at',), name='message_created_idx'),
         ]
         constraints = [
             choices_check('role', Role, 'message_role_valid'),
@@ -184,8 +190,16 @@ class Reason(models.TextChoices):
     OTHER = 'other', 'Other'
 
 
+class Review(models.TextChoices):
+    OPEN = 'open', 'Open'
+    RESOLVED = 'resolved', 'Resolved'
+    DISMISSED = 'dismissed', 'Dismissed'
+
+
 class Feedback(UUIDModel, TimestampedModel):
     Reason = Reason
+
+    Review = Review
 
     message = models.OneToOneField(Message, on_delete=models.CASCADE, related_name='feedback')
     user = models.ForeignKey(
@@ -197,12 +211,25 @@ class Feedback(UUIDModel, TimestampedModel):
         max_length=16, choices=Reason.choices, null=True, blank=True
     )
     comment = models.CharField(max_length=1000, blank=True)
+    review_status = models.CharField(max_length=10, choices=Review.choices, default=Review.OPEN)
+    admin_note = models.CharField(max_length=1000, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='+',
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        indexes = [
+            models.Index(
+                fields=('review_status', 'rating', 'created_at'), name='feedback_review_idx'
+            )
+        ]
         constraints = [
             models.CheckConstraint(condition=models.Q(rating__in=(-1, 1)),
                                    name='feedback_rating_valid'),
             choices_check('reason', Reason, 'feedback_reason_valid', allow_null=True),
+            choices_check('review_status', Review, 'feedback_review_valid'),
         ]
 
 

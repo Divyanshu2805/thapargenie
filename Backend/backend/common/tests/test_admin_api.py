@@ -35,6 +35,7 @@ class AdminPermissionTests(TestCase):
     def test_every_admin_route_is_covered(self):
         paths = {path.split('/')[4] for path, _ in admin_routes()}
         expected = {'documents'}
+        expected |= {'stats', 'gaps', 'feedback', 'settings'}
         self.assertEqual(paths, expected)
 
     def assert_refused(self, client, expected):
@@ -73,9 +74,10 @@ class AdminPermissionTests(TestCase):
         cache.clear()
         client = client_for(make_user('admin@thapar.edu', staff=True))
         for _ in range(4):
-            self.assertEqual(client.get('/api/v1/admin/documents/').status_code, 200)
+            self.assertEqual(client.get('/api/v1/admin/settings/').status_code, 200)
         codes = [
-            client.post('/api/v1/admin/documents/text/', {}, format='json').status_code
-            for _ in range(3)
+            client.patch('/api/v1/admin/settings/', {'banner_text': f'b{i}'},
+                         format='json').status_code
+            for i in range(3)
         ]
-        self.assertEqual(codes, [400, 400, 429])
+        self.assertEqual(codes, [200, 200, 429])

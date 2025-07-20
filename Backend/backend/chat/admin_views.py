@@ -1,0 +1,97 @@
+"""Admin API for chat insight and control. No conversation browsing."""
+
+from common.admin_api import AdminAPIView, choice_param, paginate, request_id
+from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+
+from chat import admin_services
+from chat.admin_serializers import (
+    FeedbackItemOut,
+    FeedbackReviewSerializer,
+    GapsOut,
+    SettingsSerializer,
+    StatsOut,
+)
+from chat.models import ChatSettings, Feedback, Message
+
+TAGS = ['admin: chat']
+RANGE_PARAM = OpenApiParameter('range', str, enum=list(admin_services.RANGES), default='7d')
+
+
+def _range(request, default):
+    value = request.query_params.get('range', default)
+    if value not in admin_services.RANGES:
+        raise ValidationError({'range': [f'Use one of: {", ".join(admin_services.RANGES)}.']})
+    return admin_services.RANGES[value]
+
+
+class StatsView(AdminAPIView):
+    @extend_schema(operation_id='admin_stats', tags=TAGS, parameters=[RANGE_PARAM],
+                   responses=StatsOut)
+    def get(self, request):
+        return Response(admin_services.stats(_range(request, '7d')))
+
+
+class GapsView(AdminAPIView):
+    @extend_schema(operation_id='admin_gaps', tags=TAGS,
+                   parameters=[OpenApiParameter('range', str, enum=list(admin_services.RANGES),
+                                                default='30d')],
+                   responses=GapsOut)
+    def get(self, request):
+        days = _range(request, '30d')
+        return Response({'range_days': days, 'results': admin_services.gaps(days)})
+
+
+class FeedbackListView(AdminAPIView):
+    @extend_schema(
+        operation_id='admin_feedback_list',
+        tags=TAGS,
+        parameters=[
+            OpenApiParameter('review_status', str, enum=Feedback.Review.values),
+            OpenApiParameter('rating', int, enum=[-1, 1]),
+            OpenApiParameter('answer_type', str, enum=Message.AnswerType.values),
+            OpenApiParameter('reason', str, enum=Feedback.Reason.values),
+        ],
+        responses=FeedbackItemOut(many=True),
+    )
+    def get(self, request):
+        rating = choice_param(request, 'rating', ('1', '-1'))
+        items = admin_services.feedback_queryset(
+            review_status=choice_param(request, 'review_status', Feedback.Review.values),
+            rating=int(rating) if rating else None,
+            answer_type=choice_param(request, 'answer_type', Message.AnswerType.values),
+            reason=choice_param(request, 'reason', Feedback.Reason.values),
+        )
+        return paginate(self, items, admin_services.feedback_payload)
+
+
+class FeedbackDetailView(AdminAPIView):
+    @extend_schema(operation_id='admin_feedback_review', tags=TAGS,
+                   request=FeedbackReviewSerializer, responses=FeedbackItemOut)
+    def patch(self, request, feedback_id):
+        feedback = get_object_or_404(Feedback, pk=feedback_id)
+        serializer = FeedbackReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        admin_services.review_feedback(feedback, serializer.validated_data, user=request.user,
+                                       request_id=request_id(request))
+        item = admin_services.feedback_queryset().get(pk=feedback.pk)
+        return Response(admin_services.feedback_payload(item))
+
+
+class SettingsView(AdminAPIView):
+    @extend_schema(operation_id='admin_settings_retrieve', tags=TAGS,
+                   responses=SettingsSerializer)
+    def get(self, request):
+        return Response(SettingsSerializer(ChatSettings.load(fresh=True)).data)
+
+    @extend_schema(operation_id='admin_settings_update', tags=TAGS,
+                   request=SettingsSerializer, responses=SettingsSerializer)
+    def patch(self, request):
+        serializer = SettingsSerializer(ChatSettings.load(fresh=True), data=request.data,
+                                        partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated = admin_services.update_settings(serializer.validated_data, user=request.user,
+                                                 request_id=request_id(request))
+        return Response(SettingsSerializer(updated).data)

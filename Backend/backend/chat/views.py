@@ -280,6 +280,7 @@ class FeedbackView(APIView):
                 'rating': data['rating'],
                 'reason': data.get('reason') if data['rating'] < 0 else None,
                 'comment': data.get('comment', ''),
+                'review_status': Feedback.Review.OPEN,
             },
         )
         if data['rating'] < 0:
