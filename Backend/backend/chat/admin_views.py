@@ -1,8 +1,11 @@
 """Admin API for chat insight and control. No conversation browsing."""
 
 from common.admin_api import AdminAPIView, choice_param, paginate, request_id
+from common.audit import audit
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from knowledge.errors import LLMUnavailable
+from rag.llm import LLMError
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
@@ -11,6 +14,8 @@ from chat.admin_serializers import (
     FeedbackItemOut,
     FeedbackReviewSerializer,
     GapsOut,
+    PlaygroundOut,
+    PlaygroundSerializer,
     SettingsSerializer,
     StatsOut,
 )
@@ -95,3 +100,25 @@ class SettingsView(AdminAPIView):
         updated = admin_services.update_settings(serializer.validated_data, user=request.user,
                                                  request_id=request_id(request))
         return Response(SettingsSerializer(updated).data)
+
+
+class PlaygroundView(AdminAPIView):
+    @extend_schema(operation_id='admin_playground', tags=TAGS, request=PlaygroundSerializer,
+                   responses=PlaygroundOut)
+    def post(self, request):
+        serializer = PlaygroundSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        history = [dict(item) for item in data.get('history', [])]
+        try:
+            result = admin_services.playground(
+                data['query'], user=request.user, history=history,
+                rerank_enabled=data.get('rerank'),
+            )
+        except LLMError as exc:
+            raise LLMUnavailable() from exc
+        # The query is admin-typed but may quote a student; record its size, not its text.
+        audit(request.user, 'playground.ran', 'playground', '-', request_id=request_id(request),
+              query_chars=len(data['query']), llm_calls=result['usage']['llm_calls'],
+              answer_type=result['answer_type'])
+        return Response(result)

@@ -9,4 +9,5 @@ urlpatterns = [
     path('feedback/<uuid:feedback_id>/', views.FeedbackDetailView.as_view(),
          name='admin-feedback-detail'),
     path('settings/', views.SettingsView.as_view(), name='admin-settings'),
+    path('playground/', views.PlaygroundView.as_view(), name='admin-playground'),
 ]

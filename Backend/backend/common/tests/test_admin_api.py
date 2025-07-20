@@ -36,6 +36,7 @@ class AdminPermissionTests(TestCase):
         paths = {path.split('/')[4] for path, _ in admin_routes()}
         expected = {'documents'}
         expected |= {'stats', 'gaps', 'feedback', 'settings'}
+        expected |= {'playground'}
         self.assertEqual(paths, expected)
 
     def assert_refused(self, client, expected):

@@ -16,6 +16,8 @@ from django.db.models import Count, Func, Max, Q, Sum, TextField, Value
 from django.db.models.functions import Coalesce, Lower, NullIf, Trim
 from django.utils import timezone
 from knowledge.models import Chunk, Document
+from rag.llm import get_llm
+from rag.pipeline import answer_events
 
 from chat import quota
 from chat.models import AnswerCache, ChatSettings, Feedback, Message, UsageDaily
@@ -279,3 +281,52 @@ def update_settings(changes, *, user, request_id=None):
           values={name: list(pair) for name, pair in changed.items()
                   if name in AUDITED_VALUES})
     return current
+
+
+# -- playground ----------------------------------------------------------------------
+
+def playground(question, *, user, history=(), rerank_enabled=None):
+    """Run the whole answer pipeline and return everything it did. Saves no content;
+    only the LLM call counters are recorded, so the global budget stays accurate."""
+    if rerank_enabled is None:
+        rerank_enabled = ChatSettings.load().rerank_enabled
+    llm = get_llm()
+    statuses, result = [], None
+    try:
+        for event, data in answer_events(question, llm=llm, history=history,
+                                         rerank_enabled=rerank_enabled):
+            if event == 'status':
+                statuses.append(data)
+            elif event == 'done':
+                result = data
+    finally:
+        quota.record_calls(user, llm.usage)
+    return {
+        'analysis': result.analysis.as_dict(),
+        'stages': statuses,
+        'retrieval': result.retrieval_trace,
+        'reranked': result.reranked,
+        'sources': [
+            {
+                **source.public(),
+                'document_id': source.document_id,
+                'chunk_ids': source.chunk_ids,
+                'score': source.score,
+                'is_current': source.is_current,
+                'content': source.content,
+                'cited': source.number in result.cited,
+            }
+            for source in result.sources
+        ],
+        'answer': result.text,
+        'answer_type': result.answer_type,
+        'grounded': result.grounded,
+        'unsupported': result.unsupported,
+        'model': result.model,
+        'timings': result.timings,
+        'usage': {
+            'llm_calls': llm.usage.calls,
+            'prompt_tokens': llm.usage.prompt_tokens,
+            'completion_tokens': llm.usage.completion_tokens,
+        },
+    }

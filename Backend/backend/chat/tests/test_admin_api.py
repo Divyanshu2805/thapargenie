@@ -213,3 +213,54 @@ class SettingsTests(AdminChatTestCase):
             'maintenance_mode': True, 'maintenance_message': 'Back at 6 pm.',
         }, format='json')
         self.assertEqual(response.status_code, 200)
+
+
+class PlaygroundTests(AdminChatTestCase):
+    def test_runs_the_pipeline_and_saves_nothing(self):
+        document = add_document('Hostel fees', 'Boys hostel fee is Rs 1,20,000 per year.')
+        self.fake.queue(ANALYSIS, ANSWER)
+        response = self.client.post(f'{BASE}/playground/', {'query': 'boys hostel fee?'},
+                                    format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        data = response.data
+        self.assertEqual(data['answer'], ANSWER)
+        self.assertEqual(data['answer_type'], 'answered')
+        self.assertEqual(data['analysis']['standalone_query'], 'boys hostel fee 2026-27')
+        self.assertTrue(data['retrieval']['candidates'])
+        self.assertIn('fused', data['retrieval']['candidates'][0])
+        # Audited by size only: the query text never reaches the audit log.
+        event = AuditEvent.objects.get(action='playground.ran')
+        self.assertEqual(event.metadata['query_chars'], len('boys hostel fee?'))
+        self.assertNotIn('hostel', json.dumps(event.metadata))
+        [source] = data['sources']
+        self.assertEqual(source['document_id'], str(document.pk))
+        self.assertTrue(source['cited'])
+        self.assertIn('Rs 1,20,000', source['content'])
+        self.assertIn('total', data['timings'])
+        self.assertGreater(data['usage']['llm_calls'], 0)
+
+        self.assertFalse(Message.objects.exists())
+        self.assertFalse(Conversation.objects.exists())
+        usage = UsageDaily.objects.get(user=self.admin)
+        self.assertEqual((usage.questions, usage.answers), (0, 0))
+        self.assertEqual(usage.llm_calls, data['usage']['llm_calls'])
+
+    def test_history_is_used_and_validated(self):
+        self.fake.queue(ANALYSIS, ANSWER)
+        response = self.client.post(f'{BASE}/playground/', {
+            'query': 'and for girls?',
+            'history': [{'role': 'user', 'content': 'boys hostel fee?'},
+                        {'role': 'assistant', 'content': ANSWER}],
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('boys hostel fee?', str(self.fake.requests[0].prompt))
+        bad = self.client.post(f'{BASE}/playground/', {
+            'query': 'x', 'history': [{'role': 'system', 'content': 'y'}]}, format='json')
+        self.assertEqual(bad.status_code, 400)
+
+    def test_llm_failure(self):
+        add_document('Hostel fees', 'Boys hostel fee is Rs 1,20,000 per year.')
+        self.fake.queue(ANALYSIS, LLMError('down'))
+        response = self.client.post(f'{BASE}/playground/', {'query': 'fee?'}, format='json')
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data['error']['code'], 'llm_unavailable')

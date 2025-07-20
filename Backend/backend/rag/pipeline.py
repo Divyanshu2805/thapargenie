@@ -1,8 +1,8 @@
 """Question -> streamed, cited answer. Pure logic: no persistence, no HTTP.
 
 `answer_events()` yields (event, data) pairs that map one-to-one onto the SSE events:
-status, sources, delta, done. The chat layer stores the final result; `manage.py ask`
-just prints it.
+status, sources, delta, done. The chat layer stores the final result;
+the admin playground and `manage.py ask` just print it.
 """
 
 import time

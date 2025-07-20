@@ -1,7 +1,7 @@
 from api.serializers import RejectUnknownFieldsMixin
 from rest_framework import serializers
 
-from chat.models import ChatSettings, Feedback
+from chat.models import MAX_QUESTION_CHARS, ChatSettings, Feedback
 
 # -- input ---------------------------------------------------------------------------
 
@@ -61,6 +61,22 @@ class FeedbackReviewSerializer(RejectUnknownFieldsMixin, serializers.Serializer)
         if not attrs:
             raise serializers.ValidationError('Nothing to change.')
         return attrs
+
+
+class HistoryItemSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    role = serializers.ChoiceField(choices=('user', 'assistant'))
+    content = serializers.CharField(max_length=4000)
+
+
+class PlaygroundSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    query = serializers.CharField(max_length=MAX_QUESTION_CHARS)
+    history = HistoryItemSerializer(many=True, required=False, max_length=8)
+    rerank = serializers.BooleanField(required=False, allow_null=True, default=None)
+
+    def validate_query(self, value):
+        if not value.strip():
+            raise serializers.ValidationError('The query cannot be empty.')
+        return value.strip()
 
 
 # -- output (documentation only) -----------------------------------------------------
@@ -171,3 +187,43 @@ class GapOut(serializers.Serializer):
 class GapsOut(serializers.Serializer):
     range_days = serializers.IntegerField()
     results = GapOut(many=True)
+
+
+class PlaygroundSourceOut(serializers.Serializer):
+    position = serializers.IntegerField()
+    title = serializers.CharField()
+    url = serializers.CharField(allow_blank=True)
+    heading_path = serializers.CharField(allow_blank=True)
+    page_start = serializers.IntegerField(allow_null=True)
+    page_end = serializers.IntegerField(allow_null=True)
+    academic_year = serializers.CharField(allow_blank=True)
+    category = serializers.CharField(allow_blank=True)
+    snippet = serializers.CharField(allow_blank=True)
+    document_id = serializers.UUIDField()
+    chunk_ids = serializers.ListField(child=serializers.UUIDField())
+    score = serializers.FloatField()
+    is_current = serializers.BooleanField()
+    content = serializers.CharField()
+    cited = serializers.BooleanField()
+
+
+class PlaygroundUsageOut(serializers.Serializer):
+    llm_calls = serializers.IntegerField()
+    prompt_tokens = serializers.IntegerField()
+    completion_tokens = serializers.IntegerField()
+
+
+class PlaygroundOut(serializers.Serializer):
+    analysis = serializers.JSONField()
+    stages = serializers.ListField(child=serializers.JSONField())
+    retrieval = serializers.JSONField(help_text='Per-candidate ranks, fused score, boost and '
+                                                'rerank score.')
+    reranked = serializers.BooleanField()
+    sources = PlaygroundSourceOut(many=True)
+    answer = serializers.CharField(allow_blank=True)
+    answer_type = serializers.CharField()
+    grounded = serializers.BooleanField(allow_null=True)
+    unsupported = serializers.ListField(child=serializers.CharField())
+    model = serializers.CharField(allow_blank=True)
+    timings = serializers.DictField(child=serializers.IntegerField())
+    usage = PlaygroundUsageOut()
