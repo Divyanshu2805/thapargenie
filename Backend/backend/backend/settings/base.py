@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     "knowledge",
     "rag",
     "chat",
+    "access",
 ]
 
 MIDDLEWARE = [
