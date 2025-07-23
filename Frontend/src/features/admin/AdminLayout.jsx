@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   FileText,
+  LayoutDashboard,
 } from 'lucide-react';
 import { Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -15,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const ADMIN_SECTIONS = [
+  { group: 'Insight', to: '/admin/', end: true, label: 'Overview', icon: LayoutDashboard },
   { group: 'Knowledge', to: '/admin/documents', label: 'Documents', icon: FileText },
 ];
 

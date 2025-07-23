@@ -20,6 +20,7 @@ const ConversationPage = lazy(() => import('./features/chat/ConversationPage'));
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'));
 const PrivacyPage = lazy(() => import('./features/privacy/PrivacyPage'));
 const AdminLayout = lazy(() => import('./features/admin/AdminLayout'));
+const OverviewPage = lazy(() => import('./features/admin/OverviewPage'));
 const DocumentsPage = lazy(() => import('./features/admin/DocumentsPage'));
 const DocumentDetailPage = lazy(() => import('./features/admin/DocumentDetailPage'));
 
@@ -60,7 +61,7 @@ export default function App() {
             </AdminRoute>
           }
         >
-          <Route index element={<Navigate to="documents" replace />} />
+          <Route index element={<OverviewPage />} />
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="documents/:documentId" element={<DocumentDetailPage />} />
           <Route path="*" element={<Navigate to="/admin/" replace />} />
