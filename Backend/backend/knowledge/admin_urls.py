@@ -16,4 +16,7 @@ urlpatterns = [
          name='admin-document-disable'),
     path('documents/<uuid:document_id>/file/', views.DocumentFileView.as_view(),
          name='admin-document-file'),
+    path('documents/<uuid:document_id>/chunks/', views.DocumentChunksView.as_view(),
+         name='admin-document-chunks'),
+    path('chunks/<uuid:chunk_id>/', views.ChunkDetailView.as_view(), name='admin-chunk'),
 ]

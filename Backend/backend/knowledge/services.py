@@ -4,14 +4,19 @@ import hashlib
 import logging
 
 from api.models import AuditActorKind, AuditEvent, AuditOutcome
+from common.audit import audit
 from common.safe_http import validate_url
+from common.text import estimate_tokens
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
+from rag.llm import get_llm
 
 from knowledge import jobs
 from knowledge.ingest.extract import open_pdf
 from knowledge.ingest.filetypes import EXTENSIONS, MIME_TYPES, UnsupportedFile, detect
-from knowledge.models import Chunk, Document, DocumentStatus, SourceType
+from knowledge.ingest.pipeline import build_search_text
+from knowledge.models import MAX_CHUNK_CHARS, Chunk, Document, DocumentStatus, SourceType
 from knowledge.signals import knowledge_changed
 from knowledge.storage import get_storage
 
@@ -227,3 +232,62 @@ def delete_document(document, *, user, request_id=None):
         # After commit: if storage fails the row is already gone, so the orphaned file is
         # harmless (private) and is picked up by the retention purge.
         get_storage().delete([path])
+
+
+def _check_chunk_editable(document):
+    if document.status in (DocumentStatus.QUEUED, DocumentStatus.PROCESSING):
+        raise InvalidTransition('The document is being processed; edit its chunks afterwards.')
+
+
+def update_chunk(chunk, changes, *, user, request_id=None):
+    """Edit one chunk's text and re-embed just that chunk.
+
+    The contextual sentence (if the document was contextualized) is not stored on its
+    own, so an edited chunk's search text is rebuilt without it.
+    """
+    document = chunk.document
+    _check_chunk_editable(document)
+    content = changes.get('content', chunk.content).strip()
+    heading_path = changes.get('heading_path', chunk.heading_path).strip()[:500]
+    if not content:
+        raise UnsupportedFile('A chunk cannot be empty.')
+    if len(content) > MAX_CHUNK_CHARS:
+        raise UnsupportedFile(f'A chunk is limited to {MAX_CHUNK_CHARS} characters.')
+    if content == chunk.content and heading_path == chunk.heading_path:
+        return chunk
+
+    search_text = build_search_text(document, content, heading_path)
+    # The LLM call happens outside the transaction so no row is locked while it runs.
+    llm = get_llm()
+    vector = llm.embed_documents([search_text], titles=[document.title])[0]
+    token_delta = estimate_tokens(content) - chunk.token_count
+    with transaction.atomic():
+        chunk.content = content
+        chunk.heading_path = heading_path
+        chunk.search_text = search_text
+        chunk.token_count += token_delta
+        chunk.embedding = vector
+        chunk.embedding_model = llm.embed_model
+        chunk.save()
+        Document.objects.filter(pk=document.pk).update(
+            token_count=F('token_count') + token_delta, updated_by=user
+        )
+        audit(user, 'chunk.updated', 'chunk', chunk.pk, request_id=request_id,
+              document_id=str(document.pk), chunk_index=chunk.chunk_index)
+        _changed()
+    return chunk
+
+
+def delete_chunk(chunk, *, user, request_id=None):
+    document = chunk.document
+    _check_chunk_editable(document)
+    with transaction.atomic():
+        audit(user, 'chunk.deleted', 'chunk', chunk.pk, request_id=request_id,
+              document_id=str(document.pk), chunk_index=chunk.chunk_index)
+        Document.objects.filter(pk=document.pk).update(
+            chunk_count=F('chunk_count') - 1,
+            token_count=F('token_count') - chunk.token_count,
+            updated_by=user,
+        )
+        chunk.delete()
+        _changed()

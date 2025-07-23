@@ -35,6 +35,7 @@ class AdminPermissionTests(TestCase):
     def test_every_admin_route_is_covered(self):
         paths = {path.split('/')[4] for path, _ in admin_routes()}
         expected = {'documents'}
+        expected |= {'chunks'}
         expected |= {'invitations', 'users', 'audit-log'}
         expected |= {'stats', 'gaps', 'feedback', 'settings'}
         expected |= {'playground'}
@@ -65,7 +66,7 @@ class AdminPermissionTests(TestCase):
         staff = make_user('admin@thapar.edu', staff=True)
         client = client_for(staff, signed_in_seconds_ago=3600)
         deletes = [path for path, methods in admin_routes() if 'delete' in methods]
-        self.assertEqual(len(deletes), 2)
+        self.assertEqual(len(deletes), 3)
         for path in deletes:
             response = client.delete(path)
             self.assertEqual(response.status_code, 403, path)

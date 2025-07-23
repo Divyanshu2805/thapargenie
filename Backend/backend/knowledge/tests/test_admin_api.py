@@ -1,9 +1,9 @@
 from api.models import AuditEvent
-from chat.models import ChatSettings
+from chat.models import AnswerCache, ChatSettings
 from common.tests.helpers import client_for, make_user
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
-from rag.llm import use_provider
+from rag.llm import LLMError, use_provider
 from rag.llm.fake import FakeProvider, hashed_embedding
 
 from knowledge import services
@@ -238,3 +238,79 @@ class DocumentTests(AdminKnowledgeTestCase):
     def test_unknown_document_is_404(self):
         response = self.client.get(f'{BASE}/documents/00000000-0000-0000-0000-000000000000/')
         self.assertEqual(response.status_code, 404)
+
+
+class ChunkTests(AdminKnowledgeTestCase):
+    def test_list_chunks(self):
+        document = self.ready_document()
+        response = self.client.get(f'{BASE}/documents/{document.pk}/chunks/')
+        [chunk] = response.data['results']
+        self.assertEqual((chunk['chunk_index'], chunk['heading_path']), (0, 'Fees'))
+        self.assertNotIn('embedding', chunk)
+
+    def test_edit_re_embeds_and_clears_the_answer_cache(self):
+        document = self.ready_document()
+        chunk = Chunk.objects.get(document=document)
+        AnswerCache.objects.create(query_text='q', query_embedding=[0.1] * 768, answer='a',
+                                   expires_at='2100-01-01T00:00:00Z')
+        text = 'Girls hostel fee is Rs 1,30,000 per year.'
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.patch(f'{BASE}/chunks/{chunk.pk}/', {'content': text},
+                                         format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        chunk.refresh_from_db()
+        self.assertEqual(chunk.content, text)
+        self.assertIn('Girls hostel fee', chunk.search_text)
+        self.assertIn('Hostel fees', chunk.search_text)  # the document header is kept
+        self.assertEqual([calls for calls, _ in self.fake.embed_calls], [[chunk.search_text]])
+        expected = hashed_embedding(chunk.search_text, 768)
+        similarity = sum(a * b for a, b in zip(chunk.embedding, expected, strict=True))
+        self.assertGreater(similarity, 0.999)  # halfvec storage rounds each value
+        self.assertEqual(len(self.changes), 1)
+        self.assertFalse(AnswerCache.objects.exists())
+        self.assertTrue(self.audited('chunk.updated'))
+
+    def test_unchanged_edit_does_nothing(self):
+        document = self.ready_document()
+        chunk = Chunk.objects.get(document=document)
+        response = self.client.patch(f'{BASE}/chunks/{chunk.pk}/',
+                                     {'content': chunk.content}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.fake.embed_calls, [])
+        self.assertFalse(self.audited('chunk.updated'))
+
+    def test_edit_fails_cleanly_when_the_llm_is_down(self):
+        document = self.ready_document()
+        chunk = Chunk.objects.get(document=document)
+        self.fake.fail_next(LLMError('down'))
+        response = self.client.patch(f'{BASE}/chunks/{chunk.pk}/', {'content': 'New.'},
+                                     format='json')
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data['error']['code'], 'llm_unavailable')
+        chunk.refresh_from_db()
+        self.assertNotEqual(chunk.content, 'New.')
+
+    def test_edit_is_refused_while_processing(self):
+        document = self.ready_document()
+        Document.objects.filter(pk=document.pk).update(status=DocumentStatus.PROCESSING)
+        chunk = Chunk.objects.get(document=document)
+        response = self.client.patch(f'{BASE}/chunks/{chunk.pk}/', {'content': 'x'},
+                                     format='json')
+        self.assertEqual(response.status_code, 409)
+
+    def test_empty_chunk_is_refused(self):
+        chunk = Chunk.objects.get(document=self.ready_document())
+        response = self.client.patch(f'{BASE}/chunks/{chunk.pk}/', {'content': '   '},
+                                     format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_delete_chunk_updates_counts(self):
+        document = self.ready_document()
+        chunk = Chunk.objects.get(document=document)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(f'{BASE}/chunks/{chunk.pk}/')
+        self.assertEqual(response.status_code, 204)
+        document.refresh_from_db()
+        self.assertEqual((document.chunk_count, document.token_count), (0, 0))
+        self.assertEqual(len(self.changes), 1)
+        self.assertTrue(self.audited('chunk.deleted'))

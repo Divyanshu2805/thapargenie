@@ -11,13 +11,17 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rag.llm import LLMError
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import CursorPagination
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from knowledge import services
 from knowledge.admin_serializers import (
+    ChunkSerializer,
+    ChunkUpdateSerializer,
     DocumentSerializer,
     DocumentUpdateSerializer,
     FileUrlSerializer,
@@ -31,19 +35,27 @@ from knowledge.admin_serializers import (
 from knowledge.errors import (
     FileTooLarge,
     InvalidTransitionError,
+    LLMUnavailable,
     StorageUnavailable,
     TooManyFiles,
     UnsupportedFileError,
     UrlNotAllowed,
 )
 from knowledge.ingest.filetypes import UnsupportedFile
-from knowledge.models import Category, Document, DocumentStatus, SourceType
+from knowledge.models import Category, Chunk, Document, DocumentStatus, SourceType
 from knowledge.storage import StorageError, get_storage
 
 logger = logging.getLogger(__name__)
 
 MAX_FILES = 10
 TAGS = ['admin: knowledge']
+
+
+class ChunkPagination(CursorPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+    ordering = ('chunk_index',)
 
 
 def _max_file_bytes():
@@ -80,6 +92,9 @@ def _run(call):
     except StorageError as exc:
         logger.warning('Storage failure in the knowledge admin API', exc_info=True)
         raise StorageUnavailable() from exc
+    except LLMError as exc:
+        logger.warning('LLM failure in the knowledge admin API: %s', exc)
+        raise LLMUnavailable() from exc
 
 
 def _document(document_id):
@@ -287,3 +302,36 @@ class DocumentFileView(AdminAPIView):
         if document.source_url:
             return Response({'url': document.source_url})
         raise Http404
+
+
+class DocumentChunksView(AdminAPIView):
+    @extend_schema(operation_id='admin_documents_chunks', tags=TAGS,
+                   responses=ChunkSerializer(many=True))
+    def get(self, request, document_id):
+        document = _document(document_id)
+        return paginate(self, document.chunks.all(), lambda c: ChunkSerializer(c).data,
+                        pagination_class=ChunkPagination)
+
+
+class ChunkDetailView(AdminAPIView):
+    def _chunk(self, chunk_id):
+        return get_object_or_404(Chunk.objects.select_related('document'), pk=chunk_id)
+
+    @extend_schema(operation_id='admin_chunks_update', tags=TAGS,
+                   request=ChunkUpdateSerializer, responses=ChunkSerializer)
+    def patch(self, request, chunk_id):
+        chunk = self._chunk(chunk_id)
+        serializer = ChunkUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        chunk = _run(lambda: services.update_chunk(
+            chunk, serializer.validated_data, user=request.user,
+            request_id=request_id(request),
+        ))
+        return Response(ChunkSerializer(chunk).data)
+
+    @extend_schema(operation_id='admin_chunks_delete', tags=TAGS, responses={204: None})
+    def delete(self, request, chunk_id):
+        chunk = self._chunk(chunk_id)
+        _run(lambda: services.delete_chunk(chunk, user=request.user,
+                                           request_id=request_id(request)))
+        return Response(status=status.HTTP_204_NO_CONTENT)

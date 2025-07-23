@@ -1,7 +1,7 @@
 from api.serializers import RejectUnknownFieldsMixin
 from rest_framework import serializers
 
-from knowledge.models import Category, Document, Parser
+from knowledge.models import MAX_CHUNK_CHARS, Category, Chunk, Document, Parser
 
 ACADEMIC_YEAR = r'^\d{4}-\d{2}$'
 MAX_TEXT_CHARS = 100_000
@@ -16,6 +16,16 @@ class DocumentSerializer(serializers.ModelSerializer):
             'effective_date', 'is_current', 'status', 'status_detail', 'error',
             'parser', 'contextualize', 'chunk_count', 'token_count', 'embedding_model',
             'created_at', 'updated_at', 'processed_at',
+        )
+        read_only_fields = fields
+
+
+class ChunkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chunk
+        fields = (
+            'id', 'chunk_index', 'content', 'heading_path', 'page_start', 'page_end',
+            'token_count', 'is_searchable', 'embedding_model', 'updated_at',
         )
         read_only_fields = fields
 
@@ -68,6 +78,11 @@ class DocumentUpdateSerializer(DocumentMetaSerializer):
 
 class ReprocessSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     parser = serializers.ChoiceField(choices=Parser.choices, required=False)
+
+
+class ChunkUpdateSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    content = serializers.CharField(max_length=MAX_CHUNK_CHARS, required=False)
+    heading_path = serializers.CharField(max_length=500, required=False, allow_blank=True)
 
 
 class UploadResultSerializer(serializers.Serializer):
