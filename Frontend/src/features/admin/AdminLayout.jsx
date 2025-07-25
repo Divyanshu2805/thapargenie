@@ -2,6 +2,8 @@ import {
   ArrowLeft,
   FileText,
   LayoutDashboard,
+  MessageSquareWarning,
+  SearchX,
 } from 'lucide-react';
 import { Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -17,6 +19,8 @@ import { cn } from '@/lib/utils';
 
 const ADMIN_SECTIONS = [
   { group: 'Insight', to: '/admin/', end: true, label: 'Overview', icon: LayoutDashboard },
+  { group: 'Insight', to: '/admin/feedback', label: 'Feedback', icon: MessageSquareWarning },
+  { group: 'Insight', to: '/admin/gaps', label: 'Knowledge gaps', icon: SearchX },
   { group: 'Knowledge', to: '/admin/documents', label: 'Documents', icon: FileText },
 ];
 
