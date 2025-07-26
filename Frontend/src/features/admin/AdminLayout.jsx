@@ -2,9 +2,11 @@ import {
   ArrowLeft,
   ClipboardList,
   FileText,
+  FlaskConical,
   LayoutDashboard,
   MessageSquareWarning,
   SearchX,
+  Settings2,
   Users,
 } from 'lucide-react';
 import { Suspense } from 'react';
@@ -24,7 +26,9 @@ const ADMIN_SECTIONS = [
   { group: 'Insight', to: '/admin/feedback', label: 'Feedback', icon: MessageSquareWarning },
   { group: 'Insight', to: '/admin/gaps', label: 'Knowledge gaps', icon: SearchX },
   { group: 'Knowledge', to: '/admin/documents', label: 'Documents', icon: FileText },
+  { group: 'Knowledge', to: '/admin/playground', label: 'Playground', icon: FlaskConical },
   { group: 'Operations', to: '/admin/users', label: 'Users & invites', icon: Users },
+  { group: 'Operations', to: '/admin/settings', label: 'Settings', icon: Settings2 },
   { group: 'Operations', to: '/admin/audit-log', label: 'Audit log', icon: ClipboardList },
 ];
 

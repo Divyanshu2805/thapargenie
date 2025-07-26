@@ -23,8 +23,10 @@ const AdminLayout = lazy(() => import('./features/admin/AdminLayout'));
 const OverviewPage = lazy(() => import('./features/admin/OverviewPage'));
 const DocumentsPage = lazy(() => import('./features/admin/DocumentsPage'));
 const DocumentDetailPage = lazy(() => import('./features/admin/DocumentDetailPage'));
+const PlaygroundPage = lazy(() => import('./features/admin/PlaygroundPage'));
 const FeedbackPage = lazy(() => import('./features/admin/FeedbackPage'));
 const GapsPage = lazy(() => import('./features/admin/GapsPage'));
+const SettingsAdminPage = lazy(() => import('./features/admin/SettingsAdminPage'));
 const UsersPage = lazy(() => import('./features/admin/UsersPage'));
 const AuditLogPage = lazy(() => import('./features/admin/AuditLogPage'));
 
@@ -68,8 +70,10 @@ export default function App() {
           <Route index element={<OverviewPage />} />
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="documents/:documentId" element={<DocumentDetailPage />} />
+          <Route path="playground" element={<PlaygroundPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
           <Route path="gaps" element={<GapsPage />} />
+          <Route path="settings" element={<SettingsAdminPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="audit-log" element={<AuditLogPage />} />
           <Route path="*" element={<Navigate to="/admin/" replace />} />
