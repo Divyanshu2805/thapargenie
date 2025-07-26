@@ -1,9 +1,11 @@
 import {
   ArrowLeft,
+  ClipboardList,
   FileText,
   LayoutDashboard,
   MessageSquareWarning,
   SearchX,
+  Users,
 } from 'lucide-react';
 import { Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -22,6 +24,8 @@ const ADMIN_SECTIONS = [
   { group: 'Insight', to: '/admin/feedback', label: 'Feedback', icon: MessageSquareWarning },
   { group: 'Insight', to: '/admin/gaps', label: 'Knowledge gaps', icon: SearchX },
   { group: 'Knowledge', to: '/admin/documents', label: 'Documents', icon: FileText },
+  { group: 'Operations', to: '/admin/users', label: 'Users & invites', icon: Users },
+  { group: 'Operations', to: '/admin/audit-log', label: 'Audit log', icon: ClipboardList },
 ];
 
 function AdminNav() {

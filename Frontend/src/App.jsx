@@ -25,6 +25,8 @@ const DocumentsPage = lazy(() => import('./features/admin/DocumentsPage'));
 const DocumentDetailPage = lazy(() => import('./features/admin/DocumentDetailPage'));
 const FeedbackPage = lazy(() => import('./features/admin/FeedbackPage'));
 const GapsPage = lazy(() => import('./features/admin/GapsPage'));
+const UsersPage = lazy(() => import('./features/admin/UsersPage'));
+const AuditLogPage = lazy(() => import('./features/admin/AuditLogPage'));
 
 function SignedOutRoute({ children }) {
   const { initialized, user } = useAuth();
@@ -68,6 +70,8 @@ export default function App() {
           <Route path="documents/:documentId" element={<DocumentDetailPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
           <Route path="gaps" element={<GapsPage />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="audit-log" element={<AuditLogPage />} />
           <Route path="*" element={<Navigate to="/admin/" replace />} />
         </Route>
 
