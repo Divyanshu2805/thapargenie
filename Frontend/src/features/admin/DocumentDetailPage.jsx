@@ -6,8 +6,11 @@ import {
   Eye,
   EyeOff,
   FilePen,
+  FileText,
   MoreHorizontal,
+  Pencil,
   RefreshCw,
+  Rows3,
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -29,20 +32,24 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
 import { validateMeta } from '@/features/admin/AddKnowledgeDialog';
-import { ErrorState, StatusBadge } from '@/features/admin/components';
+import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, useCursorList } from '@/features/admin/components';
 import { CATEGORIES, PARSERS, SOURCE_TYPES, isInFlight } from '@/features/admin/constants';
 import { useRecentAuth } from '@/components/recent-auth';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import {
   adminKeys,
+  deleteChunk,
   deleteDocument,
   disableDocument,
   enableDocument,
   getDocument,
   getDocumentFileUrl,
+  listChunks,
   reprocessDocument,
+  updateChunk,
   updateDocument,
 } from '@/lib/api/admin';
 import { formatBytes, formatDateTime, formatNumber } from '@/lib/format';
@@ -144,6 +151,148 @@ function MetadataForm({ document }) {
   );
 }
 
+function ChunkItem({ chunk, documentId }) {
+  const queryClient = useQueryClient();
+  const withRecentAuth = useRecentAuth();
+  const [editing, setEditing] = useState(false);
+  const [content, setContent] = useState(chunk.content);
+  const [heading, setHeading] = useState(chunk.heading_path);
+  const [confirming, setConfirming] = useState(false);
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: adminKeys.chunks(documentId) });
+    queryClient.invalidateQueries({ queryKey: adminKeys.document(documentId) });
+  };
+
+  const save = useMutation({
+    mutationFn: () => updateChunk(chunk.id, { content: content.trim(), heading_path: heading.trim() }),
+    onSuccess: () => {
+      setEditing(false);
+      refresh();
+      toast.success('Passage updated and re-embedded');
+    },
+    onError: (error) => toast.error('Couldn’t save the passage', { description: error.message }),
+  });
+
+  const remove = useMutation({
+    mutationFn: () => withRecentAuth(() => deleteChunk(chunk.id)),
+    onSuccess: () => {
+      setConfirming(false);
+      refresh();
+      toast.success('Passage deleted');
+    },
+    onError: (error) => {
+      setConfirming(false);
+      if (error.code !== 'request_cancelled') toast.error('Couldn’t delete the passage', { description: error.message });
+    },
+  });
+
+  const pages = chunk.page_start ? (chunk.page_end && chunk.page_end !== chunk.page_start ? `pp. ${chunk.page_start}–${chunk.page_end}` : `p. ${chunk.page_start}`) : null;
+
+  return (
+    <li className="group px-5 py-4">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground tabular-nums">#{chunk.chunk_index + 1}</span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs text-muted-foreground">
+            {[chunk.heading_path, pages, `${formatNumber(chunk.token_count)} tokens`].filter(Boolean).join(' · ')}
+            {chunk.is_searchable ? '' : ' · not searchable'}
+          </p>
+          {editing ? (
+            <form
+              className="mt-2 grid gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (content.trim()) save.mutate();
+              }}
+            >
+              <label htmlFor={`heading-${chunk.id}`} className="sr-only">
+                Heading path
+              </label>
+              <Input id={`heading-${chunk.id}`} value={heading} maxLength={500} onChange={(event) => setHeading(event.target.value)} placeholder="Heading path" />
+              <label htmlFor={`content-${chunk.id}`} className="sr-only">
+                Passage text
+              </label>
+              <Textarea id={`content-${chunk.id}`} className="min-h-40 font-mono text-[13px]" value={content} onChange={(event) => setContent(event.target.value)} />
+              <div className="flex gap-2">
+                <Button size="sm" type="submit" disabled={save.isPending || !content.trim()}>
+                  {save.isPending ? 'Saving…' : 'Save and re-embed'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditing(false);
+                    setContent(chunk.content);
+                    setHeading(chunk.heading_path);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <p className="mt-1.5 line-clamp-6 text-sm leading-relaxed whitespace-pre-wrap">{chunk.content}</p>
+          )}
+        </div>
+        {!editing ? (
+          <div className="flex shrink-0 gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+            <Button variant="ghost" size="icon-sm" aria-label={`Edit passage ${chunk.chunk_index + 1}`} onClick={() => setEditing(true)}>
+              <Pencil />
+            </Button>
+            <Button variant="ghost" size="icon-sm" aria-label={`Delete passage ${chunk.chunk_index + 1}`} onClick={() => setConfirming(true)}>
+              <Trash2 />
+            </Button>
+          </div>
+        ) : null}
+      </div>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Delete this passage?"
+        description="It will no longer be used in answers. Reprocessing the document brings it back."
+        confirmLabel="Delete passage"
+        pendingLabel="Deleting…"
+        pending={remove.isPending}
+        onConfirm={() => remove.mutate()}
+      />
+    </li>
+  );
+}
+
+function Chunks({ document }) {
+  const list = useCursorList({
+    queryKey: adminKeys.chunks(document.id),
+    fetchPage: (cursor) => listChunks(document.id, cursor),
+  });
+  return (
+    <SplitSection
+      icon={Rows3}
+      title="Passages"
+      description={`${formatNumber(document.chunk_count)} searchable pieces this document was split into. Edit one to fix its text; it is re-embedded.`}
+      flush
+    >
+      {list.isPending ? (
+        <TableSkeleton rows={4} />
+      ) : list.isError ? (
+        <ErrorState error={list.error} onRetry={() => list.refetch()} />
+      ) : list.rows.length === 0 ? (
+        <EmptyState icon={FileText} title={isInFlight(document) ? 'Still processing' : 'No passages'}>
+          {isInFlight(document) ? 'Passages appear here once processing finishes.' : 'Reprocess the document to extract its text again.'}
+        </EmptyState>
+      ) : (
+        <>
+          <ul className="divide-y">
+            {list.rows.map((chunk) => (
+              <ChunkItem key={chunk.id} chunk={chunk} documentId={document.id} />
+            ))}
+          </ul>
+          <LoadMoreButton query={list} />
+        </>
+      )}
+    </SplitSection>
+  );
+}
+
 function Actions({ document }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -153,6 +302,7 @@ function Actions({ document }) {
   const onUpdated = (updated, message) => {
     queryClient.setQueryData(adminKeys.document(document.id), updated);
     queryClient.invalidateQueries({ queryKey: ['admin', 'documents'] });
+    queryClient.invalidateQueries({ queryKey: adminKeys.chunks(document.id) });
     toast.success(message);
   };
 
@@ -331,6 +481,7 @@ export default function DocumentDetailPage() {
             ))}
           </dl>
         </SplitSection>
+        <Chunks document={doc} />
       </div>
     </div>
   );
