@@ -319,7 +319,9 @@ class ChatSettings(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     daily_question_limit = models.PositiveIntegerField(default=40)
     global_daily_llm_calls = models.PositiveIntegerField(default=5000)
-    rerank_enabled = models.BooleanField(default=True)
+    # Off by default: on the eval set it added ~2.5 s to time-to-first-token with no
+    # quality gain. Admins can switch it on.
+    rerank_enabled = models.BooleanField(default=False)
     cache_enabled = models.BooleanField(default=True)
     contextualize_default = models.BooleanField(default=False)
     auto_title_enabled = models.BooleanField(default=True)

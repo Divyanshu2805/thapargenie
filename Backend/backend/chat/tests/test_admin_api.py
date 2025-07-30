@@ -174,22 +174,22 @@ class SettingsTests(AdminChatTestCase):
     def test_get_and_patch(self):
         response = self.client.get(f'{BASE}/settings/')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data['rerank_enabled'])
+        self.assertFalse(response.data['rerank_enabled'])
 
         response = self.client.patch(f'{BASE}/settings/', {
-            'rerank_enabled': False, 'daily_question_limit': 60,
+            'rerank_enabled': True, 'daily_question_limit': 60,
             'banner_text': '  Fee   deadline  soon ',
             'starter_questions': [{'category': 'Fees', 'text': 'BE fee?'}],
         }, format='json')
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data['banner_text'], 'Fee deadline soon')
         settings = ChatSettings.load()
-        self.assertFalse(settings.rerank_enabled)
+        self.assertTrue(settings.rerank_enabled)
         self.assertEqual(settings.daily_question_limit, 60)
         self.assertEqual(settings.updated_by, self.admin)
         event = AuditEvent.objects.get(action='settings.updated')
         self.assertEqual(event.metadata['values'], {'daily_question_limit': [40, 60],
-                                                    'rerank_enabled': [True, False]})
+                                                    'rerank_enabled': [False, True]})
         self.assertIn('banner_text', event.metadata['fields'])
         self.assertNotIn('banner_text', event.metadata['values'])
 
