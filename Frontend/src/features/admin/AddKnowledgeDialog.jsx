@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePicker } from '@/components/ui/date-picker';
 import { CATEGORIES, PARSERS } from '@/features/admin/constants';
 import { addDocumentFromText, addDocumentFromUrl, uploadDocuments } from '@/lib/api/admin';
 import { formatBytes } from '@/lib/format';
@@ -22,7 +23,7 @@ const MAX_FILE_MB = 25;
 const ACCEPT = '.pdf,.docx,.xlsx,.csv,.html,.htm';
 const ACADEMIC_YEAR = /^\d{4}-\d{2}$/;
 
-const EMPTY_META = { category: 'other', academic_year: '', department: '', is_current: true, source_url: '' };
+const EMPTY_META = { category: 'other', academic_year: '', department: '', valid_until: '', is_current: true, source_url: '' };
 
 /** Metadata the API accepts, without empty strings (the API treats a missing field as "default"). */
 export function cleanMeta(meta) {
@@ -38,6 +39,10 @@ export function validateMeta(meta) {
   const errors = {};
   if (meta.academic_year && !ACADEMIC_YEAR.test(meta.academic_year.trim())) errors.academic_year = 'Use the form 2026-27.';
   if (meta.source_url && !meta.source_url.trim().startsWith('https://')) errors.source_url = 'Only https links are allowed.';
+  // ISO dates compare correctly as strings.
+  if (meta.valid_until && meta.effective_date && meta.valid_until < meta.effective_date) {
+    errors.valid_until = '“Valid until” can’t be before the effective date.';
+  }
   return errors;
 }
 
@@ -95,6 +100,14 @@ function DetailsFields({ meta, setMeta, errors, showSourceUrl = true }) {
 function ValidityFields({ meta, setMeta }) {
   return (
     <>
+      <SectionRow title="Valid until" description="Optional. After this day it’s marked not current automatically." htmlFor="meta-valid-until">
+        <DatePicker
+          id="meta-valid-until"
+          className="w-full sm:w-52"
+          value={meta.valid_until}
+          onChange={(event) => setMeta((current) => ({ ...current, valid_until: event.target.value }))}
+        />
+      </SectionRow>
       <SectionToggle
         id="meta-current"
         title="Current information"

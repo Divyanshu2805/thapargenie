@@ -13,7 +13,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'title', 'source_type', 'source_url', 'original_filename', 'mime_type',
             'file_size', 'page_count', 'category', 'department', 'academic_year',
-            'effective_date', 'is_current', 'status', 'status_detail', 'error',
+            'effective_date', 'valid_until', 'is_current', 'status', 'status_detail', 'error',
             'parser', 'contextualize', 'chunk_count', 'token_count', 'embedding_model',
             'created_at', 'updated_at', 'processed_at',
         )
@@ -37,6 +37,10 @@ class DocumentMetaSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     department = serializers.CharField(max_length=120, required=False, allow_blank=True)
     academic_year = serializers.RegexField(ACADEMIC_YEAR, required=False, allow_blank=True)
     effective_date = serializers.DateField(required=False, allow_null=True)
+    valid_until = serializers.DateField(
+        required=False, allow_null=True,
+        help_text='Last day the document applies; after it, it is marked not current.',
+    )
     is_current = serializers.BooleanField(required=False)
     source_url = serializers.URLField(max_length=2000, required=False, allow_blank=True)
     parser = serializers.ChoiceField(choices=Parser.choices, required=False)
@@ -46,6 +50,13 @@ class DocumentMetaSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
         if value and not value.startswith('https://'):
             raise serializers.ValidationError('Only https links are allowed.')
         return value
+
+    def validate(self, attrs):
+        start, end = attrs.get('effective_date'), attrs.get('valid_until')
+        if start and end and end < start:
+            raise serializers.ValidationError(
+                {'valid_until': ['"Valid until" cannot be before the effective date.']})
+        return attrs
 
 
 class UploadSerializer(DocumentMetaSerializer):

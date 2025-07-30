@@ -15,6 +15,7 @@ from django.db import connection, transaction
 from django.db.models import Count, Func, Max, Q, Sum, TextField, Value
 from django.db.models.functions import Coalesce, Lower, NullIf, Trim
 from django.utils import timezone
+from knowledge import services as knowledge_services
 from knowledge.models import Chunk, Document
 from rag.llm import get_llm
 from rag.pipeline import answer_events
@@ -121,6 +122,7 @@ def stats(days):
             'chunks': Chunk.objects.count(),
             'searchable_chunks': Chunk.objects.filter(is_searchable=True).count(),
             'cache_entries': AnswerCache.objects.filter(expires_at__gt=timezone.now()).count(),
+            **knowledge_services.expiry_summary(),
         },
         'database_bytes': database_bytes,
     }

@@ -105,6 +105,9 @@ FILTER_PARAMETERS = [
     OpenApiParameter('status', str, enum=DocumentStatus.values),
     OpenApiParameter('category', str, enum=Category.values),
     OpenApiParameter('source_type', str, enum=SourceType.values),
+    OpenApiParameter('validity', str, enum=list(services.VALIDITY_FILTERS),
+                     description='expiring: "valid until" within the next '
+                                 f'{services.EXPIRY_WARNING_DAYS} days; expired: already past it.'),
     OpenApiParameter('q', str, description='Search in titles.'),
 ]
 
@@ -116,6 +119,8 @@ def filtered_documents(request):
     for name, choices in filters.items():
         if value := choice_param(request, name, choices.values):
             documents = documents.filter(**{name: value})
+    if validity := choice_param(request, 'validity', list(services.VALIDITY_FILTERS)):
+        documents = documents.filter(services.validity_filter(validity))
     query = (request.query_params.get('q') or '').strip()[:100]
     if query:
         documents = documents.filter(title__icontains=query)

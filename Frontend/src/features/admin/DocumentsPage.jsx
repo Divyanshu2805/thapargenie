@@ -1,6 +1,6 @@
 import { FileText, Globe, Library, Plus, Search } from 'lucide-react';
 import { useDeferredValue, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SplitSection } from '@/components/split-section';
@@ -9,25 +9,43 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AddKnowledgeDialog from '@/features/admin/AddKnowledgeDialog';
-import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, useCursorList } from '@/features/admin/components';
+import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, ValidityTag, useCursorList } from '@/features/admin/components';
 import {
   CATEGORIES,
   DOCUMENT_STATUSES,
   SOURCE_TYPES,
+  VALIDITY_FILTERS,
   isInFlight,
   labelOf,
+  validityOf,
 } from '@/features/admin/constants';
 import { adminKeys, listDocuments } from '@/lib/api/admin';
 import { formatNumber, formatRelative } from '@/lib/format';
 
 export default function DocumentsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [adding, setAdding] = useState(false);
   const [status, setStatus] = useState('');
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
   const q = useDeferredValue(search.trim());
-  const filters = { status, category, q };
+  // Kept in the URL so other pages can link to a filtered list (e.g. "expiring soon").
+  const urlFilter = (name, options) => {
+    const value = searchParams.get(name) || '';
+    return options.some((option) => option.value === value) ? value : '';
+  };
+  const setUrlFilter = (name) => (value) =>
+    setSearchParams(
+      (params) => {
+        if (value) params.set(name, value);
+        else params.delete(name);
+        return params;
+      },
+      { replace: true },
+    );
+  const validity = urlFilter('validity', VALIDITY_FILTERS);
+  const filters = { status, category, validity, q };
 
   const list = useCursorList({
     queryKey: adminKeys.documents(filters),
@@ -37,7 +55,7 @@ export default function DocumentsPage() {
       query.state.data?.pages.some((page) => page.results?.some(isInFlight)) ? 3000 : false,
   });
 
-  const filtered = status || category || q;
+  const filtered = status || category || validity || q;
 
   return (
     <div className="page-wide space-y-6">
@@ -86,6 +104,13 @@ export default function DocumentsPage() {
             placeholder="All categories"
             options={CATEGORIES}
           />
+          <Select
+            aria-label="Valid until"
+            value={validity}
+            onChange={(event) => setUrlFilter('validity')(event.target.value)}
+            placeholder="Any validity"
+            options={VALIDITY_FILTERS}
+          />
         </div>
 
         {list.isPending ? (
@@ -116,6 +141,7 @@ export default function DocumentsPage() {
               <TableBody>
                 {list.rows.map((document) => {
                   const Icon = document.source_type === 'url' ? Globe : FileText;
+                  const documentValidity = validityOf(document);
                   return (
                     <TableRow
                       key={document.id}
@@ -142,6 +168,7 @@ export default function DocumentsPage() {
                               {SOURCE_TYPES[document.source_type] || document.source_type}
                               {document.is_current ? '' : ' · Superseded'}
                             </p>
+                            {documentValidity ? <ValidityTag validity={documentValidity} className="mt-1" /> : null}
                           </div>
                         </div>
                       </TableCell>

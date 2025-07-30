@@ -35,8 +35,8 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
 import { validateMeta } from '@/features/admin/AddKnowledgeDialog';
-import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, useCursorList } from '@/features/admin/components';
-import { CATEGORIES, PARSERS, SOURCE_TYPES, isInFlight } from '@/features/admin/constants';
+import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, ValidityTag, useCursorList } from '@/features/admin/components';
+import { CATEGORIES, PARSERS, SOURCE_TYPES, isInFlight, validityOf } from '@/features/admin/constants';
 import { useRecentAuth } from '@/components/recent-auth';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import {
@@ -54,8 +54,8 @@ import {
 } from '@/lib/api/admin';
 import { formatBytes, formatDateTime, formatNumber } from '@/lib/format';
 
-const EDITABLE = ['title', 'category', 'department', 'academic_year', 'effective_date', 'is_current', 'source_url'];
-const DATE_FIELDS = new Set(['effective_date']);
+const EDITABLE = ['title', 'category', 'department', 'academic_year', 'effective_date', 'valid_until', 'is_current', 'source_url'];
+const DATE_FIELDS = new Set(['effective_date', 'valid_until']);
 
 export function changedFields(original, form) {
   const changes = {};
@@ -123,6 +123,19 @@ function MetadataForm({ document }) {
       <div className="grid content-start gap-2">
         <Label htmlFor="doc-effective">Effective date</Label>
         <DatePicker id="doc-effective" value={form.effective_date || ''} onChange={set('effective_date')} />
+      </div>
+      <div className="grid content-start gap-2">
+        <Label htmlFor="doc-valid-until">Valid until</Label>
+        <DatePicker
+          id="doc-valid-until"
+          value={form.valid_until || ''}
+          onChange={set('valid_until')}
+          aria-invalid={Boolean(errors.valid_until)}
+          aria-describedby="doc-valid-until-hint"
+        />
+        <p id="doc-valid-until-hint" className={errors.valid_until ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
+          {errors.valid_until || 'Optional. After this day it’s marked not current automatically.'}
+        </p>
       </div>
       <div className="grid gap-2 sm:col-span-2">
         <Label htmlFor="doc-source">Official page (https)</Label>
@@ -431,6 +444,7 @@ export default function DocumentDetailPage() {
   }
 
   const doc = document.data;
+  const validity = validityOf(doc);
   const facts = [
     ['Source', SOURCE_TYPES[doc.source_type] || doc.source_type],
     ['File', doc.original_filename ? `${doc.original_filename} · ${formatBytes(doc.file_size)}` : '—'],
@@ -452,6 +466,7 @@ export default function DocumentDetailPage() {
             <StatusBadge status={doc.status} />
             {doc.status_detail && isInFlight(doc) ? <span>{doc.status_detail}</span> : null}
             {!doc.is_current ? <span>Superseded</span> : null}
+            {validity ? <ValidityTag validity={validity} /> : null}
           </div>
         </div>
         <Actions document={doc} />

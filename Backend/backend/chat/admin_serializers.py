@@ -113,12 +113,21 @@ class BudgetOut(serializers.Serializer):
     global_daily_llm_calls = serializers.IntegerField()
 
 
+class ExpiringDocumentOut(serializers.Serializer):
+    id = serializers.UUIDField()
+    title = serializers.CharField()
+    valid_until = serializers.DateField()
+
+
 class KnowledgeOut(serializers.Serializer):
     documents_by_status = serializers.DictField(child=serializers.IntegerField())
     documents_by_category = serializers.DictField(child=serializers.IntegerField())
     chunks = serializers.IntegerField()
     searchable_chunks = serializers.IntegerField()
     cache_entries = serializers.IntegerField()
+    expiring_soon = serializers.IntegerField(help_text='"Valid until" within the next 30 days.')
+    expiring = ExpiringDocumentOut(many=True, help_text='The soonest, at most 5.')
+    expired = serializers.IntegerField(help_text='Documents past their "valid until" date.')
 
 
 class StatsOut(serializers.Serializer):

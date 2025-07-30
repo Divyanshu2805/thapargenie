@@ -2,14 +2,17 @@
 
 import hashlib
 import logging
+from datetime import timedelta
 
 from api.models import AuditActorKind, AuditEvent, AuditOutcome
 from common.audit import audit
 from common.safe_http import validate_url
 from common.text import estimate_tokens
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
+from django.utils import timezone
 from rag.llm import get_llm
 
 from knowledge import jobs
@@ -26,6 +29,7 @@ EDITABLE_FIELDS = (
     'department',
     'academic_year',
     'effective_date',
+    'valid_until',
     'is_current',
     'source_url',
     'contextualize',
@@ -75,6 +79,10 @@ def _check_duplicate(content_hash):
         raise DuplicateDocument(existing)
 
 
+def _is_expired(document):
+    return bool(document.valid_until) and document.valid_until < timezone.localdate()
+
+
 def _new_document(*, source_type, content_hash, meta, user):
     fields = {key: value for key, value in meta.items() if key in EDITABLE_FIELDS + ('parser',)}
     document = Document(
@@ -85,6 +93,8 @@ def _new_document(*, source_type, content_hash, meta, user):
         updated_by=user,
         **fields,
     )
+    if _is_expired(document):
+        document.is_current = False
     document.full_clean(exclude=['title'] if not fields.get('title') else None)
     return document
 
@@ -170,6 +180,11 @@ def update_document(document, changes, *, user, request_id=None):
         return document
     for key in changed:
         setattr(document, key, changes[key])
+    if _is_expired(document) and document.is_current:
+        if changes.get('is_current') is True:
+            raise ValidationError({'is_current': ['Extend or clear "Valid until" first.']})
+        document.is_current = False
+        changed.add('is_current')
     document.updated_by = user
     document.full_clean()
     document.save()
@@ -220,6 +235,69 @@ def set_enabled(document, enabled, *, user, request_id=None):
     _audit(user, 'document.enabled' if enabled else 'document.disabled', document, request_id)
     _changed()
     return document
+
+
+EXPIRY_WARNING_DAYS = 30
+VALIDITY_FILTERS = ('expiring', 'expired')
+
+
+def validity_filter(name, today=None):
+    """A Q for the documents list: `expiring` within the warning window, or `expired`."""
+    today = today or timezone.localdate()
+    if name == 'expired':
+        return Q(valid_until__lt=today)
+    return Q(valid_until__gte=today,
+             valid_until__lte=today + timedelta(days=EXPIRY_WARNING_DAYS))
+
+
+def expiry_summary(today=None, limit=5):
+    """For the admin Overview: what expires soon, and how many are already past."""
+    today = today or timezone.localdate()
+    soon = Document.objects.filter(validity_filter('expiring', today)).order_by('valid_until')
+    return {
+        'expiring_soon': soon.count(),
+        'expiring': [
+            {'id': str(pk), 'title': title, 'valid_until': valid_until.isoformat()}
+            for pk, title, valid_until in soon.values_list('pk', 'title', 'valid_until')[:limit]
+        ],
+        'expired': Document.objects.filter(validity_filter('expired', today)).count(),
+    }
+
+
+def expire_due_documents(*, today=None, dry_run=False):
+    """Mark current documents whose `valid_until` has passed as not current.
+
+    Safe to run from several processes at once: each document is flipped with a
+    conditional update, and only the process whose update matched records it.
+    Returns the number of documents expired (or due, with `dry_run`).
+    """
+    today = today or timezone.localdate()
+    due = Document.objects.filter(is_current=True, valid_until__lt=today)
+    if dry_run:
+        return due.count()
+    expired = 0
+    for document_id, valid_until in due.values_list('pk', 'valid_until'):
+        with transaction.atomic():
+            flipped = Document.objects.filter(pk=document_id, is_current=True).update(
+                is_current=False, updated_at=timezone.now()
+            )
+            if not flipped:
+                continue
+            Chunk.objects.filter(document_id=document_id).update(is_current=False)
+            AuditEvent.objects.create(
+                actor=None,
+                actor_kind=AuditActorKind.SERVICE,
+                action='document.expired',
+                resource_type='document',
+                resource_id=str(document_id),
+                outcome=AuditOutcome.SUCCEEDED,
+                metadata={'valid_until': valid_until.isoformat()},
+            )
+        expired += 1
+    if expired:
+        logger.info('Marked %d documents not current: past their "valid until" date', expired)
+        knowledge_changed.send(sender=Document)
+    return expired
 
 
 def delete_document(document, *, user, request_id=None):

@@ -65,6 +65,9 @@ class Document(UUIDModel, TimestampedModel):
     department = models.CharField(max_length=120, blank=True)
     academic_year = models.CharField(max_length=7, blank=True)
     effective_date = models.DateField(null=True, blank=True)
+    # The last day the document applies (inclusive, IST). After it, the document is
+    # marked not current automatically (services.expire_due_documents).
+    valid_until = models.DateField(null=True, blank=True)
     is_current = models.BooleanField(default=True)
 
     status = models.CharField(
@@ -109,6 +112,13 @@ class Document(UUIDModel, TimestampedModel):
             models.CheckConstraint(
                 condition=models.Q(source_url='') | models.Q(source_url__startswith='https://'),
                 name='document_source_url_https',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(valid_until__isnull=True)
+                | models.Q(effective_date__isnull=True)
+                | models.Q(valid_until__gte=models.F('effective_date')),
+                name='document_valid_until_after_effective',
+                violation_error_message='"Valid until" cannot be before the effective date.',
             ),
         ]
 
