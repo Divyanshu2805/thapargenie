@@ -69,8 +69,8 @@ class FeedbackSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
 
 
 def source_payload(source):
-    """A cited source. The current flag is read live from the document, so an answer
-    shows a later "replaced" warning too; load `document` with select_related."""
+    """A cited source. The date and current flag are read live from the document, so an
+    answer shows a later "replaced" warning too; load `document` with select_related."""
     document = source.document
     return {
         'position': source.position,
@@ -81,6 +81,9 @@ def source_payload(source):
         'page_start': source.page_start,
         'page_end': source.page_end,
         'academic_year': source.academic_year,
+        'effective_date': (
+            document.effective_date.isoformat() if document and document.effective_date else None
+        ),
         'is_current': document.is_current if document else None,
         'category': source.category,
         'snippet': source.snippet,

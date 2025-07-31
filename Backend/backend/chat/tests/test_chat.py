@@ -4,7 +4,9 @@ import time
 import uuid
 
 from api.identity import FirebaseIdentity
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from knowledge.ingest.chunk import ChunkDraft
 from knowledge.ingest.pipeline import prepare_chunks
@@ -140,6 +142,31 @@ class AskTests(ChatTestCase):
         done = events[-1][1]
         self.assertEqual(done['message']['sources'][0]['position'], 1)
         self.assertEqual(done['remaining_today'], 39)
+
+    def test_sources_carry_live_freshness_from_the_document(self):
+        Document.objects.filter(pk=self.document.pk).update(
+            academic_year='2026-27', effective_date='2026-08-12')
+        conversation = self.conversation()
+        events = self.answered(conversation)
+        [source] = events[-1][1]['message']['sources']
+        self.assertEqual((source['academic_year'], source['effective_date'], source['is_current']),
+                         ('2026-27', '2026-08-12', True))
+
+        # Marked not-current later: an old answer now shows it (read live, not snapshotted).
+        Document.objects.filter(pk=self.document.pk).update(is_current=False)
+        url = f'/api/v1/conversations/{conversation.pk}/messages/'
+        with CaptureQueriesContext(connection) as queries:
+            [_, answer] = self.client.get(url).data['messages']
+        self.assertIs(answer['sources'][0]['is_current'], False)
+        # The document comes joined to its source row, not as one query per source.
+        self.assertFalse([q for q in queries if 'FROM "knowledge_document"' in q['sql']])
+
+        # Deleted: the citation snapshot stays, freshness is unknown.
+        Document.objects.filter(pk=self.document.pk).delete()
+        [_, answer] = self.client.get(url).data['messages']
+        self.assertEqual(answer['sources'][0]['title'], 'Hostel fees')
+        self.assertIsNone(answer['sources'][0]['effective_date'])
+        self.assertIsNone(answer['sources'][0]['is_current'])
 
     def test_idempotent_retry_replays_without_new_messages(self):
         conversation = self.conversation()

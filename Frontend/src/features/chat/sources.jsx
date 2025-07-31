@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatSourceDate } from '@/features/chat/freshness';
 import { openSource } from '@/lib/api/chat';
 
 function sourceLocation(source) {
@@ -90,6 +91,7 @@ function SourceLink({ source }) {
     web ? hostOf(source.url) : null,
     sourceLocation(source) || null,
     source.academic_year || null,
+    formatSourceDate(source.effective_date) || null,
   ].filter(Boolean);
   const className =
     // Fills with the brand colour on hover or keyboard focus; its parts turn white with it.

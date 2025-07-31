@@ -1,9 +1,11 @@
 import {
   AlertTriangle,
+  CalendarClock,
   Check,
   ChevronLeft,
   ChevronRight,
   Copy,
+  History,
   Pencil,
   RefreshCw,
   RotateCcw,
@@ -19,6 +21,7 @@ import { LogoMark } from '@/components/brand/Brand';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import FeedbackDialog from '@/features/chat/FeedbackDialog';
+import { describeFreshness } from '@/features/chat/freshness';
 import Markdown from '@/features/chat/Markdown';
 import { CitationChip, SourceList } from '@/features/chat/sources';
 import { ThinkingIndicator } from '@/features/chat/thinking';
@@ -161,6 +164,27 @@ export function UserMessage({ message, busy, onEdit, onSwitch }) {
   );
 }
 
+function FreshnessNote({ sources }) {
+  const freshness = describeFreshness(sources);
+  if (!freshness) return null;
+  return (
+    <>
+      {freshness.summary ? (
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <CalendarClock className="size-3.5 shrink-0" aria-hidden="true" />
+          {freshness.summary}
+        </p>
+      ) : null}
+      {freshness.warning ? (
+        <p className="mt-3 flex animate-fade-in items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-relaxed">
+          <History className="mt-px size-4 shrink-0 text-warning" aria-hidden="true" />
+          {freshness.warning}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 function ErrorNotice({ error, onRetry }) {
   return (
     <div role="alert" className="flex flex-col gap-3 rounded-xl border border-destructive/25 bg-destructive/5 p-4 sm:flex-row sm:items-center">
@@ -231,6 +255,8 @@ export function AssistantMessage({
             Parts of this answer couldn’t be matched to the sources. Verify the details with the official source before relying on them.
           </p>
         ) : null}
+
+        {complete && !smooth.revealing ? <FreshnessNote sources={message.sources} /> : null}
 
         {!streaming && !smooth.revealing ? <SourceList sources={message.sources} /> : null}
 

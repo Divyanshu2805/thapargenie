@@ -17,6 +17,7 @@ class SourceOut(serializers.Serializer):
     page_start = serializers.IntegerField(allow_null=True)
     page_end = serializers.IntegerField(allow_null=True)
     academic_year = serializers.CharField(allow_blank=True)
+    effective_date = serializers.DateField(allow_null=True)
     is_current = serializers.BooleanField(allow_null=True,
                                           help_text='Null if the document was deleted.')
     category = serializers.CharField(allow_blank=True)
