@@ -87,6 +87,61 @@ class DocumentUpdateSerializer(DocumentMetaSerializer):
     parser = None
 
 
+MAX_BULK_IDS = 100
+BULK_ACTIONS = ('update', 'enable', 'disable', 'reprocess', 'delete')
+
+
+class BulkChangesSerializer(DocumentMetaSerializer):
+    """Fields that make sense to set on many documents at once."""
+
+    source_url = None
+    parser = None
+    contextualize = None
+
+
+class BulkActionSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    action = serializers.ChoiceField(choices=BULK_ACTIONS)
+    ids = serializers.ListField(child=serializers.UUIDField(), min_length=1,
+                                max_length=MAX_BULK_IDS)
+    changes = BulkChangesSerializer(required=False)
+    # Per-document values for "update" (e.g. reviewed suggestions), keyed by document id.
+    changes_by_id = serializers.DictField(child=BulkChangesSerializer(), required=False)
+
+    def validate(self, attrs):
+        # Keep the caller's order, drop repeats.
+        attrs['ids'] = list(dict.fromkeys(attrs['ids']))
+        shared, per_document = attrs.get('changes'), attrs.get('changes_by_id')
+        if attrs['action'] != 'update':
+            if 'changes' in attrs or 'changes_by_id' in attrs:
+                raise serializers.ValidationError(
+                    {'changes': ['Only the "update" action takes changes.']})
+            return attrs
+        if (shared is None) == (per_document is None):
+            raise serializers.ValidationError(
+                {'changes': ['Send either "changes" or "changes_by_id".']})
+        if shared is not None and not shared:
+            raise serializers.ValidationError({'changes': ['Choose at least one field.']})
+        if per_document is not None:
+            if set(per_document) != {str(document_id) for document_id in attrs['ids']}:
+                raise serializers.ValidationError(
+                    {'changes_by_id': ['Give changes for exactly the documents in "ids".']})
+            if not all(per_document.values()):
+                raise serializers.ValidationError(
+                    {'changes_by_id': ['Each document needs at least one field.']})
+        return attrs
+
+
+class BulkFailureSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    code = serializers.CharField()
+    message = serializers.CharField()
+
+
+class BulkResultSerializer(serializers.Serializer):
+    succeeded = serializers.ListField(child=serializers.UUIDField())
+    failed = BulkFailureSerializer(many=True)
+
+
 class ReprocessSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     parser = serializers.ChoiceField(choices=Parser.choices, required=False)
 

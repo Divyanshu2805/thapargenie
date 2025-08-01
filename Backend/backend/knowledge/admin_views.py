@@ -2,6 +2,7 @@
 
 import logging
 
+from api.permissions import HasRecentFirebaseAuthentication
 from chat.models import ChatSettings
 from common.admin_api import AdminAPIView, choice_param, error_response, paginate, request_id
 from common.audit import audit
@@ -13,13 +14,15 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rag.llm import LLMError
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.pagination import CursorPagination
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from knowledge import services
 from knowledge.admin_serializers import (
+    BulkActionSerializer,
+    BulkResultSerializer,
     ChunkSerializer,
     ChunkUpdateSerializer,
     DocumentSerializer,
@@ -261,6 +264,58 @@ class DocumentDetailView(AdminAPIView):
             document, user=request.user, request_id=request_id(request)
         ))
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _failure(document_id, exc):
+    """One failed document in a bulk result: a stable code and a readable message."""
+    detail = exc.detail
+    while isinstance(detail, (dict, list)) and detail:
+        detail = next(iter(detail.values())) if isinstance(detail, dict) else detail[0]
+    code = 'validation_error' if isinstance(exc, ValidationError) else exc.default_code
+    return {'id': str(document_id), 'code': code, 'message': str(detail)}
+
+
+class DocumentBulkView(AdminAPIView):
+    """Apply one action to many documents, each through the single-document service."""
+
+    @extend_schema(operation_id='admin_documents_bulk', tags=TAGS,
+                   request=BulkActionSerializer, responses=BulkResultSerializer)
+    def post(self, request):
+        serializer = BulkActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        action = data['action']
+        if action == 'delete':
+            # Same rule as a single DELETE; checked before any document is touched.
+            HasRecentFirebaseAuthentication().has_permission(request, self)
+
+        rid = request_id(request)
+        per_document = data.get('changes_by_id') or {}
+        calls = {
+            'update': lambda d: services.update_document(
+                d, data.get('changes') or per_document[str(d.pk)], user=request.user,
+                request_id=rid),
+            'enable': lambda d: services.set_enabled(d, True, user=request.user, request_id=rid),
+            'disable': lambda d: services.set_enabled(d, False, user=request.user,
+                                                      request_id=rid),
+            'reprocess': lambda d: services.reprocess(d, user=request.user, request_id=rid),
+            'delete': lambda d: services.delete_document(d, user=request.user, request_id=rid),
+        }
+        documents = Document.objects.in_bulk(data['ids'])
+        succeeded, failed = [], []
+        for document_id in data['ids']:
+            document = documents.get(document_id)
+            if document is None:
+                failed.append({'id': str(document_id), 'code': 'not_found',
+                               'message': 'This document no longer exists.'})
+                continue
+            try:
+                _run(lambda document=document: calls[action](document))
+            except APIException as exc:
+                failed.append(_failure(document_id, exc))
+            else:
+                succeeded.append(str(document_id))
+        return Response({'succeeded': succeeded, 'failed': failed})
 
 
 class DocumentReprocessView(AdminAPIView):

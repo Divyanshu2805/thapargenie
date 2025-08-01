@@ -1,14 +1,19 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, Globe, Library, Plus, Search } from 'lucide-react';
-import { useDeferredValue, useState } from 'react';
+import { useDeferredValue, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SplitSection } from '@/components/split-section';
+import { useRecentAuth } from '@/components/recent-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AddKnowledgeDialog from '@/features/admin/AddKnowledgeDialog';
+import { BulkActionBar, BulkEditDialog, MAX_SELECTION, bulkSummary, runInBatches } from '@/features/admin/bulk';
 import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, ValidityTag, useCursorList } from '@/features/admin/components';
 import {
   CATEGORIES,
@@ -19,11 +24,15 @@ import {
   labelOf,
   validityOf,
 } from '@/features/admin/constants';
-import { adminKeys, listDocuments } from '@/lib/api/admin';
+import { adminKeys, bulkDocuments, listDocuments } from '@/lib/api/admin';
 import { formatNumber, formatRelative } from '@/lib/format';
+
+const NO_IDS = new Set();
 
 export default function DocumentsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const withRecentAuth = useRecentAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [adding, setAdding] = useState(false);
   const [status, setStatus] = useState('');
@@ -57,6 +66,86 @@ export default function DocumentsPage() {
 
   const filtered = status || category || validity || q;
 
+  // The selection belongs to one set of filters; changing a filter starts afresh.
+  // `all` is set when every document matching the filter is selected.
+  const filterKey = JSON.stringify(filters);
+  const [selection, setSelection] = useState(() => ({ key: filterKey, ids: new Set(), all: null }));
+  const current = selection.key === filterKey;
+  const selectedIds = current ? selection.ids : NO_IDS;
+  const allMatching = current ? selection.all : null;
+  const setSelectedIds = (update) =>
+    setSelection((previous) => ({ key: filterKey, ids: update(previous.key === filterKey ? previous.ids : NO_IDS), all: null }));
+  const loadedIds = list.rows.map((document) => document.id);
+  const allSelected = loadedIds.length > 0 && loadedIds.every((id) => selectedIds.has(id));
+  const someSelected = !allSelected && loadedIds.some((id) => selectedIds.has(id));
+
+  const toggleOne = (id, checked) => {
+    if (checked && selectedIds.size >= MAX_SELECTION) {
+      toast(`You can select up to ${MAX_SELECTION} documents at a time.`);
+      return;
+    }
+    const next = new Set(selectedIds);
+    if (checked) next.add(id);
+    else next.delete(id);
+    setSelectedIds(() => next);
+  };
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(() => NO_IDS);
+      return;
+    }
+    const next = new Set(selectedIds);
+    for (const id of loadedIds) {
+      if (next.size >= MAX_SELECTION) break;
+      next.add(id);
+    }
+    if (loadedIds.some((id) => !next.has(id))) toast(`Selected the first ${MAX_SELECTION} documents.`);
+    setSelectedIds(() => next);
+  };
+  const documentsLabel = (n) => `${n} document${n === 1 ? '' : 's'}`;
+
+  const [pendingAction, setPendingAction] = useState(null);
+  // Runs go in batches of 100 with visible progress; Stop ends them after the current batch.
+  const [progress, setProgress] = useState(null);
+  const stopRequested = useRef(false);
+  const bulk = useMutation({
+    mutationFn: ({ action, changes, changesById }) => {
+      const ids = changesById ? Object.keys(changesById) : [...selectedIds];
+      stopRequested.current = false;
+      setProgress({ action, done: 0, total: ids.length, stopping: false });
+      const send = (batch) => {
+        const run = () =>
+          bulkDocuments({
+            action,
+            ids: batch,
+            changes,
+            changesById: changesById ? Object.fromEntries(batch.map((id) => [id, changesById[id]])) : undefined,
+          });
+        return action === 'delete' ? withRecentAuth(run) : run();
+      };
+      return runInBatches(ids, send, {
+        onProgress: (done, total) => setProgress((previous) => previous && { ...previous, done, total }),
+        shouldStop: () => stopRequested.current,
+      });
+    },
+    onSuccess: (result, { action }) => {
+      const summary = bulkSummary(action, result);
+      (summary.ok ? toast.success : toast.error)(summary.title, summary.description ? { description: summary.description } : undefined);
+      // Failed (and, after Stop, unprocessed) documents stay selected to look at or retry.
+      setSelectedIds(() => new Set([...result.failed.map((item) => item.id), ...result.skipped]));
+      setPendingAction(null);
+    },
+    onError: (error) => {
+      if (error.code !== 'request_cancelled') toast.error('The bulk action failed', { description: error.message });
+    },
+    onSettled: () => {
+      setProgress(null);
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+  const count = selectedIds.size;
+  const startAction = (action) => (action === 'enable' || action === 'disable' ? bulk.mutate({ action }) : setPendingAction(action));
+
   return (
     <div className="page-wide space-y-6">
       <PageHeader
@@ -72,7 +161,7 @@ export default function DocumentsPage() {
       <SplitSection
         icon={Library}
         title="All documents"
-        description="Search and filter the library, or open a document to edit it."
+        description="Search and filter the library. Tick rows for bulk actions, or open one to edit it and its passages."
         flush
       >
         <div className="grid grid-cols-2 gap-3 border-b p-4 sm:p-5 lg:grid-cols-4">
@@ -130,6 +219,18 @@ export default function DocumentsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10 pr-0">
+                    <input
+                      type="checkbox"
+                      className="size-4 align-middle accent-primary"
+                      aria-label="Select all shown documents"
+                      checked={allSelected}
+                      ref={(element) => {
+                        if (element) element.indeterminate = someSelected;
+                      }}
+                      onChange={toggleAll}
+                    />
+                  </TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead className="hidden @2xl:table-cell">Category</TableHead>
                   <TableHead className="hidden @4xl:table-cell">Year</TableHead>
@@ -147,7 +248,17 @@ export default function DocumentsPage() {
                       key={document.id}
                       className="cursor-pointer"
                       onClick={() => navigate(`/admin/documents/${document.id}`)}
+                      data-state={selectedIds.has(document.id) ? 'selected' : undefined}
                     >
+                      <TableCell className="w-10 pr-0" onClick={(event) => event.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="size-4 align-middle accent-primary"
+                          aria-label={`Select ${document.title}`}
+                          checked={selectedIds.has(document.id)}
+                          onChange={(event) => toggleOne(document.id, event.target.checked)}
+                        />
+                      </TableCell>
                       <TableCell className="max-w-[22rem]">
                         <div className="flex items-start gap-2.5">
                           <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -192,7 +303,44 @@ export default function DocumentsPage() {
         )}
       </SplitSection>
 
+      {count || progress ? (
+        <BulkActionBar
+          count={count}
+          allMatching={Boolean(allMatching)}
+          busy={bulk.isPending}
+          progress={progress}
+          onAction={startAction}
+          onClear={() => setSelectedIds(() => NO_IDS)}
+          onStop={() => {
+            stopRequested.current = true;
+            setProgress((previous) => previous && { ...previous, stopping: true });
+          }}
+        />
+      ) : null}
+
       {adding ? <AddKnowledgeDialog open onOpenChange={setAdding} /> : null}
+      {pendingAction === 'update' ? (
+        <BulkEditDialog
+          open
+          count={count}
+          pending={bulk.isPending}
+          onOpenChange={(open) => !open && setPendingAction(null)}
+          onSubmit={(changes) => bulk.mutate({ action: 'update', changes })}
+        />
+      ) : null}
+      <ConfirmDialog
+        open={pendingAction === 'reprocess' || pendingAction === 'delete'}
+        onOpenChange={(open) => !open && setPendingAction(null)}
+        title={`${pendingAction === 'delete' ? 'Delete' : 'Reprocess'} ${documentsLabel(count)}?`}
+        description={
+          pendingAction === 'delete'
+            ? 'Their passages and stored files are removed and answers stop citing them. This can’t be undone.'
+            : 'Each document is extracted and embedded again, which uses AI calls. They stay answerable meanwhile.'
+        }
+        confirmLabel={pendingAction === 'delete' ? 'Delete' : 'Reprocess'}
+        pending={bulk.isPending}
+        onConfirm={() => bulk.mutate({ action: pendingAction })}
+      />
     </div>
   );
 }

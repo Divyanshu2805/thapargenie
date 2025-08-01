@@ -6,6 +6,7 @@ urlpatterns = [
     path('documents/', views.DocumentListView.as_view(), name='admin-documents'),
     path('documents/url/', views.DocumentFromUrlView.as_view(), name='admin-documents-url'),
     path('documents/text/', views.DocumentFromTextView.as_view(), name='admin-documents-text'),
+    path('documents/bulk/', views.DocumentBulkView.as_view(), name='admin-documents-bulk'),
     path('documents/<uuid:document_id>/', views.DocumentDetailView.as_view(),
          name='admin-document'),
     path('documents/<uuid:document_id>/reprocess/', views.DocumentReprocessView.as_view(),
