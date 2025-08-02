@@ -28,6 +28,7 @@ from knowledge.admin_serializers import (
     DocumentSerializer,
     DocumentUpdateSerializer,
     FileUrlSerializer,
+    MatchingIdsSerializer,
     ReprocessSerializer,
     TextDocumentSerializer,
     UploadResultSerializer,
@@ -113,6 +114,7 @@ FILTER_PARAMETERS = [
                                  f'{services.EXPIRY_WARNING_DAYS} days; expired: already past it.'),
     OpenApiParameter('q', str, description='Search in titles.'),
 ]
+MAX_MATCHING_IDS = 2000
 
 
 def filtered_documents(request):
@@ -316,6 +318,18 @@ class DocumentBulkView(AdminAPIView):
             else:
                 succeeded.append(str(document_id))
         return Response({'succeeded': succeeded, 'failed': failed})
+
+
+class DocumentIdsView(AdminAPIView):
+    """Every id matching the list's filters, for "select all matching"."""
+
+    @extend_schema(operation_id='admin_documents_ids', tags=TAGS, parameters=FILTER_PARAMETERS,
+                   responses=MatchingIdsSerializer)
+    def get(self, request):
+        documents = filtered_documents(request).order_by('-created_at', '-id')
+        count = documents.count()
+        ids = [str(pk) for pk in documents.values_list('pk', flat=True)[:MAX_MATCHING_IDS]]
+        return Response({'count': count, 'ids': ids, 'truncated': count > len(ids)})
 
 
 class DocumentReprocessView(AdminAPIView):

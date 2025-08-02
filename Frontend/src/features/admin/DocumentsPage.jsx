@@ -24,7 +24,7 @@ import {
   labelOf,
   validityOf,
 } from '@/features/admin/constants';
-import { adminKeys, bulkDocuments, listDocuments } from '@/lib/api/admin';
+import { adminKeys, bulkDocuments, listDocuments, listMatchingDocumentIds } from '@/lib/api/admin';
 import { formatNumber, formatRelative } from '@/lib/format';
 
 const NO_IDS = new Set();
@@ -75,6 +75,11 @@ export default function DocumentsPage() {
   const allMatching = current ? selection.all : null;
   const setSelectedIds = (update) =>
     setSelection((previous) => ({ key: filterKey, ids: update(previous.key === filterKey ? previous.ids : NO_IDS), all: null }));
+  const selectAllMatching = useMutation({
+    mutationFn: () => listMatchingDocumentIds(filters),
+    onSuccess: ({ ids, count, truncated }) => setSelection({ key: filterKey, ids: new Set(ids), all: { count, truncated } }),
+    onError: (error) => toast.error('Couldn’t select all matching documents', { description: error.message }),
+  });
   const loadedIds = list.rows.map((document) => document.id);
   const allSelected = loadedIds.length > 0 && loadedIds.every((id) => selectedIds.has(id));
   const someSelected = !allSelected && loadedIds.some((id) => selectedIds.has(id));
@@ -216,6 +221,28 @@ export default function DocumentsPage() {
           </EmptyState>
         ) : (
           <>
+            {allMatching ? (
+              <p className="flex flex-wrap items-center justify-center gap-x-2 border-b bg-accent/40 px-4 py-2 text-sm" role="status">
+                All {formatNumber(allMatching.count)} matching documents are selected
+                {allMatching.truncated ? ` (the newest ${formatNumber(selectedIds.size)})` : ''}.
+                <Button size="sm" variant="link" className="h-auto p-0" onClick={() => setSelectedIds(() => NO_IDS)}>
+                  Clear selection
+                </Button>
+              </p>
+            ) : allSelected && list.hasNextPage ? (
+              <p className="flex flex-wrap items-center justify-center gap-x-2 border-b bg-muted/50 px-4 py-2 text-sm">
+                All {formatNumber(selectedIds.size)} shown are selected.
+                <Button
+                  size="sm"
+                  variant="link"
+                  className="h-auto p-0"
+                  disabled={selectAllMatching.isPending}
+                  onClick={() => selectAllMatching.mutate()}
+                >
+                  {selectAllMatching.isPending ? 'Selecting…' : 'Select all matching this filter'}
+                </Button>
+              </p>
+            ) : null}
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">

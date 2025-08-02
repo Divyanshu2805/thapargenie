@@ -131,6 +131,12 @@ class BulkActionSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
         return attrs
 
 
+class MatchingIdsSerializer(serializers.Serializer):
+    count = serializers.IntegerField(help_text='All documents matching the filters.')
+    ids = serializers.ListField(child=serializers.UUIDField(), help_text='Newest first, ≤ 2,000.')
+    truncated = serializers.BooleanField()
+
+
 class BulkFailureSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     code = serializers.CharField()
