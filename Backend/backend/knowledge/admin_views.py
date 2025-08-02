@@ -19,17 +19,19 @@ from rest_framework.pagination import CursorPagination
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from knowledge import services
+from knowledge import details, services
 from knowledge.admin_serializers import (
     BulkActionSerializer,
     BulkResultSerializer,
     ChunkSerializer,
     ChunkUpdateSerializer,
+    DetailsSuggestionsOut,
     DocumentSerializer,
     DocumentUpdateSerializer,
     FileUrlSerializer,
     MatchingIdsSerializer,
     ReprocessSerializer,
+    SuggestDetailsSerializer,
     TextDocumentSerializer,
     UploadResultSerializer,
     UploadSchema,
@@ -53,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 MAX_FILES = 10
 TAGS = ['admin: knowledge']
+DETAILS_FILTERS = ('missing_session',)
 
 
 class ChunkPagination(CursorPagination):
@@ -112,6 +115,9 @@ FILTER_PARAMETERS = [
     OpenApiParameter('validity', str, enum=list(services.VALIDITY_FILTERS),
                      description='expiring: "valid until" within the next '
                                  f'{services.EXPIRY_WARNING_DAYS} days; expired: already past it.'),
+    OpenApiParameter('details', str, enum=list(DETAILS_FILTERS),
+                     description='missing_session: a ready document in a time-sensitive '
+                                 'category with no academic year.'),
     OpenApiParameter('q', str, description='Search in titles.'),
 ]
 MAX_MATCHING_IDS = 2000
@@ -126,6 +132,9 @@ def filtered_documents(request):
             documents = documents.filter(**{name: value})
     if validity := choice_param(request, 'validity', list(services.VALIDITY_FILTERS)):
         documents = documents.filter(services.validity_filter(validity))
+    if choice_param(request, 'details', list(DETAILS_FILTERS)):
+        documents = documents.filter(status=DocumentStatus.READY, academic_year='',
+                                     category__in=details.TIME_SENSITIVE)
     query = (request.query_params.get('q') or '').strip()[:100]
     if query:
         documents = documents.filter(title__icontains=query)
@@ -330,6 +339,25 @@ class DocumentIdsView(AdminAPIView):
         count = documents.count()
         ids = [str(pk) for pk in documents.values_list('pk', flat=True)[:MAX_MATCHING_IDS]]
         return Response({'count': count, 'ids': ids, 'truncated': count > len(ids)})
+
+
+class DocumentSuggestDetailsView(AdminAPIView):
+    """Suggested session and issue date for documents; nothing is saved."""
+
+    @extend_schema(operation_id='admin_documents_suggest_details', tags=TAGS,
+                   request=SuggestDetailsSerializer, responses=DetailsSuggestionsOut)
+    def post(self, request):
+        serializer = SuggestDetailsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ids = list(dict.fromkeys(serializer.validated_data['ids']))
+        found = Document.objects.in_bulk(ids)
+        documents = [found[document_id] for document_id in ids if document_id in found]
+        results = details.suggest(documents, user=request.user,
+                                  ai=serializer.validated_data['ai'])
+        if serializer.validated_data['ai']:
+            audit(request.user, 'document.details_suggested', 'document', '',
+                  request_id=request_id(request), documents=len(documents), ai=True)
+        return Response({'results': results})
 
 
 class DocumentReprocessView(AdminAPIView):

@@ -8,6 +8,8 @@ urlpatterns = [
     path('documents/text/', views.DocumentFromTextView.as_view(), name='admin-documents-text'),
     path('documents/bulk/', views.DocumentBulkView.as_view(), name='admin-documents-bulk'),
     path('documents/ids/', views.DocumentIdsView.as_view(), name='admin-documents-ids'),
+    path('documents/suggest-details/', views.DocumentSuggestDetailsView.as_view(),
+         name='admin-documents-suggest-details'),
     path('documents/<uuid:document_id>/', views.DocumentDetailView.as_view(),
          name='admin-document'),
     path('documents/<uuid:document_id>/reprocess/', views.DocumentReprocessView.as_view(),

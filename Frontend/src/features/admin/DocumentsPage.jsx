@@ -17,6 +17,7 @@ import { BulkActionBar, BulkEditDialog, MAX_SELECTION, bulkSummary, runInBatches
 import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, ValidityTag, useCursorList } from '@/features/admin/components';
 import {
   CATEGORIES,
+  DETAILS_FILTERS,
   DOCUMENT_STATUSES,
   SOURCE_TYPES,
   VALIDITY_FILTERS,
@@ -24,6 +25,7 @@ import {
   labelOf,
   validityOf,
 } from '@/features/admin/constants';
+import { SuggestDetailsDialog } from '@/features/admin/details';
 import { adminKeys, bulkDocuments, listDocuments, listMatchingDocumentIds } from '@/lib/api/admin';
 import { formatNumber, formatRelative } from '@/lib/format';
 
@@ -54,7 +56,8 @@ export default function DocumentsPage() {
       { replace: true },
     );
   const validity = urlFilter('validity', VALIDITY_FILTERS);
-  const filters = { status, category, validity, q };
+  const details = urlFilter('details', DETAILS_FILTERS);
+  const filters = { status, category, validity, details, q };
 
   const list = useCursorList({
     queryKey: adminKeys.documents(filters),
@@ -64,7 +67,7 @@ export default function DocumentsPage() {
       query.state.data?.pages.some((page) => page.results?.some(isInFlight)) ? 3000 : false,
   });
 
-  const filtered = status || category || validity || q;
+  const filtered = status || category || validity || details || q;
 
   // The selection belongs to one set of filters; changing a filter starts afresh.
   // `all` is set when every document matching the filter is selected.
@@ -204,6 +207,13 @@ export default function DocumentsPage() {
             onChange={(event) => setUrlFilter('validity')(event.target.value)}
             placeholder="Any validity"
             options={VALIDITY_FILTERS}
+          />
+          <Select
+            aria-label="Details"
+            value={details}
+            onChange={(event) => setUrlFilter('details')(event.target.value)}
+            placeholder="Any details"
+            options={DETAILS_FILTERS}
           />
         </div>
 
@@ -346,6 +356,15 @@ export default function DocumentsPage() {
       ) : null}
 
       {adding ? <AddKnowledgeDialog open onOpenChange={setAdding} /> : null}
+      {pendingAction === 'details' ? (
+        <SuggestDetailsDialog
+          open
+          ids={[...selectedIds]}
+          pending={bulk.isPending}
+          onOpenChange={(open) => !open && setPendingAction(null)}
+          onApply={(changesById) => bulk.mutate({ action: 'update', changesById })}
+        />
+      ) : null}
       {pendingAction === 'update' ? (
         <BulkEditDialog
           open

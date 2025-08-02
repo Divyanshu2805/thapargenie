@@ -137,6 +137,29 @@ class MatchingIdsSerializer(serializers.Serializer):
     truncated = serializers.BooleanField()
 
 
+class SuggestDetailsSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    ids = serializers.ListField(child=serializers.UUIDField(), min_length=1,
+                                max_length=MAX_BULK_IDS)
+    ai = serializers.BooleanField(default=False, help_text=(
+        'Also ask the AI about documents the rules found nothing for (at most 20, one AI '
+        'call each).'))
+
+
+class DetailsSuggestionSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    title = serializers.CharField()
+    current_academic_year = serializers.CharField(allow_blank=True)
+    current_effective_date = serializers.DateField(allow_null=True)
+    academic_year = serializers.CharField(allow_blank=True)
+    effective_date = serializers.DateField(allow_null=True)
+    source = serializers.ChoiceField(choices=['title', 'text', 'ai', ''])
+    evidence = serializers.CharField(allow_blank=True)
+
+
+class DetailsSuggestionsOut(serializers.Serializer):
+    results = DetailsSuggestionSerializer(many=True)
+
+
 class BulkFailureSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     code = serializers.CharField()
