@@ -15,7 +15,7 @@ import { AssistantMessage, UserMessage } from '@/features/chat/Message';
 import { buildThread, hasStreamingMessage } from '@/features/chat/thread';
 import { useAskStream } from '@/features/chat/use-ask-stream';
 import { useAppConfig } from '@/hooks/use-app-config';
-import { chatKeys, clearFeedback, getMessages, setFeedback, updateConversation } from '@/lib/api/chat';
+import { chatKeys, clearFeedback, getMessages, getSuggestions, setFeedback, updateConversation } from '@/lib/api/chat';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NEAR_BOTTOM_PX = 120;
@@ -157,6 +157,22 @@ function ConversationView({ conversationId }) {
     },
   });
 
+  const suggest = useMutation({
+    mutationFn: (messageId) => getSuggestions(messageId),
+    onSuccess: ({ suggestions }, messageId) => {
+      // Saved on the server too; writing it here avoids a refetch.
+      queryClient.setQueryData(messagesKey, (current) =>
+        current && {
+          ...current,
+          messages: current.messages.map((message) =>
+            message.id === messageId ? { ...message, suggestions, suggestionsEmpty: !suggestions.length } : message,
+          ),
+        },
+      );
+    },
+    onError: (error) => toast.error('Couldn’t suggest follow-ups', { description: error.message }),
+  });
+
   const handleStop = () => {
     stream.stop();
     // The server saves the partial answer as "stopped"; the refetch interval picks it up.
@@ -257,6 +273,13 @@ function ConversationView({ conversationId }) {
                   }}
                   onFeedback={(messageId, value) => feedback.mutate({ messageId, value })}
                   onRetry={stream.retry}
+                  onSuggest={(id) => suggest.mutate(id)}
+                  suggesting={suggest.isPending && suggest.variables === message.id}
+                  askDisabled={Boolean(blocked)}
+                  onAsk={(question) => {
+                    stickToBottom.current = true;
+                    stream.ask(conversationId, question);
+                  }}
                 />
               ),
             )}

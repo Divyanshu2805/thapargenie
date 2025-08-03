@@ -118,6 +118,8 @@ class Message(UUIDModel, TimestampedModel):
     latency_ms = models.PositiveIntegerField(null=True, blank=True)
     error_code = models.CharField(max_length=64, blank=True)
     client_request_id = models.UUIDField(null=True, blank=True)
+    # Follow-up questions, generated only when the student asks for them (chat/suggestions.py).
+    suggestions = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ('created_at',)

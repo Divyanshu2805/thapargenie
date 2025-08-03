@@ -32,6 +32,18 @@ class ServiceBusy(APIException):
     default_code = 'service_busy'
 
 
+class SuggestionsUnavailable(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = 'Follow-up suggestions are only available for completed answers.'
+    default_code = 'suggestions_unavailable'
+
+
+class SuggestionsFailed(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = 'Couldn’t suggest follow-ups right now. Please try again.'
+    default_code = 'suggestions_failed'
+
+
 class Maintenance(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = 'ThaparGenie is under maintenance. Please try again later.'

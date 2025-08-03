@@ -22,6 +22,11 @@ urlpatterns = [
         name='message-regenerate',
     ),
     path(
+        'messages/<uuid:message_id>/suggestions/',
+        views.SuggestionsView.as_view(),
+        name='message-suggestions',
+    ),
+    path(
         'messages/<uuid:message_id>/feedback/',
         views.FeedbackView.as_view(),
         name='message-feedback',

@@ -63,7 +63,15 @@ class MessageOut(serializers.Serializer):
     created_at = serializers.DateTimeField()
     sources = SourceOut(many=True)
     feedback = FeedbackOut(allow_null=True)
+    suggestions = serializers.ListField(
+        child=serializers.CharField(),
+        help_text='Follow-up questions, empty until requested (POST …/suggestions/).',
+    )
     siblings = SiblingsOut(required=False)
+
+
+class SuggestionsOut(serializers.Serializer):
+    suggestions = serializers.ListField(child=serializers.CharField(), max_length=3)
 
 
 class MessagesOut(serializers.Serializer):

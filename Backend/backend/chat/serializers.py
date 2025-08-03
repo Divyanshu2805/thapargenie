@@ -118,6 +118,7 @@ def message_payload(message, *, siblings=None, sources=None, feedback=None):
         'created_at': message.created_at.isoformat(),
         'sources': [source_payload(source) for source in sources],
         'feedback': feedback_payload(feedback),
+        'suggestions': message.suggestions,
     }
     if siblings is not None:
         payload['siblings'] = siblings

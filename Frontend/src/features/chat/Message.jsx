@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Copy,
   History,
+  Lightbulb,
   Pencil,
   RefreshCw,
   RotateCcw,
@@ -185,6 +186,42 @@ function FreshnessNote({ sources }) {
   );
 }
 
+const SUGGESTABLE = new Set(['answered', 'cached']);
+
+/** Follow-up questions: a button until asked for, then chips that ask the question. */
+function FollowUps({ message, pending, askDisabled, onSuggest, onAsk }) {
+  if (message.suggestions?.length) {
+    return (
+      <div className="mt-4 print:hidden" role="group" aria-label="Suggested follow-ups">
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Lightbulb className="size-3.5" aria-hidden="true" /> Suggested follow-ups
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {message.suggestions.map((text) => (
+            <button
+              key={text}
+              type="button"
+              disabled={askDisabled}
+              onClick={() => onAsk(text)}
+              className="rounded-full border bg-card px-3 py-1.5 text-left text-sm leading-snug transition-colors outline-none hover:border-primary/40 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (message.suggestionsEmpty) {
+    return <p className="mt-4 text-xs text-muted-foreground">No follow-up suggestions for this answer.</p>;
+  }
+  return (
+    <Button size="sm" variant="outline" className="mt-4 rounded-full" disabled={pending} onClick={() => onSuggest(message.id)}>
+      <Lightbulb /> {pending ? 'Thinking of follow-ups…' : 'Suggest follow-ups'}
+    </Button>
+  );
+}
+
 function ErrorNotice({ error, onRetry }) {
   return (
     <div role="alert" className="flex flex-col gap-3 rounded-xl border border-destructive/25 bg-destructive/5 p-4 sm:flex-row sm:items-center">
@@ -211,6 +248,10 @@ export function AssistantMessage({
   onSwitch,
   onFeedback,
   onRetry,
+  onSuggest,
+  suggesting = false,
+  onAsk,
+  askDisabled = false,
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const streaming = message.status === 'streaming';
@@ -293,6 +334,11 @@ export function AssistantMessage({
             </IconAction>
             <BranchSwitcher siblings={message.siblings} onSwitch={onSwitch} disabled={busy} />
           </div>
+        ) : null}
+
+        {/* Only under the latest answer: a chip asks its question at the end of the chat. */}
+        {isLast && canAct && complete && !smooth.revealing && SUGGESTABLE.has(message.answer_type) && onSuggest ? (
+          <FollowUps message={message} pending={suggesting} askDisabled={busy || askDisabled} onSuggest={onSuggest} onAsk={onAsk} />
         ) : null}
       </div>
 

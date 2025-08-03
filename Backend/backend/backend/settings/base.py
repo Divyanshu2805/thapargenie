@@ -151,6 +151,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "user": os.getenv("THROTTLE_USER", "120/min"),
         "ask": os.getenv("THROTTLE_ASK", "6/min"),
+        "suggest": os.getenv("THROTTLE_SUGGEST", "10/min"),
         "admin_write": os.getenv("THROTTLE_ADMIN_WRITE", "30/min"),
         "export": os.getenv("THROTTLE_EXPORT", "5/hour"),
     },

@@ -10,6 +10,7 @@ from common.sse import event_stream_response
 from common.throttles import (
     AskThrottle,
     ExportThrottle,
+    SuggestThrottle,
 )
 from django.db.models import OuterRef, Prefetch, Q, Subquery
 from django.http import Http404, HttpResponse
@@ -23,7 +24,7 @@ from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from chat import answering, cache, engine, quota
+from chat import answering, cache, engine, quota, suggestions
 from chat.models import (
     ChatSettings,
     Conversation,
@@ -37,6 +38,7 @@ from chat.schema import (
     ConversationListOut,
     FeedbackOut,
     MessagesOut,
+    SuggestionsOut,
     UrlOut,
 )
 from chat.serializers import (
@@ -261,6 +263,18 @@ class RegenerateView(APIView):
             regenerate=message,
         )
         return event_stream_response(answering.stream_turn(turn))
+
+
+class SuggestionsView(APIView):
+    """Follow-up questions for one answer, generated on request and then kept."""
+
+    throttle_classes = [SuggestThrottle]
+
+    @extend_schema(operation_id='messages_suggestions', tags=['chat'], request=None,
+                   responses=SuggestionsOut)
+    def post(self, request, message_id):
+        message = owned_message(request, message_id)
+        return Response({'suggestions': suggestions.suggest(message, request.user)})
 
 
 class FeedbackView(APIView):

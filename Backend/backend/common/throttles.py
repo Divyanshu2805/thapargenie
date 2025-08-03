@@ -8,6 +8,12 @@ class AskThrottle(UserRateThrottle):
     scope = 'ask'
 
 
+class SuggestThrottle(UserRateThrottle):
+    """Follow-up suggestions: an AI call each, but only on request."""
+
+    scope = 'suggest'
+
+
 class AdminWriteThrottle(UserRateThrottle):
     """Limits admin mutations; reads are not counted."""
 
