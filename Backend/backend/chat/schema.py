@@ -93,6 +93,18 @@ class AppConfigOut(serializers.Serializer):
     remaining_today = serializers.IntegerField(allow_null=True)
 
 
+class CoverageCategoryOut(serializers.Serializer):
+    category = serializers.CharField()
+    label = serializers.CharField()
+    documents = serializers.IntegerField()
+    updated_at = serializers.DateTimeField(allow_null=True)
+
+
+class CoverageOut(serializers.Serializer):
+    total_documents = serializers.IntegerField()
+    categories = CoverageCategoryOut(many=True)
+
+
 class UrlOut(serializers.Serializer):
     url = serializers.URLField()
 

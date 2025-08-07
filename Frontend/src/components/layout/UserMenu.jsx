@@ -1,5 +1,6 @@
 import {
   ChevronsUpDown,
+  CircleHelp,
   FileLock2,
   LogOut,
   Monitor,
@@ -105,6 +106,11 @@ export default function UserMenu({ side = 'top', align = 'start', compact = fals
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to="/help">
+              <CircleHelp /> What can I ask?
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to="/privacy">
               <FileLock2 /> Privacy notice

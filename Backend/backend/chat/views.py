@@ -24,7 +24,7 @@ from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from chat import answering, cache, engine, quota, suggestions
+from chat import answering, cache, coverage, engine, quota, suggestions
 from chat.models import (
     ChatSettings,
     Conversation,
@@ -36,6 +36,7 @@ from chat.schema import (
     EVENT_STREAM,
     AppConfigOut,
     ConversationListOut,
+    CoverageOut,
     FeedbackOut,
     MessagesOut,
     SuggestionsOut,
@@ -344,6 +345,14 @@ class AppConfigView(APIView):
             'daily_limit': None if request.user.is_staff else settings.daily_question_limit,
             'remaining_today': quota.remaining(request.user),
         })
+
+
+class CoverageView(APIView):
+    """Topics the knowledge base covers, with document counts."""
+
+    @extend_schema(operation_id='coverage', tags=['chat'], responses=CoverageOut)
+    def get(self, request):
+        return Response(coverage.summary())
 
 
 class ExportView(APIView):

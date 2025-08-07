@@ -4,6 +4,7 @@ from chat import views
 
 urlpatterns = [
     path('app-config/', views.AppConfigView.as_view(), name='app-config'),
+    path('coverage/', views.CoverageView.as_view(), name='coverage'),
     path('me/export/', views.ExportView.as_view(), name='me-export'),
     path('conversations/', views.ConversationListView.as_view(), name='conversation-list'),
     path(

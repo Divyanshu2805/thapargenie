@@ -19,6 +19,7 @@ import Register from './views/auth/Register/Register';
 const ConversationPage = lazy(() => import('./features/chat/ConversationPage'));
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'));
 const PrivacyPage = lazy(() => import('./features/privacy/PrivacyPage'));
+const HelpPage = lazy(() => import('./features/help/HelpPage'));
 const AdminLayout = lazy(() => import('./features/admin/AdminLayout'));
 const OverviewPage = lazy(() => import('./features/admin/OverviewPage'));
 const DocumentsPage = lazy(() => import('./features/admin/DocumentsPage'));
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/chat/" element={<ChatHome />} />
           <Route path="/chat/:conversationId" element={<ConversationPage />} />
           <Route path="/settings/" element={<SettingsPage />} />
+          <Route path="/help" element={<HelpPage />} />
         </Route>
 
         <Route

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   BookOpen,
   Building2,
+  CircleHelp,
   CalendarDays,
   GraduationCap,
   IndianRupee,
@@ -9,7 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/auth/AuthContext';
@@ -175,6 +176,14 @@ export default function ChatHome() {
         <div className="mt-6">
           {/* Nothing can be asked during maintenance, so no starter questions then. */}
           {config?.maintenance ? null : <StarterQuestions onPick={pickStarter} />}
+          <p className="mt-4 text-center text-sm">
+            <Link
+              to="/help"
+              className="inline-flex items-center gap-1.5 rounded text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <CircleHelp className="size-4" aria-hidden="true" /> What can I ask?
+            </Link>
+          </p>
         </div>
       </div>
 
