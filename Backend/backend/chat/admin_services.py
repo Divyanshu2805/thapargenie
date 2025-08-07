@@ -256,12 +256,12 @@ def gaps(days):
 SETTINGS_FIELDS = (
     'daily_question_limit', 'global_daily_llm_calls', 'rerank_enabled', 'cache_enabled',
     'contextualize_default', 'auto_title_enabled', 'maintenance_mode', 'maintenance_message',
-    'banner_text', 'starter_questions',
+    'banner_text', 'starter_questions', 'require_approval',
 )
 # Values safe to copy into the audit log (no free text).
 AUDITED_VALUES = {
     'daily_question_limit', 'global_daily_llm_calls', 'rerank_enabled', 'cache_enabled',
-    'contextualize_default', 'auto_title_enabled', 'maintenance_mode',
+    'contextualize_default', 'auto_title_enabled', 'maintenance_mode', 'require_approval',
 }
 
 

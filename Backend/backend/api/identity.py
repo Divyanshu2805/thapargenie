@@ -2,9 +2,11 @@
 
 from dataclasses import dataclass
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.module_loading import import_string
 from userauths.models import EligibilityState, IdentityInvitation, User
 
 from api.models import AuditEvent, AuditOutcome
@@ -85,6 +87,31 @@ def _approve_from_invitation(user, email, request_id):
     )
 
 
+def _open_access_enabled():
+    # The switch lives outside the auth apps, so it is
+    # named by an import path. Unset means approval is always required.
+    path = getattr(settings, 'IDENTITY_OPEN_ACCESS', '')
+    return bool(path) and bool(import_string(path)())
+
+
+def _approve_open_access(user, request_id):
+    if user.eligibility_state != EligibilityState.PENDING or not _open_access_enabled():
+        return
+
+    user.eligibility_state = EligibilityState.APPROVED
+    user.eligibility_approved_at = timezone.now()
+    user.save(update_fields=['eligibility_state', 'eligibility_approved_at'])
+    AuditEvent.objects.create(
+        actor=user,
+        action='eligibility.auto_approved',
+        resource_type='user',
+        resource_id=str(user.pk),
+        outcome=AuditOutcome.SUCCEEDED,
+        request_id=request_id,
+        metadata={'method': 'open_access'},
+    )
+
+
 def resolve_local_identity(identity, request_id=None):
     """Return exactly one UID-bound user; never link an old account by email."""
 
@@ -121,6 +148,7 @@ def resolve_local_identity(identity, request_id=None):
         _sync_allowlisted_fields(user, identity.email, identity.claims)
         if identity.email_verified:
             _approve_from_invitation(user, identity.email, request_id)
+            _approve_open_access(user, request_id)
 
         if created:
             AuditEvent.objects.create(

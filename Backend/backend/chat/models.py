@@ -328,6 +328,8 @@ class ChatSettings(models.Model):
     contextualize_default = models.BooleanField(default=False)
     auto_title_enabled = models.BooleanField(default=True)
     maintenance_mode = models.BooleanField(default=False)
+    # Off = open access: verified sign-ins are approved automatically.
+    require_approval = models.BooleanField(default=True)
     maintenance_message = models.CharField(max_length=300, blank=True)
     banner_text = models.CharField(max_length=300, blank=True)
     starter_questions = models.JSONField(default=default_starter_questions)

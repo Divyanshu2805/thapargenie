@@ -22,7 +22,7 @@ class SettingsSerializer(RejectUnknownFieldsMixin, serializers.ModelSerializer):
             'daily_question_limit', 'global_daily_llm_calls', 'rerank_enabled',
             'cache_enabled', 'contextualize_default', 'auto_title_enabled',
             'maintenance_mode', 'maintenance_message', 'banner_text', 'starter_questions',
-            'updated_at',
+            'require_approval', 'updated_at',
         )
         read_only_fields = ('updated_at',)
 

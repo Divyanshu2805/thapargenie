@@ -171,6 +171,8 @@ FIREBASE_RECENT_AUTH_SECONDS = int(os.getenv("FIREBASE_RECENT_AUTH_SECONDS", "30
 # A freshly issued token is "used too early" if this server's clock trails Google's by even
 # a second, so the first request after signing in would fail. Allow a little drift.
 FIREBASE_CLOCK_SKEW_SECONDS = int(os.getenv("FIREBASE_CLOCK_SKEW_SECONDS", "10"))
+# Returns True when new verified users are approved without an admin.
+IDENTITY_OPEN_ACCESS = "access.policy.open_access_enabled"
 if FIREBASE_RECENT_AUTH_SECONDS < 0:
     raise ValueError("FIREBASE_RECENT_AUTH_SECONDS cannot be negative.")
 if not 0 <= FIREBASE_CLOCK_SKEW_SECONDS <= 60:
