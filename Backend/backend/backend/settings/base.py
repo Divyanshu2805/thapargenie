@@ -154,6 +154,7 @@ REST_FRAMEWORK = {
         "suggest": os.getenv("THROTTLE_SUGGEST", "10/min"),
         "admin_write": os.getenv("THROTTLE_ADMIN_WRITE", "30/min"),
         "export": os.getenv("THROTTLE_EXPORT", "5/hour"),
+        "site_feedback": os.getenv("THROTTLE_SITE_FEEDBACK", "5/hour"),
     },
     # How many proxies sit in front of the app and append X-Forwarded-For. 0 (local)
     # ignores the header; Render needs 1. Without it, anonymous clients could forge
@@ -204,6 +205,7 @@ SPECTACULAR_SETTINGS = {
     # Several components have a "role" field; name the chat message one explicitly.
     "ENUM_NAME_OVERRIDES": {
         "MessageRoleEnum": "chat.models.Role",
+        "SiteFeedbackKindEnum": "chat.models.SiteFeedbackKind",
     },
 }
 

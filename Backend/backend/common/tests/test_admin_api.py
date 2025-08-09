@@ -39,6 +39,7 @@ class AdminPermissionTests(TestCase):
         expected |= {'invitations', 'users', 'audit-log'}
         expected |= {'stats', 'gaps', 'feedback', 'settings'}
         expected |= {'playground'}
+        expected |= {'site-feedback'}
         self.assertEqual(paths, expected)
 
     def assert_refused(self, client, expected):

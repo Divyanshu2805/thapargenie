@@ -3,9 +3,12 @@ from rest_framework import serializers
 
 from chat.models import (
     MAX_QUESTION_CHARS,
+    MAX_SITE_FEEDBACK_CHARS,
+    MIN_SITE_FEEDBACK_CHARS,
     Conversation,
     Feedback,
     Message,
+    SiteFeedback,
 )
 
 
@@ -66,6 +69,37 @@ class FeedbackSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
     reason = serializers.ChoiceField(choices=Feedback.Reason.choices, required=False,
                                      allow_null=True)
     comment = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+
+
+class SiteFeedbackSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    kind = serializers.ChoiceField(choices=SiteFeedback.Kind.choices)
+    rating = serializers.IntegerField(min_value=1, max_value=5, required=False, allow_null=True)
+    message = serializers.CharField(max_length=MAX_SITE_FEEDBACK_CHARS)
+    # The in-app path the student came from; only a path, never a full URL.
+    page = serializers.RegexField(r'^/[\w\-/.]*$', max_length=200, required=False,
+                                  allow_blank=True)
+    contact_ok = serializers.BooleanField(required=False, default=False)
+
+    def validate_message(self, value):
+        value = value.strip()
+        if len(value) < MIN_SITE_FEEDBACK_CHARS:
+            raise serializers.ValidationError(
+                f'Write at least {MIN_SITE_FEEDBACK_CHARS} characters.'
+            )
+        return value
+
+
+def site_feedback_payload(item):
+    """What the student sees of their own feedback: never the admin note or reviewer."""
+    return {
+        'id': str(item.pk),
+        'kind': item.kind,
+        'rating': item.rating,
+        'message': item.message,
+        'contact_ok': item.contact_ok,
+        'review_status': item.review_status,
+        'created_at': item.created_at,
+    }
 
 
 def source_payload(source):

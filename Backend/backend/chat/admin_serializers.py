@@ -1,7 +1,7 @@
 from api.serializers import RejectUnknownFieldsMixin
 from rest_framework import serializers
 
-from chat.models import MAX_QUESTION_CHARS, ChatSettings, Feedback
+from chat.models import MAX_QUESTION_CHARS, ChatSettings, Feedback, SiteFeedback
 
 # -- input ---------------------------------------------------------------------------
 
@@ -184,6 +184,22 @@ class FeedbackItemOut(serializers.Serializer):
     question = serializers.CharField(allow_blank=True)
     answer = FeedbackAnswerOut()
     trace = TraceOut(allow_null=True)
+
+
+class SiteFeedbackItemOut(serializers.Serializer):
+    id = serializers.UUIDField()
+    kind = serializers.ChoiceField(choices=SiteFeedback.Kind.choices)
+    rating = serializers.IntegerField(allow_null=True)
+    message = serializers.CharField()
+    page = serializers.CharField(allow_blank=True)
+    review_status = serializers.ChoiceField(choices=SiteFeedback.Review.choices)
+    admin_note = serializers.CharField(allow_blank=True)
+    reviewed_at = serializers.DateTimeField(allow_null=True)
+    created_at = serializers.DateTimeField()
+    reporter = serializers.CharField(help_text='Stable pseudonym; not reversible.')
+    contact_email = serializers.EmailField(
+        allow_null=True, help_text='Only when the student agreed to be contacted.'
+    )
 
 
 class GapOut(serializers.Serializer):

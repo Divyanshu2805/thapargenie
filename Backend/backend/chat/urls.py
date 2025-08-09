@@ -32,5 +32,6 @@ urlpatterns = [
         views.FeedbackView.as_view(),
         name='message-feedback',
     ),
+    path('site-feedback/', views.SiteFeedbackView.as_view(), name='site-feedback'),
     path('sources/<uuid:source_id>/open/', views.SourceOpenView.as_view(), name='source-open'),
 ]

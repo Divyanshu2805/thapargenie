@@ -29,3 +29,9 @@ class ExportThrottle(UserRateThrottle):
     """A full export is the most expensive student request."""
 
     scope = 'export'
+
+
+class SiteFeedbackThrottle(UserRateThrottle):
+    """Feedback on the site: a few per hour is plenty, and it keeps the admin queue clean."""
+
+    scope = 'site_feedback'

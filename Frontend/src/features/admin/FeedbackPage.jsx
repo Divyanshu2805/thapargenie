@@ -20,6 +20,7 @@ import { Select } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import AddKnowledgeDialog from '@/features/admin/AddKnowledgeDialog';
+import SiteFeedbackSection from '@/features/admin/SiteFeedbackSection';
 import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, useCursorList } from '@/features/admin/components';
 import { ANSWER_TYPES, FEEDBACK_REASONS } from '@/features/admin/constants';
 import Markdown from '@/features/chat/Markdown';
@@ -172,7 +173,7 @@ export default function FeedbackPage() {
     <div className="page-wide space-y-6">
       <PageHeader
         title="Feedback"
-        description="Rated answers, without student identities."
+        description="Rated answers and site feedback, without student identities."
       />
 
       <SplitSection
@@ -238,6 +239,8 @@ export default function FeedbackPage() {
           </>
         )}
       </SplitSection>
+
+      <SiteFeedbackSection />
 
       {faqFor ? (
         <AddKnowledgeDialog

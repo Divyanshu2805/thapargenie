@@ -3,13 +3,14 @@ import {
   CircleHelp,
   FileLock2,
   LogOut,
+  MessageSquareHeart,
   Monitor,
   Moon,
   Settings,
   ShieldCheck,
   Sun,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import { useAuth } from '@/auth/AuthContext';
 import { useTheme } from '@/components/theme-provider';
@@ -46,6 +47,7 @@ export default function UserMenu({ side = 'top', align = 'start', compact = fals
   // Signing out slides to the sign-in page once it is showing.
   const signOutClick = useSlideClick({ ready: onSignInPage, back: true });
   const { theme, setTheme } = useTheme();
+  const location = useLocation();
   const name = user?.displayName || (user?.email || profile?.email || '').split('@')[0];
 
   return (
@@ -96,6 +98,12 @@ export default function UserMenu({ side = 'top', align = 'start', compact = fals
           <DropdownMenuItem asChild>
             <Link to="/settings/">
               <Settings /> Settings
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            {/* Tells the page where the student came from, as context for the team. */}
+            <Link to="/feedback" state={{ from: location.pathname }}>
+              <MessageSquareHeart /> Send feedback
             </Link>
           </DropdownMenuItem>
           {profile?.is_staff ? (

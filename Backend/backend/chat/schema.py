@@ -4,7 +4,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse
 from rest_framework import serializers
 
-from chat.models import Feedback, Message
+from chat.models import Feedback, Message, SiteFeedback
 from chat.serializers import ConversationSerializer
 
 
@@ -43,6 +43,20 @@ class FeedbackOut(serializers.Serializer):
     rating = serializers.ChoiceField(choices=(-1, 1))
     reason = serializers.ChoiceField(choices=Feedback.Reason.choices, allow_null=True)
     comment = serializers.CharField(allow_blank=True)
+
+
+class SiteFeedbackOut(serializers.Serializer):
+    id = serializers.UUIDField()
+    kind = serializers.ChoiceField(choices=SiteFeedback.Kind.choices)
+    rating = serializers.IntegerField(allow_null=True)
+    message = serializers.CharField()
+    contact_ok = serializers.BooleanField()
+    review_status = serializers.ChoiceField(choices=SiteFeedback.Review.choices)
+    created_at = serializers.DateTimeField()
+
+
+class SiteFeedbackListOut(serializers.Serializer):
+    results = SiteFeedbackOut(many=True)
 
 
 class SiblingsOut(serializers.Serializer):

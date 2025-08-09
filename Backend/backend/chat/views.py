@@ -10,6 +10,7 @@ from common.sse import event_stream_response
 from common.throttles import (
     AskThrottle,
     ExportThrottle,
+    SiteFeedbackThrottle,
     SuggestThrottle,
 )
 from django.db.models import OuterRef, Prefetch, Q, Subquery
@@ -31,6 +32,7 @@ from chat.models import (
     Feedback,
     Message,
     MessageSource,
+    SiteFeedback,
 )
 from chat.schema import (
     EVENT_STREAM,
@@ -39,6 +41,8 @@ from chat.schema import (
     CoverageOut,
     FeedbackOut,
     MessagesOut,
+    SiteFeedbackListOut,
+    SiteFeedbackOut,
     SuggestionsOut,
     UrlOut,
 )
@@ -49,9 +53,11 @@ from chat.serializers import (
     ConversationUpdateSerializer,
     FeedbackSerializer,
     RegenerateSerializer,
+    SiteFeedbackSerializer,
     feedback_payload,
     message_payload,
     search_snippet,
+    site_feedback_payload,
     source_payload,
 )
 
@@ -353,6 +359,38 @@ class CoverageView(APIView):
     @extend_schema(operation_id='coverage', tags=['chat'], responses=CoverageOut)
     def get(self, request):
         return Response(coverage.summary())
+
+
+class SiteFeedbackView(APIView):
+    """Feedback and suggestions about the site itself."""
+
+    HISTORY = 20
+
+    def get_throttles(self):
+        throttles = super().get_throttles()
+        return [*throttles, SiteFeedbackThrottle()] if self.request.method == 'POST' else throttles
+
+    @extend_schema(operation_id='site_feedback_list', tags=['chat'], responses=SiteFeedbackListOut)
+    def get(self, request):
+        items = SiteFeedback.objects.filter(user=request.user).order_by('-created_at')
+        items = items[:self.HISTORY]
+        return Response({'results': [site_feedback_payload(item) for item in items]})
+
+    @extend_schema(operation_id='site_feedback_create', tags=['chat'],
+                   request=SiteFeedbackSerializer, responses={201: SiteFeedbackOut})
+    def post(self, request):
+        serializer = SiteFeedbackSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        item = SiteFeedback.objects.create(
+            user=request.user,
+            kind=data['kind'],
+            rating=data.get('rating'),
+            message=data['message'],
+            page=data.get('page', ''),
+            contact_ok=data['contact_ok'],
+        )
+        return Response(site_feedback_payload(item), status=status.HTTP_201_CREATED)
 
 
 class ExportView(APIView):

@@ -8,6 +8,9 @@ urlpatterns = [
     path('feedback/', views.FeedbackListView.as_view(), name='admin-feedback'),
     path('feedback/<uuid:feedback_id>/', views.FeedbackDetailView.as_view(),
          name='admin-feedback-detail'),
+    path('site-feedback/', views.SiteFeedbackListView.as_view(), name='admin-site-feedback'),
+    path('site-feedback/<uuid:feedback_id>/', views.SiteFeedbackDetailView.as_view(),
+         name='admin-site-feedback-detail'),
     path('settings/', views.SettingsView.as_view(), name='admin-settings'),
     path('playground/', views.PlaygroundView.as_view(), name='admin-playground'),
 ]

@@ -17,9 +17,10 @@ from chat.admin_serializers import (
     PlaygroundOut,
     PlaygroundSerializer,
     SettingsSerializer,
+    SiteFeedbackItemOut,
     StatsOut,
 )
-from chat.models import ChatSettings, Feedback, Message
+from chat.models import ChatSettings, Feedback, Message, SiteFeedback
 
 TAGS = ['admin: chat']
 RANGE_PARAM = OpenApiParameter('range', str, enum=list(admin_services.RANGES), default='7d')
@@ -83,6 +84,37 @@ class FeedbackDetailView(AdminAPIView):
                                        request_id=request_id(request))
         item = admin_services.feedback_queryset().get(pk=feedback.pk)
         return Response(admin_services.feedback_payload(item))
+
+
+class SiteFeedbackListView(AdminAPIView):
+    @extend_schema(
+        operation_id='admin_site_feedback_list',
+        tags=TAGS,
+        parameters=[
+            OpenApiParameter('review_status', str, enum=SiteFeedback.Review.values),
+            OpenApiParameter('kind', str, enum=SiteFeedback.Kind.values),
+        ],
+        responses=SiteFeedbackItemOut(many=True),
+    )
+    def get(self, request):
+        items = admin_services.site_feedback_queryset(
+            review_status=choice_param(request, 'review_status', SiteFeedback.Review.values),
+            kind=choice_param(request, 'kind', SiteFeedback.Kind.values),
+        )
+        return paginate(self, items, admin_services.site_feedback_payload)
+
+
+class SiteFeedbackDetailView(AdminAPIView):
+    @extend_schema(operation_id='admin_site_feedback_review', tags=TAGS,
+                   request=FeedbackReviewSerializer, responses=SiteFeedbackItemOut)
+    def patch(self, request, feedback_id):
+        item = get_object_or_404(SiteFeedback, pk=feedback_id)
+        serializer = FeedbackReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        admin_services.review_site_feedback(item, serializer.validated_data, user=request.user,
+                                            request_id=request_id(request))
+        item = admin_services.site_feedback_queryset().get(pk=item.pk)
+        return Response(admin_services.site_feedback_payload(item))
 
 
 class SettingsView(AdminAPIView):

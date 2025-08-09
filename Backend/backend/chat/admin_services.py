@@ -21,7 +21,7 @@ from rag.llm import get_llm
 from rag.pipeline import answer_events
 
 from chat import quota
-from chat.models import AnswerCache, ChatSettings, Feedback, Message, UsageDaily
+from chat.models import AnswerCache, ChatSettings, Feedback, Message, SiteFeedback, UsageDaily
 
 RANGES = {'7d': 7, '30d': 30}
 GAP_LIMIT = 100
@@ -212,6 +212,40 @@ def _apply_review(model, pk, changes, *, user, request_id, action, target):
 def review_feedback(feedback, changes, *, user, request_id=None):
     return _apply_review(Feedback, feedback.pk, changes, user=user, request_id=request_id,
                          action='feedback.reviewed', target='feedback')
+
+
+# -- site feedback -------------------------------------------------------------------
+
+def site_feedback_queryset(*, review_status=None, kind=None):
+    items = SiteFeedback.objects.select_related('user')
+    if review_status:
+        items = items.filter(review_status=review_status)
+    if kind:
+        items = items.filter(kind=kind)
+    return items
+
+
+def site_feedback_payload(item):
+    """Pseudonymous, like answer feedback; the email only when the student agreed to it."""
+    return {
+        'id': str(item.pk),
+        'kind': item.kind,
+        'rating': item.rating,
+        'message': item.message,
+        'page': item.page,
+        'review_status': item.review_status,
+        'admin_note': item.admin_note,
+        'reviewed_at': item.reviewed_at,
+        'created_at': item.created_at,
+        'reporter': pseudonym(item.user_id),
+        'contact_email': item.user.email if item.contact_ok else None,
+    }
+
+
+@transaction.atomic
+def review_site_feedback(item, changes, *, user, request_id=None):
+    return _apply_review(SiteFeedback, item.pk, changes, user=user, request_id=request_id,
+                         action='site_feedback.reviewed', target='site_feedback')
 
 
 # -- gaps ----------------------------------------------------------------------------

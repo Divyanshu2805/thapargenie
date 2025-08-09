@@ -235,6 +235,54 @@ class Feedback(UUIDModel, TimestampedModel):
         ]
 
 
+class SiteFeedbackKind(models.TextChoices):
+    SUGGESTION = 'suggestion', 'Suggestion'
+    PROBLEM = 'problem', 'Something isn’t working'
+    ANSWERS = 'answers', 'Answer quality'
+    OTHER = 'other', 'Other'
+
+
+MIN_SITE_FEEDBACK_CHARS = 10
+MAX_SITE_FEEDBACK_CHARS = 2000
+
+
+class SiteFeedback(UUIDModel, TimestampedModel):
+    """Feedback on ThaparGenie as a whole; `Feedback` is per answer."""
+
+    Kind = SiteFeedbackKind
+    Review = Review
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='site_feedback'
+    )
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    rating = models.SmallIntegerField(null=True, blank=True)
+    message = models.CharField(max_length=MAX_SITE_FEEDBACK_CHARS)
+    page = models.CharField(max_length=200, blank=True)
+    # Only when this is set may admins see who sent it.
+    contact_ok = models.BooleanField(default=False)
+    review_status = models.CharField(max_length=10, choices=Review.choices, default=Review.OPEN)
+    admin_note = models.CharField(max_length=1000, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='+',
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=('review_status', 'created_at'), name='sitefeedback_review_idx')
+        ]
+        constraints = [
+            choices_check('kind', SiteFeedbackKind, 'sitefeedback_kind_valid'),
+            choices_check('review_status', Review, 'sitefeedback_review_valid'),
+            models.CheckConstraint(
+                condition=models.Q(rating__isnull=True) | models.Q(rating__gte=1, rating__lte=5),
+                name='sitefeedback_rating_valid',
+            ),
+        ]
+
+
 class AnswerTrace(models.Model):
     """How an answer was produced. Admin-only, kept for 30 days."""
 
