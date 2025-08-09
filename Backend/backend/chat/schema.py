@@ -98,6 +98,11 @@ class StarterQuestion(serializers.Serializer):
     text = serializers.CharField()
 
 
+class ImportantNoticeOut(serializers.Serializer):
+    id = serializers.UUIDField()
+    title = serializers.CharField()
+
+
 class AppConfigOut(serializers.Serializer):
     banner = serializers.CharField(allow_null=True)
     maintenance = serializers.BooleanField()
@@ -105,6 +110,9 @@ class AppConfigOut(serializers.Serializer):
     starter_questions = StarterQuestion(many=True)
     daily_limit = serializers.IntegerField(allow_null=True)
     remaining_today = serializers.IntegerField(allow_null=True)
+    latest_notice_at = serializers.DateTimeField(
+        allow_null=True, help_text='Newest posted notice or new official notice document.')
+    important_notice = ImportantNoticeOut(allow_null=True)
 
 
 class CoverageCategoryOut(serializers.Serializer):

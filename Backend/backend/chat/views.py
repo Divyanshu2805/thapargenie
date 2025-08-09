@@ -20,6 +20,7 @@ from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from knowledge.storage import StorageError, get_storage
+from notices.services import app_config_fields as notice_fields
 from rest_framework import status
 from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
@@ -350,6 +351,7 @@ class AppConfigView(APIView):
             'starter_questions': settings.starter_questions,
             'daily_limit': None if request.user.is_staff else settings.daily_question_limit,
             'remaining_today': quota.remaining(request.user),
+            **notice_fields(),
         })
 
 

@@ -172,6 +172,42 @@ def create_from_text(*, title, text, meta, user, request_id=None):
     return document
 
 
+def replace_text(document, text, *, user, request_id=None):
+    """New text for a text document, then reprocess it.
+
+    Returns False, changing nothing, while the document is being processed: the caller
+    tries again later (the notices sweep does).
+    """
+    data = text.strip().encode()
+    if not data:
+        raise UnsupportedFile('The text is empty.')
+    content_hash = _hash(data)
+    if content_hash == document.content_hash:
+        return True
+    if document.source_type != SourceType.TEXT:
+        raise InvalidTransition('Only text documents can take new text.')
+    if document.status == DocumentStatus.PROCESSING:
+        return False
+    existing = Document.objects.filter(content_hash=content_hash).exclude(pk=document.pk).first()
+    if existing:
+        raise DuplicateDocument(existing)
+    get_storage().upload(document.storage_path, data, document.mime_type)
+    with transaction.atomic():
+        updated = Document.objects.filter(pk=document.pk).exclude(
+            status=DocumentStatus.PROCESSING
+        ).update(
+            content_hash=content_hash, file_size=len(data), status=DocumentStatus.QUEUED,
+            status_detail='Waiting to be processed', error='', updated_by=user,
+            updated_at=timezone.now(),
+        )
+        if not updated:
+            return False
+        document.refresh_from_db()
+        _audit(user, 'document.updated', document, request_id, fields=['text'])
+        jobs.enqueue(document.pk)
+    return True
+
+
 @transaction.atomic
 def update_document(document, changes, *, user, request_id=None):
     changes = {key: value for key, value in changes.items() if key in EDITABLE_FIELDS}

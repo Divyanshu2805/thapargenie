@@ -59,3 +59,12 @@ def requeue_stale():
         logger.info('Recovery: %d interrupted documents re-queued, %d queued for processing',
                     stale, len(waiting))
     return len(waiting)
+
+
+_sweeps = []
+
+
+def register_sweep(sweep):
+    """Also run `sweep()` in the recovery loop; for apps that keep documents in sync."""
+    if sweep not in _sweeps:
+        _sweeps.append(sweep)
