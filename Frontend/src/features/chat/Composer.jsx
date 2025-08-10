@@ -1,5 +1,7 @@
-import { ArrowUp, Square } from 'lucide-react';
+import { ArrowUp, Mic, Square } from 'lucide-react';
+import { toast } from 'sonner';
 
+import { useSpeechInput } from '@/features/chat/use-speech-input';
 import { useTypewriter } from '@/hooks/use-typewriter';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +29,8 @@ export default function Composer({
 }) {
   // While the box is empty, suggested questions type themselves out as the placeholder;
   // Tab puts the one on screen into the box.
-  const suggesting = !value && !disabled && suggestions.length > 0;
+  const speech = useSpeechInput({ value, onText: onChange, onError: (message) => toast.error(message) });
+  const suggesting = !value && !disabled && !speech.listening && suggestions.length > 0;
   const typed = useTypewriter(suggestions, { enabled: suggesting, hold: 2200 });
   const canSend = value.trim().length > 0 && !disabled && !streaming;
   const nearLimit = value.length > MAX_QUESTION_CHARS - 200;
@@ -40,13 +43,16 @@ export default function Composer({
     }
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
+      speech.stop();
       if (canSend) onSubmit();
     }
+    if (event.key === 'Escape' && speech.listening) speech.stop();
     if (event.key === 'Escape' && streaming) onStop?.();
   };
 
   let hint = ' ';
   if (disabled && disabledReason) hint = disabledReason;
+  else if (speech.listening) hint = 'Listening… speak your question, then pause.';
   else if (nearLimit) hint = `${value.length} / ${MAX_QUESTION_CHARS} characters`;
   else if (typeof remaining === 'number') hint = `${remaining} question${remaining === 1 ? '' : 's'} left today`;
 
@@ -54,6 +60,7 @@ export default function Composer({
     <form
       onSubmit={(event) => {
         event.preventDefault();
+        speech.stop();
         if (canSend) onSubmit();
       }}
       className="rounded-2xl border bg-card shadow-lift transition-[border-color,box-shadow] focus-within:border-ring/60 focus-within:ring-[3px] focus-within:ring-ring/15"
@@ -95,6 +102,27 @@ export default function Composer({
           {hint}
         </span>
         <div className="flex shrink-0 items-center gap-1.5">
+          {speech.supported && !streaming ? (
+            <button
+              type="button"
+              onClick={speech.listening ? speech.stop : speech.start}
+              disabled={disabled}
+              aria-label={speech.listening ? 'Stop listening' : 'Speak your question'}
+              aria-pressed={speech.listening}
+              title={speech.listening ? 'Stop listening' : 'Speak your question'}
+              className={cn(
+                'icon-nudge relative flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50',
+                speech.listening
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'text-muted-foreground hover:bg-hover hover:text-foreground',
+              )}
+            >
+              {speech.listening ? (
+                <span aria-hidden="true" className="absolute inset-0 animate-ping rounded-xl bg-destructive/15 [animation-duration:1.6s]" />
+              ) : null}
+              <Mic className="relative size-[18px]" />
+            </button>
+          ) : null}
           {streaming ? (
             <button
               type="button"
