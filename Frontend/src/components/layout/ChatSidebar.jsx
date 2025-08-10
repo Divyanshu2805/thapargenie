@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Archive, ArrowLeft, MessageSquare, Pin, Search, SquarePen } from 'lucide-react';
+import { Archive, ArrowLeft, Megaphone, MessageSquare, Pin, Search, SquarePen } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Kbd, MOD, SHIFT } from '@/components/ui/kbd';
 import ConversationMenu, { InlineRename } from '@/features/chat/ConversationMenu';
 import { useOpenSearch } from '@/features/chat/SearchPalette';
+import { hasUnread, useNoticesSeen } from '@/features/notices/seen';
+import { useAppConfig } from '@/hooks/use-app-config';
 import { chatKeys, listConversations } from '@/lib/api/chat';
 import { cursorFrom } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
@@ -163,6 +165,33 @@ function ConversationList({ archived, onNavigate }) {
   );
 }
 
+function NoticesItem() {
+  const { data: config } = useAppConfig();
+  const seen = useNoticesSeen();
+  const unread = hasUnread(config?.latest_notice_at, seen);
+  return (
+    <SidebarItem
+      icon={Megaphone}
+      to="/notices"
+      label={unread ? 'Notices (new)' : 'Notices'}
+      trailing={
+        unread ? (
+          <>
+            <span className="sr-only">(new)</span>
+            <span
+              aria-hidden="true"
+              data-testid="notices-dot"
+              className="absolute top-2 left-[1.6rem] size-2 rounded-full bg-destructive ring-2 ring-sidebar"
+            />
+          </>
+        ) : null
+      }
+    >
+      Notices
+    </SidebarItem>
+  );
+}
+
 export default function ChatSidebar({ onNavigate: onNavigateProp }) {
   const sidebar = useSidebar();
   const onNavigate = onNavigateProp || sidebar.onNavigate;
@@ -218,6 +247,7 @@ export default function ChatSidebar({ onNavigate: onNavigateProp }) {
       </div>
 
       <div className="flex flex-col gap-0.5 border-t border-sidebar-border px-3 py-2">
+        <NoticesItem />
         <SidebarItem icon={archived ? ArrowLeft : Archive} label={archived ? 'Back to chats' : 'Archived chats'} onClick={toggleArchived} pressed={archived} />
         <UserMenu compact={rail} />
       </div>

@@ -21,6 +21,7 @@ const SettingsPage = lazy(() => import('./features/settings/SettingsPage'));
 const PrivacyPage = lazy(() => import('./features/privacy/PrivacyPage'));
 const HelpPage = lazy(() => import('./features/help/HelpPage'));
 const SiteFeedbackPage = lazy(() => import('./features/feedback/SiteFeedbackPage'));
+const NoticesPage = lazy(() => import('./features/notices/NoticesPage'));
 const AdminLayout = lazy(() => import('./features/admin/AdminLayout'));
 const OverviewPage = lazy(() => import('./features/admin/OverviewPage'));
 const DocumentsPage = lazy(() => import('./features/admin/DocumentsPage'));
@@ -31,6 +32,7 @@ const GapsPage = lazy(() => import('./features/admin/GapsPage'));
 const SettingsAdminPage = lazy(() => import('./features/admin/SettingsAdminPage'));
 const UsersPage = lazy(() => import('./features/admin/UsersPage'));
 const AuditLogPage = lazy(() => import('./features/admin/AuditLogPage'));
+const NoticesAdminPage = lazy(() => import('./features/admin/NoticesAdminPage'));
 
 function SignedOutRoute({ children }) {
   const { initialized, user } = useAuth();
@@ -59,6 +61,7 @@ export default function App() {
           <Route path="/settings/" element={<SettingsPage />} />
           <Route path="/help" element={<HelpPage />} />
           <Route path="/feedback" element={<SiteFeedbackPage />} />
+          <Route path="/notices" element={<NoticesPage />} />
         </Route>
 
         <Route
@@ -75,6 +78,7 @@ export default function App() {
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="documents/:documentId" element={<DocumentDetailPage />} />
           <Route path="playground" element={<PlaygroundPage />} />
+          <Route path="notices" element={<NoticesAdminPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
           <Route path="gaps" element={<GapsPage />} />
           <Route path="settings" element={<SettingsAdminPage />} />

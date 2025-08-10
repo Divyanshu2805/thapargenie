@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertTriangle,
+  ArrowRight,
   BookOpen,
   Building2,
   CircleHelp,
@@ -8,6 +10,7 @@ import {
   IndianRupee,
   Landmark,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -18,6 +21,7 @@ import { LogoMark } from '@/components/brand/Brand';
 import { Skeleton } from '@/components/ui/skeleton';
 import Composer from '@/features/chat/Composer';
 import { MaintenanceCard } from '@/features/chat/Maintenance';
+import { dismissNotice, useDismissedNotice } from '@/features/notices/seen';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { createConversation } from '@/lib/api/chat';
 
@@ -81,6 +85,34 @@ function StarterQuestions({ onPick }) {
         );
       })}
     </ul>
+  );
+}
+
+/** The newest important notice, until the student dismisses it on this device. */
+export function ImportantNotice({ notice }) {
+  const dismissed = useDismissedNotice();
+  if (!notice || dismissed === notice.id) return null;
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-xl border border-destructive/25 bg-destructive/[0.05] py-2.5 pr-2 pl-3.5 text-sm animate-rise">
+      <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden="true" />
+      <p className="min-w-0 flex-1">
+        <span className="font-semibold">Important:</span> <span className="break-words">{notice.title}</span>
+      </p>
+      <Link
+        to={`/notices#notice-${notice.id}`}
+        className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 font-medium text-primary outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
+        Read <ArrowRight className="size-3.5" aria-hidden="true" />
+      </Link>
+      <button
+        type="button"
+        onClick={() => dismissNotice(notice.id)}
+        aria-label="Dismiss this notice"
+        className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
+        <X className="size-4" aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 
@@ -175,6 +207,7 @@ export default function ChatHome() {
 
         <div className="mt-6">
           {/* Nothing can be asked during maintenance, so no starter questions then. */}
+          {config?.maintenance ? null : <ImportantNotice notice={config?.important_notice} />}
           {config?.maintenance ? null : <StarterQuestions onPick={pickStarter} />}
           <p className="mt-4 text-center text-sm">
             <Link
