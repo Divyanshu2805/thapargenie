@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, Download, MoreHorizontal, Pencil, Pin, PinOff, Printer, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { chatKeys, deleteConversation, updateConversation } from '@/lib/api/chat';
+import { chatFilename, chatToMarkdown, downloadText, printChat } from '@/features/chat/export-chat';
+import { chatKeys, deleteConversation, getMessages, updateConversation } from '@/lib/api/chat';
 import { cn } from '@/lib/utils';
 
 function useConversationActions(conversation) {
@@ -47,7 +48,22 @@ function useConversationActions(conversation) {
     onError: (error) => toast.error('Couldn’t delete the chat', { description: error.message }),
   });
 
-  return { update, remove };
+  // The active branch, from the open page's data when it's there.
+  const download = async () => {
+    try {
+      const data = await queryClient.fetchQuery({
+        queryKey: chatKeys.messages(conversation.id),
+        queryFn: ({ signal }) => getMessages(conversation.id, { signal }),
+        staleTime: 30_000,
+      });
+      const current = data.conversation || conversation;
+      downloadText(chatToMarkdown(current, data.messages || []), chatFilename(current.title));
+    } catch (error) {
+      toast.error('Couldn’t download the chat', { description: error.message });
+    }
+  };
+
+  return { update, remove, download };
 }
 
 function RenameDialog({ conversation, open, onOpenChange, onRename }) {
@@ -84,8 +100,9 @@ function RenameDialog({ conversation, open, onOpenChange, onRename }) {
   );
 }
 
-export default function ConversationMenu({ conversation, className, align = 'end' }) {
-  const { update, remove } = useConversationActions(conversation);
+/** `printable`: the chat is open on this page, so it can be printed as shown. */
+export default function ConversationMenu({ conversation, className, align = 'end', printable = false }) {
+  const { update, remove, download } = useConversationActions(conversation);
   const [dialog, setDialog] = useState(null);
   const title = conversation.title || 'New conversation';
 
@@ -137,6 +154,15 @@ export default function ConversationMenu({ conversation, className, align = 'end
               </>
             )}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={download}>
+            <Download /> Download (.md)
+          </DropdownMenuItem>
+          {printable ? (
+            <DropdownMenuItem onSelect={printChat}>
+              <Printer /> Print or save as PDF
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setDialog('delete')}>
             <Trash2 /> Delete
@@ -192,7 +218,7 @@ function ToolbarButton({ label, onClick, danger, children }) {
  * pin (beside the title); `group="end"` holds archive and delete (right edge).
  */
 export function ConversationToolbar({ conversation, group }) {
-  const { update, remove } = useConversationActions(conversation);
+  const { update, remove, download } = useConversationActions(conversation);
   const [dialog, setDialog] = useState(null);
   const title = conversation.title || 'New conversation';
   return (
@@ -208,6 +234,12 @@ export function ConversationToolbar({ conversation, group }) {
         </>
       ) : (
         <>
+          <ToolbarButton label="Download (.md)" onClick={download}>
+            <Download />
+          </ToolbarButton>
+          <ToolbarButton label="Print or save as PDF" onClick={printChat}>
+            <Printer />
+          </ToolbarButton>
           <ToolbarButton
             label={conversation.is_archived ? 'Unarchive' : 'Archive'}
             onClick={() =>

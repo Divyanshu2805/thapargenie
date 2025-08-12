@@ -211,7 +211,7 @@ function ConversationView({ conversationId }) {
 
   const topbarConversation = data?.conversation;
   const topbarActions = useMemo(
-    () => (topbarConversation ? <ConversationMenu conversation={topbarConversation} /> : null),
+    () => (topbarConversation ? <ConversationMenu conversation={topbarConversation} printable /> : null),
     [topbarConversation],
   );
   usePageTopbar(topbarConversation ? topbarConversation.title || 'New conversation' : '', topbarActions);
@@ -233,6 +233,13 @@ function ConversationView({ conversationId }) {
 
   return (
     <div className="flex h-full flex-col print:block print:h-auto">
+      {/* Printing: a plain header instead of the toolbar, and only the thread. */}
+      <div className="hidden border-b pb-3 print:block">
+        <h1 className="text-xl font-semibold">{conversation?.title || 'New conversation'}</h1>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Exported from ThaparGenie on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}. Answers can be wrong; check the official sources.
+        </p>
+      </div>
       <div className="hidden h-16 shrink-0 items-center gap-2 border-b px-6 md:flex print:hidden">
         <h1 className="min-w-0 truncate text-base font-semibold tracking-tight">
           {conversation ? conversation.title || 'New conversation' : <Skeleton className="h-4 w-48" />}
