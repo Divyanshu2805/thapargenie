@@ -5,11 +5,13 @@ import {
   LogOut,
   MessageSquareHeart,
   Monitor,
+  MonitorDown,
   Moon,
   Settings,
   ShieldCheck,
   Sun,
 } from 'lucide-react';
+import { lazy, Suspense, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import { useAuth } from '@/auth/AuthContext';
@@ -22,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useInstallApp } from '@/lib/install-prompt';
 import { onSignInPage, useSlideClick } from '@/lib/page-slide';
 import { cn, initialsOf } from '@/lib/utils';
 
@@ -42,6 +45,9 @@ export function UserAvatar({ className }) {
   );
 }
 
+// Only iPhone/iPad Safari needs it, so the dialog code loads on demand.
+const IosInstallDialog = lazy(() => import('@/components/layout/IosInstallDialog'));
+
 export default function UserMenu({ side = 'top', align = 'start', compact = false }) {
   const { user, profile } = useAuth();
   // Signing out slides to the sign-in page once it is showing.
@@ -49,6 +55,8 @@ export default function UserMenu({ side = 'top', align = 'start', compact = fals
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const name = user?.displayName || (user?.email || profile?.email || '').split('@')[0];
+  const installApp = useInstallApp();
+  const [iosHelp, setIosHelp] = useState(false);
 
   return (
     <>
@@ -124,6 +132,11 @@ export default function UserMenu({ side = 'top', align = 'start', compact = fals
               <FileLock2 /> Privacy notice
             </Link>
           </DropdownMenuItem>
+          {installApp.mode ? (
+            <DropdownMenuItem onSelect={() => (installApp.mode === 'ios' ? setIosHelp(true) : installApp.install())}>
+              <MonitorDown /> Install app
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild variant="destructive">
             <Link to="/logout/" onClick={signOutClick}>
@@ -132,6 +145,11 @@ export default function UserMenu({ side = 'top', align = 'start', compact = fals
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {iosHelp ? (
+        <Suspense fallback={null}>
+          <IosInstallDialog open onOpenChange={setIosHelp} />
+        </Suspense>
+      ) : null}
     </>
   );
 }

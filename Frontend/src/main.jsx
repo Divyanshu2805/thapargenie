@@ -9,10 +9,12 @@ import { RecentAuthProvider } from './components/recent-auth.jsx';
 import { ThemeProvider } from './components/theme-provider.jsx';
 import { Toaster } from './components/ui/sonner.jsx';
 import { TooltipProvider } from './components/ui/tooltip.jsx';
+import { listenForInstallPrompt } from './lib/install-prompt.js';
 import { slideOnHistoryMoves } from './lib/page-slide.js';
 import { queryClient } from './lib/query-client.js';
 import './index.css';
 
+listenForInstallPrompt();
 slideOnHistoryMoves();
 
 createRoot(document.getElementById('root')).render(
