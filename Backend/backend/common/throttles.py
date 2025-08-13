@@ -1,5 +1,5 @@
 from rest_framework.permissions import SAFE_METHODS
-from rest_framework.throttling import UserRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 
 class AskThrottle(UserRateThrottle):
@@ -41,3 +41,9 @@ class SiteFeedbackThrottle(UserRateThrottle):
     """Feedback on the site: a few per hour is plenty, and it keeps the admin queue clean."""
 
     scope = 'site_feedback'
+
+
+class SharedViewThrottle(AnonRateThrottle):
+    """Public shared-answer links, counted per address (nobody is signed in there)."""
+
+    scope = 'shared_view'

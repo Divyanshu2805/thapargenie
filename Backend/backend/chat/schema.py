@@ -127,6 +127,34 @@ class CoverageOut(serializers.Serializer):
     categories = CoverageCategoryOut(many=True)
 
 
+class ShareOut(serializers.Serializer):
+    token = serializers.CharField()
+    created_at = serializers.DateTimeField()
+    expires_at = serializers.DateTimeField()
+
+
+class ShareStateOut(serializers.Serializer):
+    share = ShareOut(allow_null=True)
+
+
+class SharedSourceOut(serializers.Serializer):
+    position = serializers.IntegerField()
+    title = serializers.CharField()
+    url = serializers.CharField(allow_blank=True, help_text='Public https links only.')
+    heading_path = serializers.CharField(allow_blank=True)
+    page_start = serializers.IntegerField(allow_null=True)
+    page_end = serializers.IntegerField(allow_null=True)
+    cited = serializers.BooleanField()
+
+
+class SharedAnswerOut(serializers.Serializer):
+    question = serializers.CharField(allow_blank=True)
+    answer = serializers.CharField()
+    sources = SharedSourceOut(many=True)
+    created_at = serializers.DateTimeField()
+    expires_at = serializers.DateTimeField()
+
+
 class UrlOut(serializers.Serializer):
     url = serializers.URLField()
 

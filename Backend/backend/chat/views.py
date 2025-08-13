@@ -10,6 +10,7 @@ from common.sse import event_stream_response
 from common.throttles import (
     AskThrottle,
     ExportThrottle,
+    SharedViewThrottle,
     SiteFeedbackThrottle,
     SuggestThrottle,
 )
@@ -26,7 +27,7 @@ from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from chat import answering, cache, coverage, engine, quota, suggestions
+from chat import answering, cache, coverage, engine, quota, sharing, suggestions
 from chat.models import (
     ChatSettings,
     Conversation,
@@ -42,6 +43,9 @@ from chat.schema import (
     CoverageOut,
     FeedbackOut,
     MessagesOut,
+    SharedAnswerOut,
+    ShareOut,
+    ShareStateOut,
     SiteFeedbackListOut,
     SiteFeedbackOut,
     SuggestionsOut,
@@ -283,6 +287,63 @@ class SuggestionsView(APIView):
     def post(self, request, message_id):
         message = owned_message(request, message_id)
         return Response({'suggestions': suggestions.suggest(message, request.user)})
+
+
+def share_payload(shared):
+    return {'token': shared.token, 'created_at': shared.created_at,
+            'expires_at': shared.expires_at}
+
+
+class ShareView(APIView):
+    """The student's 7-day public link to one answer."""
+
+    @extend_schema(operation_id='messages_share_retrieve', tags=['chat'], responses=ShareStateOut)
+    def get(self, request, message_id):
+        message = owned_message(request, message_id)
+        shared = sharing.active_share(message, request.user)
+        return Response({'share': share_payload(shared) if shared else None})
+
+    @extend_schema(operation_id='messages_share_create', tags=['chat'], request=None,
+                   responses={200: ShareOut, 201: ShareOut})
+    def post(self, request, message_id):
+        message = owned_message(request, message_id)
+        try:
+            shared, created = sharing.share(message, request.user, request_id=request_id(request))
+        except sharing.NotShareable as exc:
+            return error_response(request, status.HTTP_409_CONFLICT, 'not_shareable', str(exc))
+        return Response(share_payload(shared),
+                        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @extend_schema(operation_id='messages_share_revoke', tags=['chat'], responses={204: None})
+    def delete(self, request, message_id):
+        message = owned_message(request, message_id)
+        sharing.revoke(message, request.user, request_id=request_id(request))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SharedAnswerView(APIView):
+    """Public: anyone with the link, no sign-in and no token read at all."""
+
+    authentication_classes = []
+    permission_classes = []
+    throttle_classes = [SharedViewThrottle]
+
+    @extend_schema(operation_id='shared_answer', tags=['chat'], auth=[],
+                   responses=SharedAnswerOut)
+    def get(self, request, token):
+        shared = sharing.public(token)
+        if shared is None:
+            raise Http404
+        response = Response({
+            'question': shared.question,
+            'answer': shared.answer,
+            'sources': shared.sources,
+            'created_at': shared.created_at,
+            'expires_at': shared.expires_at,
+        })
+        response['X-Robots-Tag'] = 'noindex, nofollow'
+        response['Cache-Control'] = 'no-store'
+        return response
 
 
 class FeedbackView(APIView):

@@ -283,6 +283,40 @@ class SiteFeedback(UUIDModel, TimestampedModel):
         ]
 
 
+SHARE_DAYS = 7
+
+
+class SharedAnswer(UUIDModel):
+    """A public, read-only link to one answer.
+
+    The question, answer and sources are copied when the link is made, so the link shows
+    exactly what was shared. Deleting the chat deletes its links (CASCADE).
+    """
+
+    token = models.CharField(max_length=64, unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shared_answers'
+    )
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='shares')
+    question = models.TextField(blank=True)
+    answer = models.TextField()
+    sources = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=('message', 'user'), name='share_message_user_idx')]
+        constraints = [
+            max_length_check('question', MAX_QUESTION_CHARS, 'share_question_length'),
+            max_length_check('answer', MAX_MESSAGE_CHARS, 'share_answer_length'),
+        ]
+
+    def is_active(self, now=None):
+        now = now or timezone.now()
+        return self.revoked_at is None and self.expires_at > now
+
+
 class AnswerTrace(models.Model):
     """How an answer was produced. Admin-only, kept for 30 days."""
 

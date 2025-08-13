@@ -32,6 +32,12 @@ urlpatterns = [
         views.FeedbackView.as_view(),
         name='message-feedback',
     ),
+    path(
+        'messages/<uuid:message_id>/share/',
+        views.ShareView.as_view(),
+        name='message-share',
+    ),
+    path('shared/<str:token>/', views.SharedAnswerView.as_view(), name='shared-answer'),
     path('site-feedback/', views.SiteFeedbackView.as_view(), name='site-feedback'),
     path('sources/<uuid:source_id>/open/', views.SourceOpenView.as_view(), name='source-open'),
 ]
