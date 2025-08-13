@@ -31,6 +31,12 @@ class ExportThrottle(UserRateThrottle):
     scope = 'export'
 
 
+class AdminExportThrottle(UserRateThrottle):
+    """CSV downloads: each one reads up to 5,000 rows."""
+
+    scope = 'admin_export'
+
+
 class SiteFeedbackThrottle(UserRateThrottle):
     """Feedback on the site: a few per hour is plenty, and it keeps the admin queue clean."""
 

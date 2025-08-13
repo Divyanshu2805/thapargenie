@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { PageHeader } from '@/components/layout/PageHeader';
+import ExportCsvButton from '@/features/admin/ExportCsvButton';
 import { SplitSection } from '@/components/split-section';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +24,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarList, ColumnChart, Meter } from '@/features/admin/charts';
 import { EmptyState, ErrorState } from '@/features/admin/components';
 import { ANSWER_TYPES } from '@/features/admin/constants';
-import { adminKeys, getStats, listGaps } from '@/lib/api/admin';
+import { adminKeys, exportStatsCsv, getStats, listGaps } from '@/lib/api/admin';
 import { formatBytes, formatCompact, formatDate, formatMs, formatNumber, formatPercent, formatRelative } from '@/lib/format';
 
 /** One figure in the "At a glance" strip. */
@@ -99,6 +100,7 @@ export default function OverviewPage() {
       description="Questions, answer quality, speed and the knowledge base."
       actions={
         <>
+          <ExportCsvButton request={() => exportStatsCsv(range)} fallbackName="thapargenie-stats.csv" label="Export daily stats" />
           <Tabs value={range} onValueChange={setRange}>
             <TabsList aria-label="Time range">
               <TabsTrigger value="7d">7 days</TabsTrigger>

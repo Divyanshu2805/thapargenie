@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { PageHeader } from '@/components/layout/PageHeader';
+import ExportCsvButton from '@/features/admin/ExportCsvButton';
 import { SplitSection } from '@/components/split-section';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ import SiteFeedbackSection from '@/features/admin/SiteFeedbackSection';
 import { EmptyState, ErrorState, LoadMoreButton, StatusBadge, TableSkeleton, useCursorList } from '@/features/admin/components';
 import { ANSWER_TYPES, FEEDBACK_REASONS } from '@/features/admin/constants';
 import Markdown from '@/features/chat/Markdown';
-import { adminKeys, listFeedback, updateFeedback } from '@/lib/api/admin';
+import { adminKeys, exportFeedbackCsv, listFeedback, updateFeedback } from '@/lib/api/admin';
 import { formatMs, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -174,6 +175,7 @@ export default function FeedbackPage() {
       <PageHeader
         title="Feedback"
         description="Rated answers and site feedback, without student identities."
+        actions={<ExportCsvButton request={() => exportFeedbackCsv(filters)} fallbackName="thapargenie-feedback.csv" label="Export rated answers" />}
       />
 
       <SplitSection

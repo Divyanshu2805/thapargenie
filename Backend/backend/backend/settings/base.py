@@ -156,6 +156,7 @@ REST_FRAMEWORK = {
         "admin_write": os.getenv("THROTTLE_ADMIN_WRITE", "30/min"),
         "export": os.getenv("THROTTLE_EXPORT", "5/hour"),
         "site_feedback": os.getenv("THROTTLE_SITE_FEEDBACK", "5/hour"),
+        "admin_export": os.getenv("THROTTLE_ADMIN_EXPORT", "30/hour"),
     },
     # How many proxies sit in front of the app and append X-Forwarded-For. 0 (local)
     # ignores the header; Render needs 1. Without it, anonymous clients could forge

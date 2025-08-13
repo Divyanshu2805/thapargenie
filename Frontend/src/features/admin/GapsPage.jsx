@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { PageHeader } from '@/components/layout/PageHeader';
+import ExportCsvButton from '@/features/admin/ExportCsvButton';
 import { SplitSection } from '@/components/split-section';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AddKnowledgeDialog from '@/features/admin/AddKnowledgeDialog';
 import { EmptyState, ErrorState, TableSkeleton } from '@/features/admin/components';
 import { faqDraft } from '@/features/admin/FeedbackPage';
-import { adminKeys, listGaps } from '@/lib/api/admin';
+import { adminKeys, exportGapsCsv, listGaps } from '@/lib/api/admin';
 import { formatNumber, formatRelative } from '@/lib/format';
 
 export default function GapsPage() {
@@ -27,6 +28,7 @@ export default function GapsPage() {
         description="Questions ThaparGenie couldn’t answer, ranked by how often they were asked."
         actions={
           <>
+            <ExportCsvButton request={() => exportGapsCsv(range)} fallbackName="thapargenie-gaps.csv" />
             <Tabs value={range} onValueChange={setRange}>
               <TabsList aria-label="Time range">
                 <TabsTrigger value="7d">7 days</TabsTrigger>

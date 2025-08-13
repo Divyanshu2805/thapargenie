@@ -285,6 +285,42 @@ def gaps(days):
     ]
 
 
+# -- CSV exports ---------------------------------------------------------------------
+
+FEEDBACK_CSV_HEADER = (
+    'rated_at', 'reporter', 'rating', 'reason', 'comment', 'review_status', 'admin_note',
+    'reviewed_at', 'answer_type', 'grounded', 'question', 'answer', 'sources',
+)
+GAPS_CSV_HEADER = ('question', 'times_asked', 'students', 'last_asked')
+STATS_CSV_HEADER = ('day', *USAGE_FIELDS)
+
+
+def feedback_csv_rows(items):
+    """Same pseudonymous view as the Feedback page: never the student's identity."""
+    for feedback in items.order_by('-created_at'):
+        answer = feedback.message
+        question = answer.parent
+        sources = ' | '.join(
+            source.title for source in sorted(answer.sources.all(), key=lambda s: s.position)
+        )
+        yield (
+            feedback.created_at, pseudonym(feedback.user_id), feedback.rating, feedback.reason,
+            feedback.comment, feedback.review_status, feedback.admin_note, feedback.reviewed_at,
+            answer.answer_type, answer.grounded, question.content if question else '',
+            answer.content, sources,
+        )
+
+
+def gaps_csv_rows(days):
+    for row in gaps(days):
+        yield row['query'], row['count'], row['askers'], row['last_seen']
+
+
+def stats_csv_rows(days):
+    for row in stats(days)['daily']:
+        yield (row['day'], *(row[name] for name in USAGE_FIELDS))
+
+
 # -- settings ------------------------------------------------------------------------
 
 SETTINGS_FIELDS = (

@@ -2,7 +2,10 @@
 
 from common.admin_api import AdminAPIView, choice_param, paginate, request_id
 from common.audit import audit
+from common.csv_export import csv_response
+from common.throttles import AdminExportThrottle
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from knowledge.errors import LLMUnavailable
 from rag.llm import LLMError
@@ -84,6 +87,76 @@ class FeedbackDetailView(AdminAPIView):
                                        request_id=request_id(request))
         item = admin_services.feedback_queryset().get(pk=feedback.pk)
         return Response(admin_services.feedback_payload(item))
+
+
+class CsvExportView(AdminAPIView):
+    """A CSV download, audited with its kind and row count."""
+
+    kind = ''
+
+    def get_throttles(self):
+        return [*super().get_throttles(), AdminExportThrottle()]
+
+    def send(self, request, header, rows, **metadata):
+        filename = f'thapargenie-{self.kind}-{timezone.localdate().isoformat()}.csv'
+        response = csv_response(filename, header, rows)
+        audit(request.user, 'export.csv', 'export', self.kind, request_id=request_id(request),
+              rows=response.rows_written, **metadata)
+        return response
+
+
+CSV_RESPONSE = {(200, 'text/csv'): {'type': 'string'}}
+
+
+class FeedbackExportView(CsvExportView):
+    kind = 'feedback'
+
+    @extend_schema(
+        operation_id='admin_feedback_export',
+        tags=TAGS,
+        parameters=[
+            OpenApiParameter('review_status', str, enum=Feedback.Review.values),
+            OpenApiParameter('rating', int, enum=[-1, 1]),
+            OpenApiParameter('answer_type', str, enum=Message.AnswerType.values),
+            OpenApiParameter('reason', str, enum=Feedback.Reason.values),
+        ],
+        responses=CSV_RESPONSE,
+    )
+    def get(self, request):
+        filters = {
+            'review_status': choice_param(request, 'review_status', Feedback.Review.values),
+            'rating': choice_param(request, 'rating', ('1', '-1')),
+            'answer_type': choice_param(request, 'answer_type', Message.AnswerType.values),
+            'reason': choice_param(request, 'reason', Feedback.Reason.values),
+        }
+        items = admin_services.feedback_queryset(**filters)
+        return self.send(request, admin_services.FEEDBACK_CSV_HEADER,
+                         admin_services.feedback_csv_rows(items),
+                         filters={key: value for key, value in filters.items() if value})
+
+
+class GapsExportView(CsvExportView):
+    kind = 'gaps'
+
+    @extend_schema(operation_id='admin_gaps_export', tags=TAGS,
+                   parameters=[OpenApiParameter('range', str, enum=list(admin_services.RANGES),
+                                                default='30d')],
+                   responses=CSV_RESPONSE)
+    def get(self, request):
+        days = _range(request, '30d')
+        return self.send(request, admin_services.GAPS_CSV_HEADER,
+                         admin_services.gaps_csv_rows(days), range_days=days)
+
+
+class StatsExportView(CsvExportView):
+    kind = 'stats'
+
+    @extend_schema(operation_id='admin_stats_export', tags=TAGS, parameters=[RANGE_PARAM],
+                   responses=CSV_RESPONSE)
+    def get(self, request):
+        days = _range(request, '7d')
+        return self.send(request, admin_services.STATS_CSV_HEADER,
+                         admin_services.stats_csv_rows(days), range_days=days)
 
 
 class SiteFeedbackListView(AdminAPIView):
