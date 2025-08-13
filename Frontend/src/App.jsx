@@ -20,6 +20,7 @@ const ConversationPage = lazy(() => import('./features/chat/ConversationPage'));
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'));
 const PrivacyPage = lazy(() => import('./features/privacy/PrivacyPage'));
 const HelpPage = lazy(() => import('./features/help/HelpPage'));
+const SharedAnswerPage = lazy(() => import('./features/shared/SharedAnswerPage'));
 const SiteFeedbackPage = lazy(() => import('./features/feedback/SiteFeedbackPage'));
 const NoticesPage = lazy(() => import('./features/notices/NoticesPage'));
 const AdminLayout = lazy(() => import('./features/admin/AdminLayout'));
@@ -54,6 +55,8 @@ export default function App() {
         <Route path="/create-new-password/" element={<Navigate to="/forgot-password/" replace />} />
         <Route path="/verify-email/" element={<Navigate to="/chat/" replace />} />
         <Route path="/privacy" element={<Suspense fallback={<AuthLoading message="Loading…" />}><PrivacyPage /></Suspense>} />
+        {/* A shared answer: public, whether or not the viewer is signed in. */}
+        <Route path="/s/:token" element={<Suspense fallback={<AuthLoading message="Loading…" />}><SharedAnswerPage /></Suspense>} />
 
         <Route element={<PrivateRoute><AppShell /></PrivateRoute>}>
           <Route path="/chat/" element={<ChatHome />} />

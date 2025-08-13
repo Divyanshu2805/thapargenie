@@ -10,6 +10,7 @@ import {
   Pencil,
   RefreshCw,
   RotateCcw,
+  Share2,
   ShieldAlert,
   Square,
   ThumbsDown,
@@ -22,6 +23,7 @@ import { LogoMark } from '@/components/brand/Brand';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import FeedbackDialog from '@/features/chat/FeedbackDialog';
+import ShareDialog from '@/features/chat/ShareDialog';
 import { describeFreshness } from '@/features/chat/freshness';
 import Markdown from '@/features/chat/Markdown';
 import { CitationChip, SourceList } from '@/features/chat/sources';
@@ -242,6 +244,7 @@ function ErrorNotice({ error, onRetry }) {
  */
 export function AssistantMessage({
   message,
+  question = '',
   busy,
   isLast,
   onRegenerate,
@@ -254,6 +257,7 @@ export function AssistantMessage({
   askDisabled = false,
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const streaming = message.status === 'streaming';
   const sourcesByPosition = new Map((message.sources || []).map((source) => [source.position, source]));
   const rating = message.feedback?.rating ?? 0;
@@ -327,6 +331,9 @@ export function AssistantMessage({
                 >
                   <ThumbsDown className={cn(rating === -1 && 'fill-current')} />
                 </IconAction>
+                <IconAction label="Share" onClick={() => setShareOpen(true)}>
+                  <Share2 />
+                </IconAction>
               </>
             ) : null}
             <IconAction label="Regenerate" disabled={busy} onClick={() => onRegenerate(message.id)}>
@@ -341,6 +348,8 @@ export function AssistantMessage({
           <FollowUps message={message} pending={suggesting} askDisabled={busy || askDisabled} onSuggest={onSuggest} onAsk={onAsk} />
         ) : null}
       </div>
+
+      {shareOpen ? <ShareDialog open message={message} question={question} onOpenChange={setShareOpen} /> : null}
 
       {feedbackOpen ? (
         <FeedbackDialog
