@@ -130,6 +130,30 @@ class KnowledgeOut(serializers.Serializer):
     expired = serializers.IntegerField(help_text='Documents past their "valid until" date.')
 
 
+class EvalRunOut(serializers.Serializer):
+    id = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
+    trigger = serializers.CharField()
+    cases = serializers.IntegerField()
+    recall_at_5 = serializers.FloatField()
+    recall_at_10 = serializers.FloatField()
+    mrr = serializers.FloatField()
+    errors = serializers.IntegerField()
+    misses = serializers.ListField(child=serializers.CharField())
+    important_misses = serializers.ListField(child=serializers.CharField())
+
+
+class QualityWarningOut(serializers.Serializer):
+    code = serializers.CharField()
+    message = serializers.CharField()
+
+
+class QualityOut(serializers.Serializer):
+    latest = EvalRunOut(allow_null=True)
+    previous = EvalRunOut(allow_null=True)
+    warnings = QualityWarningOut(many=True)
+
+
 class StatsOut(serializers.Serializer):
     range_days = serializers.IntegerField()
     totals = UsageOut()
@@ -141,6 +165,7 @@ class StatsOut(serializers.Serializer):
     budget = BudgetOut()
     knowledge = KnowledgeOut()
     database_bytes = serializers.IntegerField()
+    quality = QualityOut(help_text='The nightly search-quality check.')
 
 
 class FeedbackSourceOut(serializers.Serializer):

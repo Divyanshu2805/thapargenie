@@ -17,6 +17,7 @@ from django.db.models.functions import Coalesce, Lower, NullIf, Trim
 from django.utils import timezone
 from knowledge import services as knowledge_services
 from knowledge.models import Chunk, Document
+from rag import quality
 from rag.llm import get_llm
 from rag.pipeline import answer_events
 
@@ -125,6 +126,7 @@ def stats(days):
             **knowledge_services.expiry_summary(),
         },
         'database_bytes': database_bytes,
+        'quality': quality.summary(),
     }
 
 

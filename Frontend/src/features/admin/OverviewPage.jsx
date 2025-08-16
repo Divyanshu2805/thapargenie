@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 
 import { PageHeader } from '@/components/layout/PageHeader';
 import ExportCsvButton from '@/features/admin/ExportCsvButton';
+import QualitySection from '@/features/admin/QualitySection';
 import { SplitSection } from '@/components/split-section';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -179,6 +180,8 @@ export default function OverviewPage() {
             />
           </div>
         </SplitSection>
+
+        <QualitySection quality={data.quality} />
 
         <SplitSection icon={BarChart3} title="Activity" description="Questions per day, and how each answer ended." flush>
           <div className="px-5 pt-6 pb-5 sm:px-6">
