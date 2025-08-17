@@ -51,6 +51,27 @@ class SupabaseStorage:
         )
         self._check(response, 'delete')
 
+    def list(self, prefix, *, page_size=1000):
+        """Every object under `prefix` (one folder level) as {path: created_at ISO string}."""
+        found, offset = {}, 0
+        while True:
+            response = self._check(
+                self._client.post(
+                    f'{self.base}/object/list/{self.bucket}',
+                    json={'prefix': prefix, 'limit': page_size, 'offset': offset,
+                          'sortBy': {'column': 'name', 'order': 'asc'}},
+                ),
+                'list',
+            )
+            items = response.json()
+            for item in items:
+                # Folders come back without an id; only files are returned.
+                if item.get('id'):
+                    found[f'{prefix}/{item["name"]}'] = item.get('created_at') or ''
+            if len(items) < page_size:
+                return found
+            offset += page_size
+
     def signed_url(self, path, *, filename=None, expires=SIGNED_URL_SECONDS):
         response = self._check(
             self._client.post(
@@ -73,6 +94,7 @@ class MemoryStorage:
 
     def __init__(self):
         self.objects = {}
+        self.created = {}
 
     def upload(self, path, data, content_type):
         self.objects[path] = (data, content_type)
@@ -85,6 +107,11 @@ class MemoryStorage:
     def delete(self, paths):
         for path in paths:
             self.objects.pop(path, None)
+
+    def list(self, prefix, *, page_size=1000):
+        # Tests may set `created` to age an object; the default is "long ago".
+        return {path: self.created.get(path, '2000-01-01T00:00:00+00:00')
+                for path in self.objects if path.startswith(f'{prefix}/')}
 
     def signed_url(self, path, *, filename=None, expires=SIGNED_URL_SECONDS):
         return f'memory://{path}?expires={expires}'

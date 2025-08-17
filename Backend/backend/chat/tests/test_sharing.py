@@ -11,7 +11,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from chat import sharing
+from chat import retention, sharing
 from chat.models import Conversation, Message, MessageSource, SharedAnswer
 
 
@@ -104,3 +104,19 @@ class ShareTests(SharingTestCase):
         token = self.client.post(self.url()).data['token']
         codes = [self.shared(token).status_code for _ in range(3)]
         self.assertEqual(codes, [200, 200, 429])
+
+
+class ShareRetentionTests(SharingTestCase):
+    def test_purges_links_a_month_after_they_end(self):
+        now = timezone.now()
+        make = lambda token, **fields: SharedAnswer.objects.create(  # noqa: E731
+            token=token * 32, user=self.student, message=self.answer, answer='x', **fields)
+        make('a', expires_at=now - timedelta(days=31))
+        make('b', expires_at=now + timedelta(days=3), revoked_at=now - timedelta(days=31))
+        make('c', expires_at=now - timedelta(days=10))
+        make('d', expires_at=now + timedelta(days=3))
+        self.assertEqual(sharing.purge(now, dry_run=True), 2)
+        results = retention.purge(now)
+        self.assertEqual(results['shared_links'], 2)
+        self.assertEqual(sorted(SharedAnswer.objects.values_list('token', flat=True)),
+                         ['c' * 32, 'd' * 32])

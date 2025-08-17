@@ -43,6 +43,21 @@ class SupabaseStorageTests(SimpleTestCase):
         storage.delete(['documents/a.pdf', ''])
         self.assertEqual(json.loads(self.requests[0].content), {'prefixes': ['documents/a.pdf']})
 
+    def test_list_pages_through_everything_and_skips_folders(self):
+        page_one = [{'id': str(i), 'name': f'{i}.pdf', 'created_at': '2026-01-01T00:00:00Z'}
+                    for i in range(2)]
+        # A full page means there may be more: the empty third page ends the walk.
+        pages = [page_one, [{'id': None, 'name': 'nested'}, {'id': 'x', 'name': 'x.pdf'}], []]
+
+        def handler(request):
+            body = json.loads(request.content)
+            return httpx.Response(200, json=pages[body['offset'] // body['limit']])
+
+        found = self.storage(handler).list('documents', page_size=2)
+        self.assertEqual(sorted(found), ['documents/0.pdf', 'documents/1.pdf', 'documents/x.pdf'])
+        self.assertEqual(found['documents/x.pdf'], '')
+        self.assertEqual([json.loads(r.content)['offset'] for r in self.requests], [0, 2, 4])
+
     def test_signed_url_requires_a_url_in_the_reply(self):
         storage = self.storage(lambda request: httpx.Response(200, json={}))
         with self.assertRaises(StorageError):

@@ -13,7 +13,7 @@ from knowledge.models import Document, DocumentStatus
 from knowledge.storage import MemoryStorage, use_storage
 from rest_framework.test import APIClient
 
-from notices import services
+from notices import retention, services
 from notices.models import Notice
 
 URL = '/api/v1/notices/'
@@ -313,6 +313,21 @@ class AdminNoticeTests(NoticesTestCase):
         response = self.patch(expired, title='Old, renamed',
                               expires_at=expired.expires_at.isoformat())
         self.assertEqual(response.status_code, 200, response.data)
+
+
+class RetentionTests(NoticesTestCase):
+    @override_settings(RETENTION_NOTICE_DAYS=365)
+    def test_purges_a_year_after_expiry(self):
+        gone = notice(publish_at=self.now - timedelta(days=500),
+                      expires_at=self.now - timedelta(days=366))
+        kept = notice(publish_at=self.now - timedelta(days=500),
+                      expires_at=self.now - timedelta(days=300))
+        forever = notice(publish_at=self.now - timedelta(days=900))
+        self.assertEqual(retention.purge(self.now, dry_run=True), 1)
+        self.assertEqual(retention.purge(self.now), 1)
+        self.assertEqual(set(Notice.objects.values_list('pk', flat=True)),
+                         {kept.pk, forever.pk})
+        self.assertFalse(Notice.objects.filter(pk=gone.pk).exists())
 
 
 class ReplaceTextTests(NoticesTestCase):

@@ -11,6 +11,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from chat import retention
 from chat.admin_services import pseudonym
 from chat.models import SiteFeedback
 
@@ -119,3 +120,14 @@ class AdminSiteFeedbackTests(TestCase):
     def test_students_cannot_use_the_admin_endpoints(self):
         student = client_for(self.student)
         self.assertEqual(student.get(ADMIN_URL).status_code, 403)
+
+
+class SiteFeedbackRetentionTests(TestCase):
+    def test_old_feedback_is_purged(self):
+        student = make_user('student@thapar.edu')
+        old = SiteFeedback.objects.create(user=student, kind='other', message='From a year ago.')
+        a_year_ago = timezone.now() - timedelta(days=400)
+        SiteFeedback.objects.filter(pk=old.pk).update(created_at=a_year_ago)
+        fresh = SiteFeedback.objects.create(user=student, kind='other', message='From this week.')
+        self.assertEqual(retention.purge()['site_feedback'], 1)
+        self.assertEqual(list(SiteFeedback.objects.values_list('pk', flat=True)), [fresh.pk])

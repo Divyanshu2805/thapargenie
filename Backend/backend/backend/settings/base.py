@@ -246,6 +246,15 @@ INGEST_URL_ALLOWLIST = tuple(
 INGEST_MAX_FILE_MB = env_int("INGEST_MAX_FILE_MB", 25)
 INGEST_MAX_PAGES = env_int("INGEST_MAX_PAGES", 300)
 
+# Retention, applied daily by `manage.py purge_data`.
+RETENTION_CONVERSATION_DAYS = env_int("RETENTION_CONVERSATION_DAYS", 180)
+RETENTION_TRACE_DAYS = env_int("RETENTION_TRACE_DAYS", 30)
+RETENTION_USAGE_DAYS = env_int("RETENTION_USAGE_DAYS", 400)  # 13 months, rounded up
+RETENTION_AUDIT_DAYS = env_int("RETENTION_AUDIT_DAYS", 365)
+RETENTION_FAILED_DOCUMENT_DAYS = env_int("RETENTION_FAILED_DOCUMENT_DAYS", 30)
+RETENTION_SITE_FEEDBACK_DAYS = env_int("RETENTION_SITE_FEEDBACK_DAYS", 365)
+RETENTION_NOTICE_DAYS = env_int("RETENTION_NOTICE_DAYS", 365)  # after expiry
+
 PROVIDERS = {"gemini", "openai"}
 if LLM_PROVIDER not in PROVIDERS or EMBED_PROVIDER not in PROVIDERS:
     raise ImproperlyConfigured("LLM_PROVIDER and EMBED_PROVIDER must be gemini or openai.")
@@ -257,6 +266,11 @@ if not 1 <= INGEST_MAX_FILE_MB <= 50:
     raise ImproperlyConfigured("INGEST_MAX_FILE_MB must be between 1 and 50.")
 if not 1 <= INGEST_MAX_PAGES <= 2000:
     raise ImproperlyConfigured("INGEST_MAX_PAGES must be between 1 and 2000.")
+for _name in ("RETENTION_CONVERSATION_DAYS", "RETENTION_TRACE_DAYS", "RETENTION_USAGE_DAYS",
+              "RETENTION_AUDIT_DAYS", "RETENTION_FAILED_DOCUMENT_DAYS",
+              "RETENTION_SITE_FEEDBACK_DAYS", "RETENTION_NOTICE_DAYS"):
+    if not 1 <= globals()[_name] <= 3650:
+        raise ImproperlyConfigured(f"{_name} must be between 1 and 3650 days.")
 
 LOGGING = {
     "version": 1,
