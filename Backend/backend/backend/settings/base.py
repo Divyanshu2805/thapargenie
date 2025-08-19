@@ -257,9 +257,17 @@ RETENTION_FAILED_DOCUMENT_DAYS = env_int("RETENTION_FAILED_DOCUMENT_DAYS", 30)
 RETENTION_SITE_FEEDBACK_DAYS = env_int("RETENTION_SITE_FEEDBACK_DAYS", 365)
 RETENTION_NOTICE_DAYS = env_int("RETENTION_NOTICE_DAYS", 365)  # after expiry
 
-PROVIDERS = {"gemini", "openai"}
+# Local/CI only (end-to-end tests); settings/production.py refuses both.
+# "offline": a deterministic, free stand-in for the AI provider (rag/llm/offline.py).
+OFFLINE_LLM_DELAY_MS = env_int("OFFLINE_LLM_DELAY_MS", 60)
+# "memory": uploads kept in the server process instead of Supabase Storage.
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "supabase").strip().lower()
+
+PROVIDERS = {"gemini", "openai", "offline"}
 if LLM_PROVIDER not in PROVIDERS or EMBED_PROVIDER not in PROVIDERS:
-    raise ImproperlyConfigured("LLM_PROVIDER and EMBED_PROVIDER must be gemini or openai.")
+    raise ImproperlyConfigured("LLM_PROVIDER and EMBED_PROVIDER must be gemini, openai or offline.")
+if STORAGE_BACKEND not in {"supabase", "memory"}:
+    raise ImproperlyConfigured("STORAGE_BACKEND must be supabase or memory.")
 if EMBED_DIMENSIONS != 768:
     raise ImproperlyConfigured("EMBED_DIMENSIONS must be 768 to match the vector columns.")
 if SUPABASE_URL and not SUPABASE_URL.startswith("https://"):

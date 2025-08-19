@@ -33,6 +33,10 @@ def _build(name):
         from rag.llm.openai_provider import OpenAIProvider
 
         return OpenAIProvider(settings.OPENAI_API_KEY, settings.LLM_TIMEOUT_SECONDS)
+    if name == 'offline':
+        from rag.llm.offline import OfflineProvider
+
+        return OfflineProvider(delay_ms=settings.OFFLINE_LLM_DELAY_MS)
     raise ImproperlyConfigured(f'Unknown LLM provider {name!r}.')
 
 

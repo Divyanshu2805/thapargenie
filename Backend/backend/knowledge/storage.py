@@ -129,6 +129,8 @@ def use_storage(storage):
 def get_storage():
     global _storage
     with _lock:
+        if _storage is None and settings.STORAGE_BACKEND == 'memory':
+            _storage = MemoryStorage()  # local end-to-end runs only (refused in production)
         if _storage is None:
             if not (settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY):
                 raise ImproperlyConfigured(

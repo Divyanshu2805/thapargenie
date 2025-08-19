@@ -12,6 +12,7 @@ from .base import (
     LLM_PROVIDER,
     SENTRY_DSN,
     SENTRY_TRACES_SAMPLE_RATE,
+    STORAGE_BACKEND,
     database_config,
     env_bool,
     env_list,
@@ -56,6 +57,10 @@ DATABASES = {
     ),
 }
 
+if 'offline' in (LLM_PROVIDER, EMBED_PROVIDER):
+    raise ImproperlyConfigured('The offline AI provider is for local tests only.')
+if STORAGE_BACKEND != 'supabase':
+    raise ImproperlyConfigured('STORAGE_BACKEND must be supabase in production.')
 if LLM_PROVIDER == 'gemini' or EMBED_PROVIDER == 'gemini':
     required('GEMINI_API_KEY')
 if LLM_PROVIDER == 'openai' or EMBED_PROVIDER == 'openai':
