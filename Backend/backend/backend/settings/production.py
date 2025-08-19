@@ -10,6 +10,8 @@ from .base import (
     FIREBASE_ALLOWED_SIGN_IN_PROVIDERS,
     FIREBASE_AUTH_EMULATOR_HOST,
     LLM_PROVIDER,
+    SENTRY_DSN,
+    SENTRY_TRACES_SAMPLE_RATE,
     database_config,
     env_bool,
     env_list,
@@ -83,3 +85,8 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 X_FRAME_OPTIONS = 'DENY'
 SECURE_REFERRER_POLICY = 'same-origin'
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+
+# Error tracking (optional): active only when SENTRY_DSN is set.
+from common.observability import init_sentry  # noqa: E402
+
+init_sentry(SENTRY_DSN, environment='production', traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE)

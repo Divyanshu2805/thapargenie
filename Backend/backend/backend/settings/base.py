@@ -83,6 +83,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "api.middleware.RequestIDMiddleware",
+    "common.observability.RequestContextMiddleware",
     "common.headers.SecurityHeadersMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -156,6 +157,7 @@ REST_FRAMEWORK = {
         "suggest": os.getenv("THROTTLE_SUGGEST", "10/min"),
         "admin_write": os.getenv("THROTTLE_ADMIN_WRITE", "30/min"),
         "export": os.getenv("THROTTLE_EXPORT", "5/hour"),
+        "client_error": os.getenv("THROTTLE_CLIENT_ERROR", "20/min"),
         "site_feedback": os.getenv("THROTTLE_SITE_FEEDBACK", "5/hour"),
         "admin_export": os.getenv("THROTTLE_ADMIN_EXPORT", "30/hour"),
         "shared_view": os.getenv("THROTTLE_SHARED_VIEW", "60/min"),
@@ -272,27 +274,40 @@ for _name in ("RETENTION_CONVERSATION_DAYS", "RETENTION_TRACE_DAYS", "RETENTION_
     if not 1 <= globals()[_name] <= 3650:
         raise ImproperlyConfigured(f"{_name} must be between 1 and 3650 days.")
 
+# Observability. LOG_FORMAT=json for log search tools.
+LOG_FORMAT = os.getenv("LOG_FORMAT", "text").strip().lower()
+SENTRY_DSN = os.getenv("SENTRY_DSN", "").strip()
+SENTRY_TRACES_SAMPLE_RATE = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0"))
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "filters": {
+        # Order matters: the context filter fills request_id before redaction runs.
+        "request_context": {"()": "common.observability.RequestContextFilter"},
         "redact_secrets": {"()": "backend.logging.RedactSecretsFilter"},
     },
     "formatters": {
         "text": {
-            "format": "%(asctime)s %(levelname)s %(name)s request_id=%(request_id)s %(message)s",
+            "format": "%(asctime)s %(levelname)s %(name)s request_id=%(request_id)s "
+                      "user=%(user_id)s %(message)s",
         },
+        "json": {"()": "common.observability.JsonFormatter"},
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "filters": ["redact_secrets"],
-            "formatter": "text",
+            "filters": ["request_context", "redact_secrets"],
+            "formatter": "json" if LOG_FORMAT == "json" else "text",
         },
     },
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
     "loggers": {
         # Third-party HTTP clients log every request at INFO; keep only problems.
         **{name: {"level": "WARNING"} for name in ("httpx", "httpcore", "google_genai", "openai")},
+        # One line per API request; set LOG_ACCESS=false to silence.
+        "thapargpt.access": {"level": "INFO" if env_bool("LOG_ACCESS", True) else "WARNING"},
+        # Django's own request logger repeats every 4xx/5xx the handler above already logs.
+        "django.request": {"level": "ERROR"},
     },
 }

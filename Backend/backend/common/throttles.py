@@ -47,3 +47,9 @@ class SharedViewThrottle(AnonRateThrottle):
     """Public shared-answer links, counted per address (nobody is signed in there)."""
 
     scope = 'shared_view'
+
+
+class ClientErrorThrottle(UserRateThrottle):
+    """Browser error reports; anonymous reporters are counted per address."""
+
+    scope = 'client_error'

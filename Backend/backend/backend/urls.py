@@ -1,4 +1,5 @@
 from api import views as api_views
+from common.views import ClientErrorView
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
@@ -15,6 +16,7 @@ urlpatterns = [
     path('api/v1/admin/', include('chat.admin_urls')),
     path('api/v1/admin/', include('access.admin_urls')),
     path('api/v1/admin/', include('notices.admin_urls')),
+    path('api/v1/client-errors/', ClientErrorView.as_view(), name='client-errors'),
     path('api/v1/schema/', SpectacularAPIView.as_view(), name='openapi-schema'),
     path(
         'api/v1/docs/',

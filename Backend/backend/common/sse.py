@@ -14,6 +14,8 @@ from django.conf import settings
 from django.db import connections
 from django.http import StreamingHttpResponse
 
+from common.observability import run_in_context
+
 HEARTBEAT_SECONDS = 15.0
 
 _DONE = object()
@@ -53,7 +55,8 @@ def with_heartbeat(events, interval=HEARTBEAT_SECONDS):
             connections.close_all()
             frames.put(_DONE)
 
-    threading.Thread(target=pump, name='sse-pump', daemon=True).start()
+    # The pump keeps the request's logging context (request id, user) for its logs.
+    threading.Thread(target=run_in_context(pump), name='sse-pump', daemon=True).start()
     try:
         while True:
             try:
