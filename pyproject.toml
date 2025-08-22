@@ -14,3 +14,12 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "Backend/backend/**/tests.py" = ["S105", "S106"]
 "Backend/backend/backend/settings/test.py" = ["S105"]
+
+[tool.coverage.run]
+source = ["Backend/backend/rag", "Backend/backend/chat", "Backend/backend/knowledge",
+          "Backend/backend/notices"]
+omit = ["*/tests/*", "*/migrations/*", "*/management/commands/*"]
+
+[tool.coverage.report]
+show_missing = false
+skip_covered = true
