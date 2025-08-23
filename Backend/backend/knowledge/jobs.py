@@ -61,6 +61,8 @@ def requeue_stale():
     return len(waiting)
 
 
+RECOVERY_INTERVAL_SECONDS = 300
+_recovery_started = threading.Event()
 _sweeps = []
 
 
@@ -68,3 +70,39 @@ def register_sweep(sweep):
     """Also run `sweep()` in the recovery loop; for apps that keep documents in sync."""
     if sweep not in _sweeps:
         _sweeps.append(sweep)
+
+
+def start_recovery(interval=RECOVERY_INTERVAL_SECONDS):
+    """Recover queued and interrupted work now, then every `interval` seconds.
+
+    Called once per server process (gunicorn `post_worker_init`). A document whose
+    in-memory job was lost (a restart, a sleeping free-tier instance) is picked up by
+    the next sweep instead of staying queued forever. The same sweep marks
+    documents past their "valid until" date as not current.
+    """
+    if _recovery_started.is_set():
+        return
+    _recovery_started.set()
+
+    def loop():
+        from knowledge.services import expire_due_documents
+
+        while True:
+            close_old_connections()
+            try:
+                requeue_stale()
+            except Exception:
+                logger.exception('Document recovery sweep failed')
+            try:
+                expire_due_documents()
+            except Exception:
+                logger.exception('Document expiry sweep failed')
+            for sweep in _sweeps:
+                try:
+                    sweep()
+                except Exception:
+                    logger.exception('Sweep %s failed', sweep.__qualname__)
+            connections.close_all()
+            time.sleep(interval)
+
+    threading.Thread(target=loop, name='ingest-recovery', daemon=True).start()

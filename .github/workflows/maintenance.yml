@@ -1,0 +1,142 @@
+name: Maintenance
+
+# Scheduled jobs against production.
+# Scheduled runs do nothing until the repository variable MAINTENANCE_ENABLED is "true"
+# (set it after the first deploy). Manual runs from the Actions tab always go ahead.
+#
+# Needs a GitHub Environment named "production" with these secrets:
+#   DJANGO_SECRET_KEY, DATABASE_URL, FIREBASE_PROJECT_ID, GEMINI_API_KEY,
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BACKUP_AGE_RECIPIENT (an age public key)
+# and these variables: DJANGO_ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS, CHAT_MODEL,
+#   FAST_MODEL, EMBED_MODEL.
+
+on:
+  schedule:
+    - cron: "30 21 * * *"   # purge: daily, 03:00 IST
+    - cron: "30 20 * * *"   # eval: daily, 02:00 IST (search quality, ~40 AI calls)
+    - cron: "0 22 * * 0"    # backup: Sundays, 03:30 IST
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which job to run
+        type: choice
+        options: [purge, purge-dry-run, backup, eval]
+        default: purge-dry-run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maintenance
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '30 21 * * *' && vars.MAINTENANCE_ENABLED == 'true')
+      || (github.event_name == 'workflow_dispatch' && startsWith(inputs.job, 'purge'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      APP_ENV: production
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DJANGO_ALLOWED_HOSTS: ${{ vars.DJANGO_ALLOWED_HOSTS }}
+      CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      CSRF_TRUSTED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      CHAT_MODEL: ${{ vars.CHAT_MODEL }}
+      FAST_MODEL: ${{ vars.FAST_MODEL }}
+      EMBED_MODEL: ${{ vars.EMBED_MODEL }}
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: Backend/requirements.txt
+      - run: python -m pip install --require-hashes --requirement Backend/requirements.txt
+      # The web process also does this every 5 minutes; this covers days it sleeps.
+      - name: Expire documents past their "valid until" date
+        run: >-
+          python Backend/backend/manage.py expire_documents
+          ${{ inputs.job == 'purge-dry-run' && '--dry-run' || '' }}
+      - name: Purge expired data
+        run: >-
+          python Backend/backend/manage.py purge_data
+          ${{ inputs.job == 'purge-dry-run' && '--dry-run' || '' }}
+
+  eval:
+    # Scores search quality on the golden questions and records it for the admin Overview.
+    # Fails below recall@5 0.9, so GitHub emails the owner.
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '30 20 * * *' && vars.MAINTENANCE_ENABLED == 'true')
+      || (github.event_name == 'workflow_dispatch' && inputs.job == 'eval')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      APP_ENV: production
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DJANGO_ALLOWED_HOSTS: ${{ vars.DJANGO_ALLOWED_HOSTS }}
+      CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      CSRF_TRUSTED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      CHAT_MODEL: ${{ vars.CHAT_MODEL }}
+      FAST_MODEL: ${{ vars.FAST_MODEL }}
+      EMBED_MODEL: ${{ vars.EMBED_MODEL }}
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: Backend/requirements.txt
+      - run: python -m pip install --require-hashes --requirement Backend/requirements.txt
+      - name: Score search quality
+        run: >-
+          python Backend/backend/manage.py eval_rag
+          --record ${{ github.event_name == 'schedule' && 'nightly' || 'manual' }}
+
+  backup:
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 0' && vars.MAINTENANCE_ENABLED == 'true')
+      || (github.event_name == 'workflow_dispatch' && inputs.job == 'backup')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Install age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+      - name: Dump and encrypt
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          test -n "$BACKUP_AGE_RECIPIENT" || { echo "BACKUP_AGE_RECIPIENT is not set"; exit 1; }
+          stamp=$(date -u +%Y%m%d-%H%M)
+          # The dump never touches the disk unencrypted.
+          docker run --rm -e DATABASE_URL postgres:17 \
+            sh -c 'pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL"' \
+            | age --recipient "$BACKUP_AGE_RECIPIENT" --output "thapargpt-$stamp.dump.age"
+          size=$(stat -c %s "thapargpt-$stamp.dump.age")
+          test "$size" -gt 1024 || { echo "Backup is suspiciously small ($size bytes)"; exit 1; }
+          echo "BACKUP_FILE=thapargpt-$stamp.dump.age" >> "$GITHUB_ENV"
+          echo "Encrypted backup: $size bytes"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 35
+          if-no-files-found: error

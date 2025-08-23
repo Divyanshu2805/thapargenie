@@ -1,0 +1,23 @@
+name: Keep-alive
+
+# Optional: stops the free Render instance sleeping during the day, so students
+# don't wait 30-60 s for a cold start. Runs only when the repository variable
+# KEEPALIVE_URL is set, e.g. https://api.example.com (no trailing slash).
+
+on:
+  schedule:
+    - cron: "*/10 2-17 * * *"   # every 10 minutes, 07:30-23:30 IST
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    if: vars.KEEPALIVE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping the readiness check
+        env:
+          KEEPALIVE_URL: ${{ vars.KEEPALIVE_URL }}
+        run: curl --fail --silent --show-error --max-time 90 --retry 2 "$KEEPALIVE_URL/health/ready/"
