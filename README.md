@@ -4,17 +4,23 @@ A chat assistant for students of Thapar Institute of Engineering and Technology 
 Ask about fees, hostels, admissions, the academic calendar, courses or rules, and get an
 answer written from official college documents, with a numbered link to every source it used.
 
-Admins add and manage the documents it answers from on a separate admin page.
+Admins manage the knowledge base, review feedback, see which questions went unanswered and
+post notices from a separate dashboard.
 
 ## What it does
 
-- Sign in with a college email (Firebase Auth). New accounts wait for approval.
-- Ask questions and get a streamed answer with numbered citations.
-- Conversations are saved; rename or delete them from the sidebar.
-- Thumbs up / down on answers, with a reason for bad ones.
-- A daily question limit per student.
-- Admin page to upload PDFs and Word files, add web pages or plain text, and disable,
-  reprocess or delete documents.
+- Sign in with a college email (Firebase Auth); new accounts are approved by an admin, or
+  automatically when approval is switched off.
+- Streamed answers with citations, a note when a figure could not be matched to a source,
+  and a line saying how current the sources are.
+- Hybrid search (pgvector + Postgres full-text search), question rewriting for follow-ups,
+  optional reranking and a cache for repeated questions.
+- Chat history with pinning, archiving, search, branches (edit a question or regenerate an
+  answer), export, printing and share links.
+- Follow-up suggestions, voice input and a "What can I ask?" page.
+- Admin dashboard: documents (upload, URL, text, bulk actions, chunk editing), usage stats,
+  feedback review, knowledge gaps, a playground, notices, users and invitations, settings
+  and an audit log.
 
 ## Stack
 
@@ -23,7 +29,7 @@ Admins add and manage the documents it answers from on a separate admin page.
 | API | Django 5.2, Django REST Framework, server-sent events for streaming |
 | Database | PostgreSQL with pgvector |
 | Auth | Firebase Authentication (ID tokens verified on the server) |
-| Models | Google Gemini for embeddings and answers |
+| Models | Google Gemini for embeddings and answers (OpenAI also supported) |
 | Files | Supabase Storage (private bucket) |
 | Web app | React 19, Vite, Tailwind CSS, TanStack Query |
 
@@ -86,3 +92,8 @@ cd Frontend && npm test
 
 More detail is in [docs/](docs/README.md): how the pieces fit together, the API and the
 settings.
+
+## Screens
+
+The student app lives under `/chat/`, the admin dashboard under `/admin/`. Sign-in pages,
+the privacy notice and shared answers (`/s/<token>`) are public.
