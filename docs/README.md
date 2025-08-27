@@ -5,3 +5,4 @@
 - [Configuration](configuration.md): environment variables for the API and the web app.
 - [Answer pipeline](answer-pipeline.md): analysis, hybrid search, reranking, grounding and the cache.
 - [Ingestion](ingestion.md): how documents are extracted, chunked and embedded.
+- [Database](database.md): the main tables and what is kept for how long.

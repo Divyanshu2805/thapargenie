@@ -17,9 +17,14 @@ Copy `.env.example` and fill it in. `APP_ENV` picks the settings profile: `local
 | `INGEST_URL_ALLOWLIST` | Domains pages may be added from. |
 | `INGEST_MAX_FILE_MB`, `INGEST_MAX_PAGES` | Upload limits. |
 | `THROTTLE_USER`, `THROTTLE_ASK` | Request rate limits. |
+| `LLM_PROVIDER`, `EMBED_PROVIDER`, `OPENAI_API_KEY` | Switch to OpenAI. |
+| `FAST_THINKING`, `ANSWER_THINKING` | Reasoning level for quick calls and for answers. |
+| `RETENTION_*_DAYS` | How long chats, traces, usage and logs are kept. |
+| `LOG_FORMAT`, `SENTRY_DSN` | JSON logs and optional error tracking. |
+| `STORAGE_BACKEND=memory`, `LLM_PROVIDER=offline` | Local end-to-end runs without real services. |
 
 The daily question limit and the starter questions live in the database
-(`ChatSettings`, a single row) and can be changed there for now.
+(`ChatSettings`) and can be changed from the admin settings page.
 
 ## Web app (`Frontend/.env.local`)
 
