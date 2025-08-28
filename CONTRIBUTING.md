@@ -18,3 +18,10 @@ cd Frontend && npm run lint && npm test
 - JavaScript: ESLint settings in `Frontend/eslint.config.js`.
 - Keep comments short and about why, not what.
 - Never commit `.env` files, keys or real student data.
+
+## Checks on every push
+
+GitHub Actions runs the backend tests with coverage, a migration check, ruff, the frontend
+lint, tests and build, and the end-to-end tests against the Firebase Auth emulator.
+
+Security issues: see [SECURITY.md](SECURITY.md).
