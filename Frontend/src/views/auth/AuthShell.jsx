@@ -1,9 +1,12 @@
 import { ArrowUp, Sparkles } from 'lucide-react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Ambient } from '@/components/ambient';
 import { LogoGlyph } from '@/components/brand/Brand';
 import { useTypewriter } from '@/hooks/use-typewriter';
+import { preloadLanding } from '@/features/landing/load';
+import { useSlideClick } from '@/lib/page-slide';
 
 import './AuthShell.css';
 
@@ -32,14 +35,22 @@ function TypedPrompt() {
   );
 }
 
+// The logo leads back to the landing page, sliding left to right like going back.
+const toLanding = { back: true, ready: () => Boolean(document.querySelector('.landing')) };
+
 export default function AuthShell({ title, description, children }) {
+  const home = useSlideClick(toLanding);
+  // Fetch the landing page ahead so the slide back to it never waits on a download.
+  useEffect(() => {
+    preloadLanding().catch(() => {});
+  }, []);
   return (
     <main className="auth-page">
       <aside className="auth-hero" aria-hidden="true">
         <div className="auth-page__overlay" />
         <div className="auth-hero__content">
           <div className="auth-hero__center">
-            <Link to="/" tabIndex={-1} className="auth-hero__home">
+            <Link to="/" onClick={home} tabIndex={-1} className="auth-hero__home">
               <span className="auth-hero__orb"><span className="auth-hero__mark"><LogoGlyph motion="loop" /></span></span>
               <p className="auth-hero__name">Thapar<strong className="genie-sparkles">Genie</strong></p>
             </Link>
@@ -55,7 +66,7 @@ export default function AuthShell({ title, description, children }) {
       <div className="auth-panel">
         <Ambient />
         <section className="auth-card" aria-labelledby="auth-title">
-          <Link to="/" aria-label="ThaparGenie home" className="auth-card__logo"><LogoGlyph motion="draw" /></Link>
+          <Link to="/" onClick={home} aria-label="ThaparGenie home" className="auth-card__logo"><LogoGlyph motion="draw" /></Link>
           <h1 id="auth-title">{title}</h1>
           {description ? <p className="auth-card__description">{description}</p> : null}
           {children}

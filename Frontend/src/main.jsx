@@ -11,6 +11,7 @@ import { Toaster } from './components/ui/sonner.jsx';
 import { TooltipProvider } from './components/ui/tooltip.jsx';
 import { installGlobalErrorHandlers } from './lib/error-reporting.js';
 import { listenForInstallPrompt } from './lib/install-prompt.js';
+import { preloadLanding } from './features/landing/load.js';
 import { slideOnHistoryMoves } from './lib/page-slide.js';
 import { queryClient } from './lib/query-client.js';
 import './index.css';
@@ -18,6 +19,9 @@ import './index.css';
 installGlobalErrorHandlers();
 listenForInstallPrompt();
 slideOnHistoryMoves();
+
+// Arriving on the landing page: fetch its code and hero photo while the rest of the app boots.
+if (window.location.pathname === '/') preloadLanding().catch(() => {});
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

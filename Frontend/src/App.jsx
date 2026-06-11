@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import AppShell from './components/layout/AppShell';
 import ChatHome from './features/chat/ChatHome';
+import { LoadedLanding, landingLoaded, preloadLanding } from './features/landing/load';
 import AdminRoute from './layouts/AdminRoute';
 import { authRedirectHeld } from './lib/page-slide';
 import PrivateRoute from './layouts/PrivateRoute';
@@ -18,6 +19,7 @@ import Register from './views/auth/Register/Register';
 // The admin area is its own chunk, so students never download it.
 const ConversationPage = lazy(() => import('./features/chat/ConversationPage'));
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'));
+const LandingPage = lazy(preloadLanding);
 const PrivacyPage = lazy(() => import('./features/privacy/PrivacyPage'));
 const HelpPage = lazy(() => import('./features/help/HelpPage'));
 const SharedAnswerPage = lazy(() => import('./features/shared/SharedAnswerPage'));
@@ -42,11 +44,21 @@ function SignedOutRoute({ children }) {
   return user && !authRedirectHeld() ? <Navigate replace to="/chat/" /> : children;
 }
 
+/** The landing page: rendered at once if it was fetched ahead, else loaded on demand. */
+function LandingRoute() {
+  if (landingLoaded()) return <LoadedLanding />;
+  return (
+    <Suspense fallback={<AuthLoading message="Loading…" />}>
+      <LandingPage />
+    </Suspense>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/chat/" replace />} />
+        <Route path="/" element={<LandingRoute />} />
         <Route path="/register/" element={<SignedOutRoute><Register /></SignedOutRoute>} />
         <Route path="/login/" element={<SignedOutRoute><Login /></SignedOutRoute>} />
         <Route path="/logout/" element={<Logout />} />
