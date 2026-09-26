@@ -69,7 +69,7 @@ jobs:
           SUPABASE_URL: https://project.example.invalid
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
         run: python Backend/backend/manage.py check --deploy --fail-level ERROR
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24.21.0"
       - name: Firebase Auth emulator integration
@@ -89,7 +89,7 @@ jobs:
         working-directory: Frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24.21.0"
           cache: npm
@@ -132,7 +132,7 @@ jobs:
           cache: pip
           cache-dependency-path: Backend/requirements.txt
       - run: python -m pip install --require-hashes --requirement ../Backend/requirements.txt
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24.21.0"
           cache: npm
