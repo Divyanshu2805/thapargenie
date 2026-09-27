@@ -4,7 +4,6 @@ import {
   FileLock2,
   LogOut,
   MessageSquareHeart,
-  Monitor,
   MonitorDown,
   Moon,
   Settings,
@@ -31,7 +30,6 @@ import { cn, initialsOf } from '@/lib/utils';
 const THEMES = [
   { value: 'light', label: 'Light theme', short: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark theme', short: 'Dark', icon: Moon },
-  { value: 'system', label: 'Match system', short: 'System', icon: Monitor },
 ];
 
 export function UserAvatar({ className }) {
@@ -79,9 +77,14 @@ export default function UserMenu({ side = 'top', align = 'start', compact = fals
             <span className="sr-only">Open account menu</span>
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side={compact ? 'right' : side} align={compact ? 'end' : align} className="w-64">
+        <DropdownMenuContent
+          side={compact ? 'right' : side}
+          align={compact ? 'end' : align}
+          collisionPadding={8}
+          className={cn(compact ? 'w-64' : 'w-[calc(var(--sidebar-width)-1.5rem)]')}
+        >
           {/* Theme first, centred across the menu. */}
-          <div role="group" aria-label="Theme" className="mb-1.5 grid w-full grid-cols-3 gap-0.5 rounded-lg bg-muted p-0.5">
+          <div role="group" aria-label="Theme" className="mb-1.5 grid w-full grid-cols-2 gap-0.5 rounded-lg bg-muted p-0.5">
             {THEMES.map(({ value, label, short, icon: Icon }) => (
               <DropdownMenuItem
                 key={value}

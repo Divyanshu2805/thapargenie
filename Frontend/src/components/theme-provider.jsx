@@ -1,43 +1,35 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 // Must match the key read by public/theme-init.js.
-export const THEME_STORAGE_KEY = 'thapargpt-theme';
-const THEMES = new Set(['light', 'dark', 'system']);
+export const THEME_STORAGE_KEY = 'thapargenie-theme';
+// Only light and dark are user-choosable; the system preference is used once, to seed a
+// first-time visitor's theme, then never revisited (no live "system" mode to track).
+const THEMES = new Set(['light', 'dark']);
 
 const ThemeContext = createContext(null);
-
-function readStoredTheme() {
-  try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return THEMES.has(stored) ? stored : 'system';
-  } catch {
-    return 'system';
-  }
-}
 
 function systemPrefersDark() {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
+function readStoredTheme() {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (THEMES.has(stored)) return stored;
+  } catch {
+    // Storage may be blocked; fall back to the system preference below.
+  }
+  return systemPrefersDark() ? 'dark' : 'light';
+}
+
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(readStoredTheme);
-  const [systemDark, setSystemDark] = useState(systemPrefersDark);
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return undefined;
-    const query = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = (event) => setSystemDark(event.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
-
-  const resolvedTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle('dark', resolvedTheme === 'dark');
-    root.style.colorScheme = resolvedTheme;
-  }, [resolvedTheme]);
+    root.classList.toggle('dark', theme === 'dark');
+    root.style.colorScheme = theme;
+  }, [theme]);
 
   const setTheme = useCallback((next) => {
     if (!THEMES.has(next)) return;
@@ -49,7 +41,9 @@ export function ThemeProvider({ children }) {
     }
   }, []);
 
-  const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme, setTheme]);
+  // resolvedTheme kept for callers that predate the system option's removal; it now always
+  // matches theme, since there's no longer an unresolved "system" state.
+  const value = useMemo(() => ({ theme, resolvedTheme: theme, setTheme }), [theme, setTheme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

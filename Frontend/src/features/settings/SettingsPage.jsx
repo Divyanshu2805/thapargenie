@@ -6,7 +6,6 @@ import {
   Download,
   GraduationCap,
   LogOut,
-  Monitor,
   MonitorSmartphone,
   Moon,
   Palette,
@@ -37,7 +36,6 @@ import { cn } from '@/lib/utils';
 const THEME_OPTIONS = [
   { value: 'light', label: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
 ];
 
 function ProfileCard() {
@@ -158,14 +156,6 @@ function ThemePreview({ variant }) {
       </div>
     </div>
   );
-  if (variant === 'system') {
-    return (
-      <div className="relative h-full">
-        {pane(false)}
-        <div className="absolute inset-0 [clip-path:polygon(100%_0,100%_100%,0_100%)]">{pane(true)}</div>
-      </div>
-    );
-  }
   return pane(variant === 'dark');
 }
 
@@ -173,7 +163,7 @@ function AppearanceCard() {
   const { theme, setTheme } = useTheme();
   return (
     <SplitSection icon={Palette} title="Appearance" description="How ThaparGenie looks on this device.">
-      <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-3 p-5 sm:gap-4 sm:p-6">
+      <div role="radiogroup" aria-label="Theme" className="grid grid-cols-2 gap-3 p-5 sm:gap-4 sm:p-6">
         {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
           const selected = theme === value;
           return (
