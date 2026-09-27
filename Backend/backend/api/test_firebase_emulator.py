@@ -39,7 +39,7 @@ def _sign_in(project_id, email, password):
 @skipUnless(RUN_EMULATOR, 'Firebase Auth emulator is not enabled for this test run.')
 class FirebaseEmulatorIntegrationTests(TransactionTestCase):
     def setUp(self):
-        self.project_id = 'demo-thapargpt'
+        self.project_id = 'demo-thapargenie'
         self.uid = f'test-{uuid.uuid4()}'
         self.email = f'{self.uid}@example.com'
         self.password = 'Synthetic-test-password-123!'  # noqa: S105

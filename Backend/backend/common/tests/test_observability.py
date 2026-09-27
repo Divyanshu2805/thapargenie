@@ -22,7 +22,7 @@ class LoggingContextTests(TestCase):
     def test_every_log_line_in_a_request_carries_its_request_id(self):
         user = make_user('student@thapar.edu')
         request_id = str(uuid.uuid4())
-        with self.assertLogs('thapargpt.access', level='INFO') as logs:
+        with self.assertLogs('thapargenie.access', level='INFO') as logs:
             client_for(user).get('/api/v1/conversations/?q=private-search',
                                HTTP_X_REQUEST_ID=request_id)
         record = logs.records[0]
@@ -35,7 +35,7 @@ class LoggingContextTests(TestCase):
         self.assertNotIn('private-search', record.getMessage())
 
     def test_health_checks_are_not_access_logged(self):
-        with self.assertNoLogs('thapargpt.access', level='INFO'):
+        with self.assertNoLogs('thapargenie.access', level='INFO'):
             self.client.get('/health/live/')
 
     def test_json_formatter_emits_one_object_with_context(self):
@@ -54,7 +54,7 @@ class ServerErrorLoggingTests(TestCase):
     def test_a_5xx_is_logged_with_its_traceback_and_hidden_from_the_client(self):
         user = make_user('student@thapar.edu')
         with mock.patch('chat.views.quota.remaining', side_effect=RuntimeError('boom')), \
-                self.assertLogs('thapargpt.errors', level='ERROR') as logs:
+                self.assertLogs('thapargenie.errors', level='ERROR') as logs:
             response = client_for(user).get('/api/v1/app-config/')
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()['error']['code'], 'internal_error')
@@ -150,7 +150,7 @@ class ClientErrorReportTests(TestCase):
         cache.clear()
 
     def test_reports_are_logged_scrubbed_and_never_echoed(self):
-        with self.assertLogs('thapargpt.client', level='WARNING') as logs:
+        with self.assertLogs('thapargenie.client', level='WARNING') as logs:
             response = APIClient().post('/api/v1/client-errors/', {
                 'message': 'TypeError for student@thapar.edu roll 102103456',
                 'stack': 'at x (app.js:1:2)', 'path': '/chat/abc', 'kind': 'render',

@@ -129,10 +129,10 @@ jobs:
           # The dump never touches the disk unencrypted.
           docker run --rm -e DATABASE_URL postgres:17 \
             sh -c 'pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL"' \
-            | age --recipient "$BACKUP_AGE_RECIPIENT" --output "thapargpt-$stamp.dump.age"
-          size=$(stat -c %s "thapargpt-$stamp.dump.age")
+            | age --recipient "$BACKUP_AGE_RECIPIENT" --output "thapargenie-$stamp.dump.age"
+          size=$(stat -c %s "thapargenie-$stamp.dump.age")
           test "$size" -gt 1024 || { echo "Backup is suspiciously small ($size bytes)"; exit 1; }
-          echo "BACKUP_FILE=thapargpt-$stamp.dump.age" >> "$GITHUB_ENV"
+          echo "BACKUP_FILE=thapargenie-$stamp.dump.age" >> "$GITHUB_ENV"
           echo "Encrypted backup: $size bytes"
       - uses: actions/upload-artifact@v4
         with:

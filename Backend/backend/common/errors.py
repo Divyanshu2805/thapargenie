@@ -12,7 +12,7 @@ from rest_framework import exceptions
 
 from common.audit import audit_denied
 
-logger = logging.getLogger('thapargpt.errors')
+logger = logging.getLogger('thapargenie.errors')
 
 # Refusals worth an audit event: probing the admin API, or a sensitive action attempted
 # without a recent sign-in. Ordinary 404s and validation errors are not security events.

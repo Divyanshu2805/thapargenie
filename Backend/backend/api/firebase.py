@@ -8,7 +8,7 @@ from django.conf import settings
 from firebase_admin import auth, exceptions
 from google.auth import exceptions as google_auth_exceptions
 
-_APP_NAME = 'thapargpt-identity'
+_APP_NAME = 'thapargenie-identity'
 _APP_LOCK = threading.Lock()
 
 

@@ -27,16 +27,16 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_USER: thapargpt
-          POSTGRES_PASSWORD: thapargpt
-          POSTGRES_DB: thapargpt
+          POSTGRES_USER: thapargenie
+          POSTGRES_PASSWORD: thapargenie
+          POSTGRES_DB: thapargenie
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U thapargpt"
+          --health-cmd "pg_isready -U thapargenie"
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
       APP_ENV: test
-      TEST_DATABASE_URL: postgres://thapargpt:thapargpt@localhost:5432/thapargpt
+      TEST_DATABASE_URL: postgres://thapargenie:thapargenie@localhost:5432/thapargenie
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - uses: actions/checkout@v4
@@ -60,7 +60,7 @@ jobs:
           DJANGO_ALLOWED_HOSTS: api.example.invalid
           CORS_ALLOWED_ORIGINS: https://app.example.invalid
           CSRF_TRUSTED_ORIGINS: https://app.example.invalid
-          DATABASE_URL: postgresql://app:placeholder@db.example.invalid:5432/thapargpt
+          DATABASE_URL: postgresql://app:placeholder@db.example.invalid:5432/thapargenie
           FIREBASE_PROJECT_ID: ci-example-project
           GEMINI_API_KEY: ci-placeholder
           CHAT_MODEL: ci-model
@@ -75,8 +75,8 @@ jobs:
       - name: Firebase Auth emulator integration
         run: >-
           npx --yes firebase-tools@15.30.2 emulators:exec
-          --config firebase.json --only auth --project demo-thapargpt
-          "FIREBASE_PROJECT_ID=demo-thapargpt
+          --config firebase.json --only auth --project demo-thapargenie
+          "FIREBASE_PROJECT_ID=demo-thapargenie
           RUN_FIREBASE_EMULATOR_TESTS=1
           python Backend/backend/manage.py test api.test_firebase_emulator"
       - run: pip-audit --requirement Backend/requirements.txt --progress-spinner off
@@ -110,15 +110,15 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_USER: thapargpt
-          POSTGRES_PASSWORD: thapargpt
-          POSTGRES_DB: thapargpt_e2e
+          POSTGRES_USER: thapargenie
+          POSTGRES_PASSWORD: thapargenie
+          POSTGRES_DB: thapargenie_e2e
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U thapargpt"
+          --health-cmd "pg_isready -U thapargenie"
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
-      E2E_DATABASE_URL: postgres://thapargpt:thapargpt@127.0.0.1:5432/thapargpt_e2e
+      E2E_DATABASE_URL: postgres://thapargenie:thapargenie@127.0.0.1:5432/thapargenie_e2e
       E2E_PYTHON: python
       PYTHONDONTWRITEBYTECODE: "1"
     defaults:
@@ -142,7 +142,7 @@ jobs:
       - name: End-to-end tests (Firebase Auth emulator)
         run: >-
           npx --yes firebase-tools@15.30.2 emulators:exec
-          --config ../firebase.json --only auth --project demo-thapargpt
+          --config ../firebase.json --only auth --project demo-thapargenie
           "npm run test:e2e"
       - if: failure()
         uses: actions/upload-artifact@v4

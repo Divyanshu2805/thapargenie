@@ -25,7 +25,7 @@ PRODUCTION_ENV = {
     'DJANGO_ALLOWED_HOSTS': 'api.example.invalid',
     'CORS_ALLOWED_ORIGINS': 'https://app.example.invalid',
     'CSRF_TRUSTED_ORIGINS': 'https://app.example.invalid',
-    'DATABASE_URL': 'postgresql://app:placeholder@db.example.invalid:5432/thapargpt',
+    'DATABASE_URL': 'postgresql://app:placeholder@db.example.invalid:5432/thapargenie',
     'FIREBASE_PROJECT_ID': 'example-project',
     'FIREBASE_AUTH_EMULATOR_HOST': '',
     'GEMINI_API_KEY': 'placeholder',

@@ -496,7 +496,7 @@ class ExportView(APIView):
             json.dumps(data, ensure_ascii=False, indent=2),
             content_type='application/json; charset=utf-8',
         )
-        response['Content-Disposition'] = 'attachment; filename="thapargpt-export.json"'
+        response['Content-Disposition'] = 'attachment; filename="thapargenie-export.json"'
         audit(request.user, 'privacy.exported', 'user', request.user.pk,
               request_id=request_id(request), conversations=len(data['conversations']))
         return response

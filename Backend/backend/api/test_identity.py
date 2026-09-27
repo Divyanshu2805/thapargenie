@@ -39,8 +39,8 @@ def _token(header=None):
 def _claims(**overrides):
     now = int(time.time())
     claims = {
-        'aud': 'demo-thapargpt',
-        'iss': 'https://securetoken.google.com/demo-thapargpt',
+        'aud': 'demo-thapargenie',
+        'iss': 'https://securetoken.google.com/demo-thapargenie',
         'sub': 'firebase-uid-1',
         'uid': 'firebase-uid-1',
         'email': 'student@example.com',
@@ -57,7 +57,7 @@ def _claims(**overrides):
 
 
 @override_settings(
-    FIREBASE_PROJECT_ID='demo-thapargpt',
+    FIREBASE_PROJECT_ID='demo-thapargenie',
     FIREBASE_AUTH_EMULATOR_HOST='',
     FIREBASE_ALLOWED_SIGN_IN_PROVIDERS=('password', 'google.com'),
 )
@@ -340,7 +340,7 @@ class StaffGrantTests(TestCase):
         self.assertTrue(AuditEvent.objects.filter(action='identity.invitation_created').exists())
 
 
-@override_settings(FIREBASE_PROJECT_ID='demo-thapargpt')
+@override_settings(FIREBASE_PROJECT_ID='demo-thapargenie')
 class ConcurrentIdentityCreationTests(TransactionTestCase):
     reset_sequences = True
 

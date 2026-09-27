@@ -1,10 +1,10 @@
 const resetCallbacks = new Set();
 
 const USER_STORAGE_KEYS = [
-  'thapargpt:active-conversation',
-  'thapargpt:conversation-cache',
-  'thapargpt:draft',
-  'thapargpt:message-cache',
+  'thapargenie:active-conversation',
+  'thapargenie:conversation-cache',
+  'thapargenie:draft',
+  'thapargenie:message-cache',
 ];
 
 export function registerUserStateReset(callback) {

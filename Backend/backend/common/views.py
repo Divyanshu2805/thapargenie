@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 
 from common.throttles import ClientErrorThrottle
 
-logger = logging.getLogger('thapargpt.client')
+logger = logging.getLogger('thapargenie.client')
 
 # Emails and long digit runs (phone or roll numbers) sometimes end up in error messages.
 _EMAIL = re.compile(r'[\w.+-]+@[\w-]+\.[\w.-]+')

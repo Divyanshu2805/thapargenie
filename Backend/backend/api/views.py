@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @require_GET
 def service_index(request):
-    return JsonResponse({'service': 'thapargpt-api'})
+    return JsonResponse({'service': 'thapargenie-api'})
 
 
 @require_GET

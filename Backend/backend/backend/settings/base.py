@@ -314,7 +314,7 @@ LOGGING = {
         # Third-party HTTP clients log every request at INFO; keep only problems.
         **{name: {"level": "WARNING"} for name in ("httpx", "httpcore", "google_genai", "openai")},
         # One line per API request; set LOG_ACCESS=false to silence.
-        "thapargpt.access": {"level": "INFO" if env_bool("LOG_ACCESS", True) else "WARNING"},
+        "thapargenie.access": {"level": "INFO" if env_bool("LOG_ACCESS", True) else "WARNING"},
         # Django's own request logger repeats every 4xx/5xx the handler above already logs.
         "django.request": {"level": "ERROR"},
     },

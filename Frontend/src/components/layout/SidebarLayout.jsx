@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 // sidebar that collapses to a 64 px icon rail from 768 px, and a drawer below that.
 // Sidebars render their contents at the full --sidebar-width in both states.
 
-const STORAGE_KEY = 'thapargpt:sidebar';
+const STORAGE_KEY = 'thapargenie:sidebar';
 const SHORTCUT = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘B' : 'Ctrl+B';
 
 function initialCollapsed() {

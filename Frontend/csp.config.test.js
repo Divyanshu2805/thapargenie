@@ -9,13 +9,13 @@ const parse = (csp) => Object.fromEntries(csp.split('; ').map((part) => {
 
 describe('buildCsp', () => {
   const csp = parse(
-    buildCsp({ apiBaseUrl: 'https://api.thapargpt.in/api/v1/', firebaseAuthDomain: 'thapargpt.firebaseapp.com' }),
+    buildCsp({ apiBaseUrl: 'https://api.thapargenie.in/api/v1/', firebaseAuthDomain: 'thapargenie.firebaseapp.com' }),
   );
 
   it('allows the API origin (not its path) and Firebase Auth endpoints', () => {
-    expect(csp['connect-src']).toContain('https://api.thapargpt.in');
+    expect(csp['connect-src']).toContain('https://api.thapargenie.in');
     expect(csp['connect-src']).toContain('https://identitytoolkit.googleapis.com');
-    expect(csp['frame-src']).toEqual(['https://thapargpt.firebaseapp.com', 'https://accounts.google.com']);
+    expect(csp['frame-src']).toEqual(['https://thapargenie.firebaseapp.com', 'https://accounts.google.com']);
   });
 
   it('never allows inline or evaluated scripts, plugins or foreign form posts', () => {
@@ -38,7 +38,7 @@ describe('buildCsp', () => {
     const e2e = parse(buildCsp({ apiBaseUrl: 'http://127.0.0.1:8020/api/v1/', authEmulatorUrl: 'http://127.0.0.1:9099' }));
     expect(e2e['connect-src']).toContain('http://127.0.0.1:9099');
     expect(() =>
-      buildCsp({ apiBaseUrl: 'https://api.thapargpt.in/api/v1/', authEmulatorUrl: 'http://127.0.0.1:9099' }),
+      buildCsp({ apiBaseUrl: 'https://api.thapargenie.in/api/v1/', authEmulatorUrl: 'http://127.0.0.1:9099' }),
     ).toThrow(/local end-to-end builds only/);
   });
 

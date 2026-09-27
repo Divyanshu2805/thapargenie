@@ -1,19 +1,19 @@
 # Local Postgres with pgvector, matching Supabase (Postgres 17).
 #   docker compose up -d db
-# DATABASE_URL=postgres://thapargpt:thapargpt@127.0.0.1:54329/thapargpt
+# DATABASE_URL=postgres://thapargenie:thapargenie@127.0.0.1:54329/thapargenie
 services:
   db:
     image: pgvector/pgvector:pg17
     environment:
-      POSTGRES_USER: thapargpt
-      POSTGRES_PASSWORD: thapargpt
-      POSTGRES_DB: thapargpt
+      POSTGRES_USER: thapargenie
+      POSTGRES_PASSWORD: thapargenie
+      POSTGRES_DB: thapargenie
     ports:
       - "127.0.0.1:54329:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U thapargpt -d thapargpt"]
+      test: ["CMD-SHELL", "pg_isready -U thapargenie -d thapargenie"]
       interval: 5s
       timeout: 3s
       retries: 10

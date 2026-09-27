@@ -7,8 +7,8 @@ import { defineConfig } from '@playwright/test';
 const API_PORT = 8020;
 const WEB_PORT = 5174;
 const EMULATOR = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
-const PROJECT_ID = 'demo-thapargpt';
-const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL || 'postgres://thapargpt:thapargpt@127.0.0.1:54329/thapargpt_e2e';
+const PROJECT_ID = 'demo-thapargenie';
+const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL || 'postgres://thapargenie:thapargenie@127.0.0.1:54329/thapargenie_e2e';
 // Relative to Backend/backend (the API server's working directory).
 const PYTHON = process.env.E2E_PYTHON || (process.platform === 'win32' ? '..\\.venv\\Scripts\\python.exe' : 'python');
 const WEB_URL = `http://localhost:${WEB_PORT}`;

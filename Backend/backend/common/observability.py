@@ -14,7 +14,7 @@ import time
 request_id_var = contextvars.ContextVar('request_id', default='-')
 user_id_var = contextvars.ContextVar('user_id', default='-')
 
-access_logger = logging.getLogger('thapargpt.access')
+access_logger = logging.getLogger('thapargenie.access')
 
 # Paths polled by uptime checks and keep-alive pings; logging them only adds noise.
 QUIET_PREFIXES = ('/health/',)

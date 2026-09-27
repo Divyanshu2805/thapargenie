@@ -58,7 +58,7 @@ export function buildCsp({ apiBaseUrl, firebaseAuthDomain, authEmulatorUrl }) {
  * server needs inline scripts and websockets for hot reload). */
 export function cspPlugin(env) {
   return {
-    name: 'thapargpt-csp',
+    name: 'thapargenie-csp',
     apply: 'build',
     transformIndexHtml() {
       const content = buildCsp({

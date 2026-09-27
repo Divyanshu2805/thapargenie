@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const projectId = 'demo-thapargpt';
+const projectId = 'demo-thapargenie';
 const emulatorUrl = 'http://127.0.0.1:9099';
 
 async function latestVerificationCode(request, email) {

@@ -70,7 +70,7 @@ export function installGlobalErrorHandlers() {
   });
 }
 
-const RELOAD_KEY = 'thapargpt:reloaded-for-version';
+const RELOAD_KEY = 'thapargenie:reloaded-for-version';
 
 /** Reload once per session to fetch the new build; report if that didn't help. */
 export function reloadForNewVersion(error) {

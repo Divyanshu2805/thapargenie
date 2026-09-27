@@ -39,7 +39,7 @@ class TestStageZeroContainment(TestCase):
     def test_service_index_and_health_checks_are_minimal(self):
         index = self.client.get('/')
         self.assertEqual(index.status_code, 200)
-        self.assertEqual(index.json(), {'service': 'thapargpt-api'})
+        self.assertEqual(index.json(), {'service': 'thapargenie-api'})
 
         live = self.client.get('/health/live/')
         self.assertEqual(live.status_code, 200)

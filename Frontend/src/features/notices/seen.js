@@ -2,9 +2,9 @@
 // model stays untouched and the unread dot simply shows again on a new device.
 import { useSyncExternalStore } from 'react';
 
-export const SEEN_KEY = 'thapargpt:notices-seen';
-export const DISMISSED_KEY = 'thapargpt:notice-dismissed';
-const CHANGED = 'thapargpt:notices-changed';
+export const SEEN_KEY = 'thapargenie:notices-seen';
+export const DISMISSED_KEY = 'thapargenie:notice-dismissed';
+const CHANGED = 'thapargenie:notices-changed';
 
 function read(key) {
   try {
