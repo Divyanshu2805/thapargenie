@@ -95,5 +95,6 @@ settings.
 
 ## Screens
 
-The student app lives under `/chat/`, the admin dashboard under `/admin/`. Sign-in pages,
-the privacy notice and shared answers (`/s/<token>`) are public.
+The landing page is at `/`, the student app under `/chat/` and the admin dashboard under
+`/admin/`. The landing page, sign-in pages, the privacy notice and shared answers
+(`/s/<token>`) are public.

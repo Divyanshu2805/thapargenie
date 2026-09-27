@@ -10,6 +10,14 @@ Errors look the same everywhere:
 The full OpenAPI schema is at `/api/v1/schema/` (Swagger UI at `/api/v1/docs/`), open to
 staff, or to everyone with `DJANGO_DEBUG=true`.
 
+## Public
+
+| Method | Path | |
+|---|---|---|
+| GET | `/health/live/` | The process is up. No dependencies checked; for the host's health check. |
+| GET | `/health/ready/` | The database answers. For an uptime monitor. |
+| POST | `client-errors/` | Browser error reports. No token read; capped and scrubbed. |
+
 ## Account
 
 | Method | Path | |
@@ -37,6 +45,7 @@ staff, or to everyone with `DJANGO_DEBUG=true`.
 | GET | `coverage/` | Topics the knowledge base covers. |
 | GET, POST | `site-feedback/` | Feedback about the site. |
 | GET | `notices/`, `notices/official/` | Notices from admins and new official documents. |
+| GET | `notices/official/<id>/open/` | A link to an official document. |
 
 `conversations/` takes `archived`, `pinned` and `q` (search in titles and messages).
 `PATCH conversations/<id>/` also takes `is_pinned`, `is_archived` and `current_leaf_id`
@@ -70,8 +79,13 @@ Staff only, under `admin/`. Deleting anything needs a recent sign-in.
 | GET | `documents/ids/` | Every id matching the list filters. |
 | POST | `documents/suggest-details/` | Suggested session and issue date. |
 | GET, PATCH, DELETE | `documents/<id>/chunks/`, `chunks/<id>/` | View and edit passages. |
-| GET | `stats/`, `gaps/`, `feedback/`, `site-feedback/` | Insight, each with a CSV export. |
+| GET | `stats/`, `gaps/`, `feedback/`, `site-feedback/` | Insight. |
+| GET | `stats/export/`, `gaps/export/`, `feedback/export/` | The same as CSV. |
+| PATCH | `feedback/<id>/`, `site-feedback/<id>/` | Review: resolve, dismiss, add a note. |
 | GET, PATCH | `settings/` | Limits, maintenance mode, banner, starter questions. |
 | POST | `playground/` | Run a question through the pipeline without saving it. |
 | GET, POST | `users/`, `invitations/`, `audit-log/` | Access and history. |
-| GET, POST, PATCH, DELETE | `notices/` | Notices. |
+| PATCH | `users/<id>/` | Approve, suspend or deny, with a reason. |
+| DELETE | `invitations/<id>/` | Revoke an invitation. |
+| GET, POST | `notices/` | List or post notices. |
+| GET, PATCH, DELETE | `notices/<id>/` | One notice. |

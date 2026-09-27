@@ -26,9 +26,10 @@ migration).
 ## Keeping data
 
 `python manage.py purge_data` applies the retention rules: chats with no activity for 180
-days, answer traces after 30 days, usage counters after about 13 months, audit events after a
-year, failed documents after 30 days, and expired share links. Every setting is a
-`RETENTION_*_DAYS` variable. `--dry-run` shows what would go.
+days, answer traces after 30 days, usage counters after about 13 months, audit events and
+site feedback after a year, notices a year after they expire, failed documents after 30 days,
+and share links 30 days after they end. Every setting is a `RETENTION_*_DAYS` variable.
+`--dry-run` shows what would go.
 
 `python manage.py secure_database` turns on row level security for every app table, so the
 Supabase REST API cannot read them; the app connects as the owner and is not affected.
