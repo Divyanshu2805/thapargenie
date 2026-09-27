@@ -62,6 +62,7 @@ import {
 } from './landing-hooks';
 import PrivacySection from './PrivacySection';
 import { Cta, SectionHeading } from './ui';
+import { scrollToTop, startSmoothScroll } from '@/lib/smooth-scroll';
 import './landing.css';
 
 // The public landing page at "/": what ThaparGenie is, how it answers, and a way in.
@@ -328,7 +329,7 @@ function ScrollTop() {
     };
   }, []);
   return (
-    <button ref={ref} type="button" className="lp-top" aria-label="Back to top" onClick={() => window.scrollTo({ top: 0 })}>
+    <button ref={ref} type="button" className="lp-top" aria-label="Back to top" onClick={scrollToTop}>
       <svg viewBox="0 0 48 48" aria-hidden="true">
         <circle cx="24" cy="24" r="21" className="lp-top__track" />
         <circle cx="24" cy="24" r="21" pathLength="1" className="lp-top__ring" />
@@ -895,6 +896,8 @@ export default function LandingPage() {
   const signedIn = Boolean(user);
   const rootRef = useReveal();
   usePointerEffects(rootRef);
+  // Momentum scrolling: the wheel glides to a stop instead of jumping in steps.
+  useEffect(() => startSmoothScroll(), []);
 
   useEffect(() => {
     const previous = document.title;
