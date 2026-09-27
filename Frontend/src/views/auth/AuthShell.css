@@ -236,6 +236,48 @@
   position: absolute;
 }
 
+/* "Back home" link, top-right of the form panel. */
+.auth-back {
+  align-items: center;
+  color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground));
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 550;
+  gap: 0.4rem;
+  position: absolute;
+  right: 1.5rem;
+  text-decoration: none;
+  top: 1.5rem;
+  transition: color 0.15s;
+  z-index: 1;
+}
+
+.auth-back:hover {
+  color: var(--primary);
+}
+
+.dark .auth-back:hover {
+  color: var(--accent-foreground);
+}
+
+.auth-back__icon {
+  height: 0.9rem;
+  transition: transform 0.2s ease;
+  width: 0.9rem;
+}
+
+.auth-back:hover .auth-back__icon {
+  transform: translateX(-2px);
+}
+
+@media (max-width: 26rem) {
+  .auth-back {
+    font-size: 0.8rem;
+    right: 1rem;
+    top: 1rem;
+  }
+}
+
 .auth-card {
   animation: auth-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;

@@ -1,4 +1,4 @@
-import { ArrowUp, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowUp, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -65,6 +65,10 @@ export default function AuthShell({ title, description, children }) {
       </aside>
       <div className="auth-panel">
         <Ambient />
+        <Link to="/" onClick={home} className="auth-back">
+          <ArrowLeft className="auth-back__icon" />
+          Back home
+        </Link>
         <section className="auth-card" aria-labelledby="auth-title">
           <Link to="/" onClick={home} aria-label="ThaparGenie home" className="auth-card__logo"><LogoGlyph motion="draw" /></Link>
           <h1 id="auth-title">{title}</h1>
