@@ -35,7 +35,7 @@ const SECTIONS = [
     title: 'Who processes it',
     body: [
       'Firebase (Google) handles sign-in, email verification and password resets.',
-      'Supabase hosts the database and uploaded official documents, in Mumbai, India.',
+      'Render runs the ThaparGenie server, and Supabase hosts the database and uploaded official documents, both in Singapore.',
       'An AI model provider (Google Gemini by default) receives question text and retrieved official passages to write answers. It never receives your name, email or account id.',
       'If you speak a question, your browser turns the speech into text with its own service (Google in Chrome, Microsoft in Edge). ThaparGenie receives only the text, and no audio is recorded or kept.',
     ],
