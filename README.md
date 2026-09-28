@@ -1,6 +1,28 @@
-# ThaparGenie
+<p align="center">
+  <a href="https://thapargenie.divyanshuagrahari.dev"><img src="docs/images/thapargenie.jpg" alt="ThaparGenie" width="820" /></a>
+</p>
 
-A chat assistant for students of Thapar Institute of Engineering and Technology (TIET).
+<p align="center">
+  <b>Every answer about Thapar, straight from the source.</b><br/>
+  A campus assistant that answers from official TIET documents and links every fact to its source.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Django-5.2-0a0b0d?logo=django" alt="Django" />
+  <img src="https://img.shields.io/badge/React-19-0a0b0d?logo=react" alt="React" />
+  <img src="https://img.shields.io/badge/Vite-8-0a0b0d?logo=vite" alt="Vite" />
+  <img src="https://img.shields.io/badge/PostgreSQL-pgvector-0a0b0d?logo=postgresql" alt="PostgreSQL with pgvector" />
+  <img src="https://img.shields.io/badge/Tailwind-4-0a0b0d?logo=tailwindcss" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/Gemini-API-0a0b0d?logo=googlegemini" alt="Gemini" />
+</p>
+
+<p align="center">
+  <a href="https://thapargenie.divyanshuagrahari.dev"><b>thapargenie.divyanshuagrahari.dev</b></a>
+</p>
+
+---
+
+**ThaparGenie** is a chat assistant for students of Thapar Institute of Engineering and Technology (TIET).
 Ask about fees, hostels, admissions, the academic calendar, courses or rules, and get an
 answer written from official college documents, with a numbered link to every source it used.
 

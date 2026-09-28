@@ -3,6 +3,17 @@
 Two parts: a Django API in `Backend/backend` and a React app in `Frontend`. They talk over
 JSON, except answers, which stream as server-sent events.
 
+## Where it runs
+
+| Part | Host |
+|---|---|
+| Web app | Firebase Hosting, at [thapargenie.divyanshuagrahari.dev](https://thapargenie.divyanshuagrahari.dev) |
+| API | Render web service, Singapore (`thapargenie-api.onrender.com`) |
+| Database and uploaded files | Supabase, Singapore |
+| Sign-in | Firebase Authentication (a production project separate from development) |
+| Answers and embeddings | Google Gemini API |
+| Scheduled jobs | GitHub Actions: daily purge and search-quality check, weekly encrypted backup |
+
 ## Backend apps
 
 | App | What it holds |
