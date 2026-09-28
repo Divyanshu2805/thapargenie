@@ -99,32 +99,36 @@ export default function Register() {
           type="email"
           value={email}
         />
-        <AuthField
-          aria-describedby={error ? 'password-help register-error' : 'password-help'}
-          aria-invalid={Boolean(error)}
-          autoComplete="new-password"
-          hint="Use at least six characters."
-          hintId="password-help"
-          icon="password"
-          id="register-password"
-          label="Password"
-          minLength={6}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-          type="password"
-          value={password}
-        />
-        <AuthField
-          autoComplete="new-password"
-          icon="key"
-          id="register-password-confirmation"
-          label="Confirm password"
-          minLength={6}
-          onChange={(event) => setPasswordConfirmation(event.target.value)}
-          required
-          type="password"
-          value={passwordConfirmation}
-        />
+        <div className="auth-field-group">
+          <div className="auth-field-row">
+            <AuthField
+              aria-describedby={error ? 'password-help register-error' : 'password-help'}
+              aria-invalid={Boolean(error)}
+              autoComplete="new-password"
+              icon="password"
+              id="register-password"
+              label="Password"
+              minLength={6}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
+            <AuthField
+              aria-label="Confirm password"
+              autoComplete="new-password"
+              icon="key"
+              id="register-password-confirmation"
+              label="Confirm"
+              minLength={6}
+              onChange={(event) => setPasswordConfirmation(event.target.value)}
+              required
+              type="password"
+              value={passwordConfirmation}
+            />
+          </div>
+          <small className="auth-hint" id="password-help">Use at least six characters.</small>
+        </div>
         {error ? <p className="auth-error" id="register-error" role="alert">{error}</p> : null}
         <button className="auth-button" disabled={busy} type="submit">
           {submitting ? 'Creating account…' : 'Create account'}
