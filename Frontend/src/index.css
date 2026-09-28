@@ -542,6 +542,25 @@
 
   /* A small hop when the brand is hovered. */
   .group\/brand:hover .logo-glyph__dot { animation: logo-think 0.6s ease-in-out 1; }
+
+  /*
+   * Reduced motion shortens every animation to one instant run, which leaves the looping
+   * mark on its undrawn first frame (blank). Show the finished mark instead.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .logo-glyph--draw .logo-glyph__stroke,
+    .logo-glyph--loop .logo-glyph__stroke {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+
+    .logo-glyph--draw .logo-glyph__dot,
+    .logo-glyph--loop .logo-glyph__dot {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 @keyframes logo-draw {
