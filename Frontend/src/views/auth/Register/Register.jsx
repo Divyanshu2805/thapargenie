@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { holdAuthRedirect, useSlideNavigate } from '../../../lib/page-slide';
-import { authErrorMessage, loginWithGoogle, register } from '../../../utils/auth';
+import {
+  authErrorMessage,
+  checkPassword,
+  loginWithGoogle,
+  passwordRequirements,
+  register,
+} from '../../../utils/auth';
 import AuthArrow from '../AuthArrow';
 import AuthField from '../AuthField';
 import AuthShell from '../AuthShell';
@@ -16,7 +22,16 @@ export default function Register() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [passwordHint, setPasswordHint] = useState('');
   const navigate = useSlideNavigate();
+
+  useEffect(() => {
+    let active = true;
+    passwordRequirements().then((hint) => active && setPasswordHint(hint));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -25,8 +40,9 @@ export default function Register() {
       setError('Enter your name and a valid email address.');
       return;
     }
-    if (password.length < 6) {
-      setError('Use a password with at least six characters.');
+    const weakPassword = await checkPassword(password);
+    if (weakPassword) {
+      setError(weakPassword);
       return;
     }
     if (password !== passwordConfirmation) {
@@ -108,7 +124,6 @@ export default function Register() {
               icon="password"
               id="register-password"
               label="Password"
-              minLength={6}
               onChange={(event) => setPassword(event.target.value)}
               required
               type="password"
@@ -120,14 +135,13 @@ export default function Register() {
               icon="key"
               id="register-password-confirmation"
               label="Confirm"
-              minLength={6}
               onChange={(event) => setPasswordConfirmation(event.target.value)}
               required
               type="password"
               value={passwordConfirmation}
             />
           </div>
-          <small className="auth-hint" id="password-help">Use at least six characters.</small>
+          <small className="auth-hint" id="password-help">{passwordHint || ' '}</small>
         </div>
         {error ? <p className="auth-error" id="register-error" role="alert">{error}</p> : null}
         <button className="auth-button" disabled={busy} type="submit">

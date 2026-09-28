@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../utils/auth', () => ({
   authErrorMessage: (error) => error.message,
+  checkPassword: async (password) => (password.length < 6 ? 'Use at least 6 characters.' : ''),
+  passwordRequirements: async () => 'Use at least 6 characters.',
   completeEmailVerification: mocks.completeEmailVerification,
   completePasswordReset: mocks.completePasswordReset,
   inspectPasswordResetCode: mocks.inspectPasswordResetCode,

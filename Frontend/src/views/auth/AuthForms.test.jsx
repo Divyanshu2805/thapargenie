@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../utils/auth', () => ({
   authErrorMessage: (error) => error.message,
+  checkPassword: async (password) => (password.length < 6 ? 'Use at least 6 characters.' : ''),
+  passwordRequirements: async () => 'Use at least 6 characters.',
   login: mocks.login,
   loginWithGoogle: mocks.loginWithGoogle,
   register: mocks.register,
@@ -59,7 +61,7 @@ describe('authentication forms', () => {
     await waitFor(() => expect(mocks.loginWithGoogle).toHaveBeenCalledWith(false));
   });
 
-  it('shows an inline signup error for mismatched passwords', () => {
+  it('shows an inline signup error for mismatched passwords', async () => {
     renderWithRouter(<Register />);
 
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Student Name' } });
@@ -70,7 +72,21 @@ describe('authentication forms', () => {
     fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'secret2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Passwords do not match.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Passwords do not match.');
+    expect(mocks.register).not.toHaveBeenCalled();
+  });
+
+  it('shows the password rules and stops a password that breaks them', async () => {
+    renderWithRouter(<Register />);
+    expect(await screen.findByText('Use at least 6 characters.')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Student Name' } });
+    fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'student@example.edu' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'abc' } });
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'abc' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Use at least 6 characters.');
     expect(mocks.register).not.toHaveBeenCalled();
   });
 

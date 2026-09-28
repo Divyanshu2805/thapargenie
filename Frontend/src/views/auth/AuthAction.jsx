@@ -3,9 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import {
   authErrorMessage,
+  checkPassword,
   completeEmailVerification,
   completePasswordReset,
   inspectPasswordResetCode,
+  passwordRequirements,
 } from '../../utils/auth';
 import AuthField from './AuthField';
 import AuthShell from './AuthShell';
@@ -19,6 +21,7 @@ export default function AuthAction() {
   const [state, setState] = useState({ status: 'loading', email: '', error: '' });
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [passwordHint, setPasswordHint] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -31,8 +34,11 @@ export default function AuthAction() {
 
       try {
         if (mode === 'resetPassword') {
-          const email = await inspectPasswordResetCode(code);
-          if (active) setState({ status: 'reset-ready', email, error: '' });
+          const [email, hint] = await Promise.all([inspectPasswordResetCode(code), passwordRequirements()]);
+          if (active) {
+            setPasswordHint(hint);
+            setState({ status: 'reset-ready', email, error: '' });
+          }
           return;
         }
 
@@ -57,8 +63,9 @@ export default function AuthAction() {
 
   const handlePasswordReset = async (event) => {
     event.preventDefault();
-    if (password.length < 6) {
-      setState((current) => ({ ...current, error: 'Use a password with at least six characters.' }));
+    const weakPassword = await checkPassword(password);
+    if (weakPassword) {
+      setState((current) => ({ ...current, error: weakPassword }));
       return;
     }
     if (password !== passwordConfirmation) {
@@ -93,12 +100,13 @@ export default function AuthAction() {
           <p className="auth-card__description">Resetting the password for {state.email}.</p>
           <AuthField
             autoComplete="new-password"
-            aria-describedby={state.error ? 'action-error' : undefined}
+            aria-describedby={state.error ? 'new-password-help action-error' : 'new-password-help'}
             aria-invalid={Boolean(state.error)}
             icon="password"
             id="new-password"
+            hint={passwordHint}
+            hintId="new-password-help"
             label="New password"
-            minLength={6}
             onChange={(event) => setPassword(event.target.value)}
             required
             type="password"
@@ -111,7 +119,6 @@ export default function AuthAction() {
             icon="key"
             id="confirm-new-password"
             label="Confirm new password"
-            minLength={6}
             onChange={(event) => setPasswordConfirmation(event.target.value)}
             required
             type="password"

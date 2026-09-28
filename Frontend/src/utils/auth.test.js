@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   signInWithPopup: vi.fn(),
   signOut: vi.fn(),
   updateProfile: vi.fn(),
+  validatePassword: vi.fn(),
   verifyPasswordResetCode: vi.fn(),
 }));
 
@@ -35,6 +36,7 @@ vi.mock('firebase/auth', () => ({
   signInWithPopup: mocks.signInWithPopup,
   signOut: mocks.signOut,
   updateProfile: mocks.updateProfile,
+  validatePassword: mocks.validatePassword,
   verifyPasswordResetCode: mocks.verifyPasswordResetCode,
 }));
 
@@ -159,5 +161,46 @@ describe('Firebase authentication operations', () => {
     expect(mocks.clearUserSpecificState.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.signOut.mock.invocationCallOrder[0],
     );
+  });
+});
+
+describe('password policy', () => {
+  const enforced = {
+    enforcementState: 'ENFORCE',
+    customStrengthOptions: { minPasswordLength: 8, containsUppercaseLetter: true, containsLowercaseLetter: true, containsNumericCharacter: true },
+  };
+  const status = (isValid, passwordPolicy = enforced) => ({ isValid, passwordPolicy });
+
+  it('describes the enforced policy in words', async () => {
+    const { passwordRequirements } = await import('./auth');
+    mocks.validatePassword.mockResolvedValue(status(false));
+    await expect(passwordRequirements()).resolves.toBe(
+      'Use at least 8 characters, with an uppercase letter, a lowercase letter and a number.',
+    );
+  });
+
+  it('rejects a password the enforced policy refuses and accepts one it allows', async () => {
+    const { checkPassword } = await import('./auth');
+    mocks.validatePassword.mockResolvedValueOnce(status(false));
+    await expect(checkPassword('secret12')).resolves.toMatch(/^Use at least 8 characters/);
+    mocks.validatePassword.mockResolvedValueOnce(status(true));
+    await expect(checkPassword('Secret12')).resolves.toBe('');
+  });
+
+  it("ignores a policy that is not enforced, keeping Firebase's six-character minimum", async () => {
+    const { checkPassword, passwordRequirements } = await import('./auth');
+    const off = { ...enforced, enforcementState: 'OFF' };
+    mocks.validatePassword.mockResolvedValue(status(false, off));
+    await expect(passwordRequirements()).resolves.toBe('Use at least 6 characters.');
+    await expect(checkPassword('secret')).resolves.toBe('');
+    await expect(checkPassword('short')).resolves.toBe('Use at least 6 characters.');
+  });
+
+  it('falls back to the six-character minimum when the policy cannot be read', async () => {
+    const { checkPassword, passwordRequirements } = await import('./auth');
+    mocks.validatePassword.mockRejectedValue(new Error('offline'));
+    await expect(passwordRequirements()).resolves.toBe('Use at least 6 characters.');
+    await expect(checkPassword('short')).resolves.toBe('Use at least 6 characters.');
+    await expect(checkPassword('longer1')).resolves.toBe('');
   });
 });
