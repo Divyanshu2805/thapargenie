@@ -19,6 +19,7 @@
 **/*service-account*.json
 **/credentials*.json
 .firebaserc
+.firebase/
 .pytest_cache/
 .ruff_cache/
 audit/dependency-summary.json

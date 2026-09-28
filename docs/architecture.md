@@ -14,6 +14,17 @@ JSON, except answers, which stream as server-sent events.
 | Answers and embeddings | Google Gemini API |
 | Scheduled jobs | GitHub Actions: daily purge and search-quality check, weekly encrypted backup |
 
+### How changes go live
+
+- Work happens on feature branches, merged into `dev` through pull requests. CI runs on
+  both; nothing deploys.
+- A release is one pull request from `dev` into `main`. Once CI passes on `main`, Render
+  deploys the API (Auto-Deploy "After CI Checks Pass", only when `Backend/` changed) and
+  `deploy-frontend.yml` builds the web app and deploys it to Firebase Hosting.
+- The maintenance jobs always run the code on `main` against production.
+- To undo a release: Render → the service → Events → Rollback, and Firebase Hosting →
+  Release history → Rollback.
+
 ## Backend apps
 
 | App | What it holds |
