@@ -44,6 +44,9 @@ The daily question limit and the starter questions live in the database
 | `EMBED_DIMENSIONS` | Must stay 768, the size of the vector columns. |
 | `APP_RELEASE` | Tags logs and errors with the deploy; falls back to `RENDER_GIT_COMMIT`. |
 | `WEB_CONCURRENCY`, `GUNICORN_THREADS`, `GUNICORN_TIMEOUT` | Workers, threads per worker and request timeout (2, 8, 120 s). See `gunicorn.conf.py`. |
+| `GUNICORN_MAX_REQUESTS` | Requests before a worker is recycled (10,000). |
+| `FIREBASE_HTTP_POOL_SIZE` | Connections kept to Google for the revocation check; defaults to `GUNICORN_THREADS`. |
+| `DATABASE_TRANSACTION_POOLING` | `true` with the Supabase transaction pooler (port 6543). Needed above about 2×16 threads; `check --deploy` warns otherwise. |
 
 `offline` providers and `memory` storage are refused in production.
 

@@ -56,6 +56,10 @@ def database_config(url, *, ssl_require, conn_max_age):
     )
     # Transaction-mode poolers (Supabase :6543) cannot keep server-side cursors.
     config["DISABLE_SERVER_SIDE_CURSORS"] = DATABASE_TRANSACTION_POOLING
+    if DATABASE_TRANSACTION_POOLING:
+        # psycopg prepares a statement after 5 uses; the next transaction may land on a
+        # different server connection that has never seen it.
+        config["OPTIONS"]["prepare_threshold"] = None
     return config
 
 
@@ -174,6 +178,9 @@ FIREBASE_AUTH_EMULATOR_HOST = os.getenv("FIREBASE_AUTH_EMULATOR_HOST", "").strip
 FIREBASE_ALLOWED_SIGN_IN_PROVIDERS = tuple(
     env_list("FIREBASE_ALLOWED_SIGN_IN_PROVIDERS", "password,google.com")
 )
+# Connections kept to Google for the per-request revocation check. firebase_admin keeps 10,
+# so with more worker threads than that, connections are dropped and reopened each time.
+FIREBASE_HTTP_POOL_SIZE = env_int("FIREBASE_HTTP_POOL_SIZE", env_int("GUNICORN_THREADS", 8))
 FIREBASE_RECENT_AUTH_SECONDS = int(os.getenv("FIREBASE_RECENT_AUTH_SECONDS", "300"))
 # A freshly issued token is "used too early" if this server's clock trails Google's by even
 # a second, so the first request after signing in would fail. Allow a little drift.
