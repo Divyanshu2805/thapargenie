@@ -2,6 +2,7 @@ import hashlib
 import json
 import time
 import uuid
+from datetime import timedelta
 
 from api.identity import FirebaseIdentity
 from django.db import connection
@@ -213,6 +214,22 @@ class AskTests(ChatTestCase):
         self.assertEqual(assistant.status, Message.Status.FAILED)
         self.assertEqual(assistant.error_code, 'llm_unavailable')
 
+    def test_failed_answer_gives_the_question_back_but_a_stopped_one_does_not(self):
+        self.fake.queue(ANALYSIS, LLMError('boom'))
+        read_events(self.ask(self.conversation()))
+        usage = UsageDaily.objects.get(user=self.user)
+        self.assertEqual(usage.questions, 0)
+        self.assertGreater(usage.llm_calls, 0)  # the AI work it caused is still counted
+
+        self.fake.queue(ANALYSIS, 'The boys hostel fee is Rs 1,20,000 per year [1].')
+        response = self.ask(self.conversation())
+        stream = iter(response.streaming_content)
+        received = b''
+        while b'event: delta' not in received:
+            received += next(stream)
+        response._iterator.close()  # the browser going away, as in the disconnect test
+        self.assertEqual(UsageDaily.objects.get(user=self.user).questions, 1)
+
     def test_client_disconnect_saves_partial_answer(self):
         conversation = self.conversation()
         self.fake.queue(ANALYSIS, 'The boys hostel fee is Rs 1,20,000 per year [1].')
@@ -246,6 +263,16 @@ class LimitTests(ChatTestCase):
         response = self.ask(conversation)
         self.assertEqual(response.status_code, 429)
         self.assertEqual(response.data['error']['code'], 'daily_quota_exceeded')
+
+    def test_a_running_stream_still_blocks_a_second_after_two_minutes(self):
+        conversation = self.conversation()
+        Message.objects.create(conversation=conversation, role=Message.Role.ASSISTANT,
+                               status=Message.Status.STREAMING)
+        Message.objects.update(updated_at=timezone.now() - timedelta(minutes=3))
+        self.assertEqual(self.ask(conversation).status_code, 409)
+        Message.objects.update(updated_at=timezone.now() - timedelta(minutes=5))
+        self.fake.queue(ANALYSIS, ANSWER)
+        self.assertEqual(self.ask(conversation).status_code, 200)
 
     def test_staff_are_exempt_from_daily_quota(self):
         ChatSettings.objects.filter(pk=1).update(daily_question_limit=0)

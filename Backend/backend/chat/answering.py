@@ -42,7 +42,9 @@ from chat.serializers import message_payload, source_payload
 
 logger = logging.getLogger(__name__)
 
-BUSY_WINDOW = timedelta(minutes=2)
+# Longer than any real answer (analysis, search and generation can each take a minute),
+# so a stream that is still running keeps blocking a second one.
+BUSY_WINDOW = timedelta(minutes=4)
 
 
 @dataclass
@@ -311,12 +313,14 @@ def stream_turn(turn):
     except QuotaExhausted:
         _fail(turn, 'llm_quota')
         quota.record_calls(user, llm.usage)
+        quota.refund_question(user)
         yield 'error', {'code': 'service_busy', 'message': ServiceBusy.default_detail,
                         'retryable': True}
     except LLMError:
         logger.warning('LLM failure for message %s', turn.assistant_message.pk, exc_info=True)
         _fail(turn, 'llm_unavailable')
         quota.record_calls(user, llm.usage)
+        quota.refund_question(user)
         yield 'error', {'code': 'llm_unavailable',
                         'message': 'The answer service is unavailable. Please retry.',
                         'retryable': True}
@@ -324,5 +328,6 @@ def stream_turn(turn):
         logger.exception('Answer failed for message %s', turn.assistant_message.pk)
         _fail(turn, 'internal_error')
         quota.record_calls(user, llm.usage)
+        quota.refund_question(user)
         yield 'error', {'code': 'internal_error',
                         'message': 'Something went wrong. Please retry.', 'retryable': True}

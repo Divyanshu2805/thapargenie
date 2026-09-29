@@ -44,6 +44,13 @@ def record_answer(user, usage, *, cached=False):
     )
 
 
+def refund_question(user):
+    """Give back the question a failed answer used: the student got nothing for it."""
+    UsageDaily.objects.filter(user=user, day=today(), questions__gt=0).update(
+        questions=F('questions') - 1
+    )
+
+
 def record_calls(user, usage):
     """LLM calls made outside a counted answer (failed/stopped turns, titles, memory)."""
     if usage.calls:
