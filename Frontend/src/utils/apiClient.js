@@ -14,13 +14,15 @@ registerUserStateReset(() => {
 });
 
 export class ApiError extends Error {
-  constructor(message, { code = 'request_failed', status = 0, fields = null, requestId = null } = {}) {
+  constructor(message, { code = 'request_failed', status = 0, fields = null, requestId = null, timedOut = false } = {}) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
     this.fields = fields;
     this.requestId = requestId;
+    // True when our own timeout fired, as opposed to a cancel from the caller.
+    this.timedOut = timedOut;
   }
 }
 
@@ -120,11 +122,10 @@ async function performAuthenticatedRequest(
   } catch (error) {
     if (error instanceof ApiError) throw error;
     if (controller.signal.aborted) {
+      const timedOut = controller.signal.reason === 'Request timed out.';
       throw new ApiError(
-        controller.signal.reason === 'Request timed out.'
-          ? 'The server took too long to respond.'
-          : 'The request was cancelled.',
-        { code: 'request_cancelled' },
+        timedOut ? 'The server took too long to respond.' : 'The request was cancelled.',
+        { code: 'request_cancelled', timedOut },
       );
     }
     throw new ApiError('The service is currently unreachable.', { code: 'network_error' });
@@ -159,4 +160,4 @@ export async function apiBlobRequest(path, options = {}) {
   };
 }
 
-export const getCurrentUserProfile = () => apiRequest('me/');
+export const getCurrentUserProfile = (options) => apiRequest('me/', options);

@@ -47,6 +47,14 @@ describe('protected routing', () => {
     expect(screen.queryByText(/login return/i)).not.toBeInTheDocument();
   });
 
+  it('tells the user the server is waking up while the profile load is retried', () => {
+    mocks.authState.initialized = false;
+    mocks.authState.profileWaking = true;
+    renderRoute();
+
+    expect(screen.getByRole('status')).toHaveTextContent('Waking up the server');
+  });
+
   it('preserves a protected deep link when redirecting a signed-out user', () => {
     renderRoute();
 

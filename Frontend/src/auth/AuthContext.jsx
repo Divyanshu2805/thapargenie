@@ -4,6 +4,7 @@ import { onIdTokenChanged } from 'firebase/auth';
 import { firebaseAuth, firebaseConfigurationError } from '../config/firebase';
 import { getCurrentUserProfile } from '../utils/apiClient';
 import { clearUserSpecificState } from '../utils/session';
+import { loadProfileWithRetry } from './load-profile';
 
 const AuthContext = createContext(null);
 
@@ -15,6 +16,8 @@ export function AuthProvider({ children }) {
   );
   const [initialized, setInitialized] = useState(() => !firebaseAuth);
   const [profileLoading, setProfileLoading] = useState(false);
+  // True once the API has failed to answer in time and we are retrying: it is waking up.
+  const [profileWaking, setProfileWaking] = useState(false);
   const requestGeneration = useRef(0);
   const previousUid = useRef(undefined);
 
@@ -23,7 +26,11 @@ export function AuthProvider({ children }) {
     setProfileLoading(true);
     setProfileError(null);
     try {
-      const nextProfile = await getCurrentUserProfile();
+      const nextProfile = await loadProfileWithRetry({
+        load: getCurrentUserProfile,
+        isCurrent: () => generation === requestGeneration.current,
+        onWaking: () => setProfileWaking(true),
+      });
       if (generation === requestGeneration.current) setProfile(nextProfile);
       return nextProfile;
     } catch (error) {
@@ -33,7 +40,10 @@ export function AuthProvider({ children }) {
       }
       throw error;
     } finally {
-      if (generation === requestGeneration.current) setProfileLoading(false);
+      if (generation === requestGeneration.current) {
+        setProfileLoading(false);
+        setProfileWaking(false);
+      }
     }
   }, []);
 
@@ -53,6 +63,7 @@ export function AuthProvider({ children }) {
       if (!nextUser) {
         requestGeneration.current += 1;
         setProfileLoading(false);
+        setProfileWaking(false);
         setInitialized(true);
         return;
       }
@@ -72,6 +83,7 @@ export function AuthProvider({ children }) {
     profile,
     profileError,
     profileLoading,
+    profileWaking,
     reloadProfile: loadProfile,
     user,
   };
