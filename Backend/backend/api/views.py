@@ -14,7 +14,7 @@ from userauths.models import EligibilityState
 from api.authentication import IdentityServiceUnavailable
 from api.firebase import FirebaseIdentityUnavailable, revoke_firebase_sessions
 from api.models import AuditEvent, AuditOutcome
-from api.permissions import HasRecentFirebaseAuthentication
+from api.permissions import HasRecentFirebaseAuthentication, HasVerifiedEligibleIdentity
 from api.serializers import MeUpdateSerializer
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,13 @@ def _me_payload(request):
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        permissions = super().get_permissions()
+        # Anyone signed in may read their onboarding status; only approved students edit.
+        if self.request.method == 'PATCH':
+            permissions.append(HasVerifiedEligibleIdentity())
+        return permissions
 
     def get(self, request):
         return Response(_me_payload(request))
