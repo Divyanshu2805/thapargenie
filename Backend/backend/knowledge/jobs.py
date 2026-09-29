@@ -35,6 +35,15 @@ def _run(document_id):
         connections.close_all()
 
 
+def shutdown():
+    """Drop documents that have not started, so a restarting worker doesn't wait for them.
+
+    Nothing is lost: they stay queued in the database and the next worker's recovery
+    sweep picks them up (`requeue_stale`).
+    """
+    _executor.shutdown(wait=False, cancel_futures=True)
+
+
 def enqueue(document_id):
     """Process after the current transaction commits (so the worker sees the row)."""
     transaction.on_commit(lambda: _executor.submit(_run, document_id))
