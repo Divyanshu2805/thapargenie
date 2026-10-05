@@ -5,10 +5,10 @@ import AccountStatus from '../views/auth/AccountStatus';
 import AuthLoading from '../views/auth/AuthLoading';
 
 export default function PrivateRoute({ children }) {
-  const { initialized, profile, profileError, profileLoading, reloadProfile, user } = useAuth();
+  const { initialized, profile, profileError, profileLoading, profileWaking, reloadProfile, user } = useAuth();
   const location = useLocation();
 
-  if (!initialized) return <AuthLoading />;
+  if (!initialized) return <AuthLoading waking={profileWaking} />;
   if (!user) {
     return (
       <Navigate
@@ -18,7 +18,7 @@ export default function PrivateRoute({ children }) {
       />
     );
   }
-  if (profileLoading) return <AuthLoading message="Checking account access…" />;
+  if (profileLoading) return <AuthLoading message="Checking account access…" waking={profileWaking} />;
   if (profileError || profile?.onboarding_status !== 'ready') {
     return <AccountStatus error={profileError} onRetry={reloadProfile} profile={profile} />;
   }

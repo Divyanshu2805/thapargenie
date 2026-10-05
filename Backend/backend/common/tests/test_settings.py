@@ -31,6 +31,16 @@ class DatabaseConfigTests(SimpleTestCase):
         self.assertNotIn('sslmode', config['OPTIONS'])
 
 
+    def test_transaction_pooler_turns_off_server_side_cursors_and_prepared_statements(self):
+        url = 'postgresql://u:p@pooler.example.com:6543/app'
+        with mock.patch('backend.settings.base.DATABASE_TRANSACTION_POOLING', True):
+            pooled = database_config(url, ssl_require=True, conn_max_age=60)
+        direct = database_config(url, ssl_require=True, conn_max_age=60)
+        self.assertTrue(pooled['DISABLE_SERVER_SIDE_CURSORS'])
+        self.assertIsNone(pooled['OPTIONS']['prepare_threshold'])
+        self.assertNotIn('prepare_threshold', direct['OPTIONS'])
+
+
 class SessionSettingsTests(TestCase):
     """Poolers drop startup options, so each connection sets these itself (common/db.py)."""
 

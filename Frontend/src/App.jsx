@@ -38,8 +38,8 @@ const AuditLogPage = lazy(() => import('./features/admin/AuditLogPage'));
 const NoticesAdminPage = lazy(() => import('./features/admin/NoticesAdminPage'));
 
 function SignedOutRoute({ children }) {
-  const { initialized, user } = useAuth();
-  if (!initialized) return <AuthLoading />;
+  const { initialized, profileWaking, user } = useAuth();
+  if (!initialized) return <AuthLoading waking={profileWaking} />;
   // While a sign-in is sliding the user into the app, the sign-in page stays put.
   return user && !authRedirectHeld() ? <Navigate replace to="/chat/" /> : children;
 }
