@@ -89,6 +89,21 @@ class FirebaseAuthenticationTests(TestCase):
         self.assertEqual(user.eligibility_state, EligibilityState.PENDING)
 
     @mock.patch('api.authentication.verify_firebase_id_token')
+    def test_only_approved_students_can_edit_preferences(self, verify):
+        body = {'program': 'BEng'}
+        verify.return_value = _claims(email_verified=False)
+        unverified = self.client.patch('/api/v1/me/', body, format='json')
+        verify.return_value = _claims()
+        pending = self.client.patch('/api/v1/me/', body, format='json')
+
+        self.assertEqual(unverified.status_code, 403)
+        self.assertEqual(unverified.json()['error']['code'], 'email_verification_required')
+        self.assertEqual(pending.status_code, 403)
+        self.assertEqual(pending.json()['error']['code'], 'eligibility_required')
+        self.assertEqual(self.client.get('/api/v1/me/').status_code, 200)  # status stays readable
+        self.assertEqual(User.objects.get(firebase_uid='firebase-uid-1').profile.program, '')
+
+    @mock.patch('api.authentication.verify_firebase_id_token')
     def test_verified_invited_identity_is_approved_and_me_is_allowlisted(self, verify):
         IdentityInvitation.objects.create(email='STUDENT@example.com')
         verify.return_value = _claims()
@@ -179,6 +194,8 @@ class FirebaseAuthenticationTests(TestCase):
 
     @mock.patch('api.authentication.verify_firebase_id_token')
     def test_client_cannot_assign_staff_or_eligibility(self, verify):
+        # An approved student may edit preferences, but still not these fields.
+        IdentityInvitation.objects.create(email='student@example.com')
         verify.return_value = _claims()
 
         response = self.client.patch(
@@ -190,7 +207,7 @@ class FirebaseAuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 400)
         user = User.objects.get(firebase_uid='firebase-uid-1')
         self.assertFalse(user.is_staff)
-        self.assertEqual(user.eligibility_state, EligibilityState.PENDING)
+        self.assertEqual(user.eligibility_state, EligibilityState.APPROVED)  # via the invitation
 
     @mock.patch('api.authentication.verify_firebase_id_token')
     def test_backend_revocation_watermark_rejects_older_token(self, verify):
