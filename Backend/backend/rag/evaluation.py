@@ -15,9 +15,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from rag.analysis import Intent, analyze
-from rag.context import build_sources
+from rag.context import sources_for
 from rag.pipeline import AnswerType, answer
-from rag.rerank import rerank
+from rag.rerank import KEEP, rerank
 from rag.retrieve import retrieve
 
 GOLDEN = Path(__file__).parent / 'eval' / 'golden.json'
@@ -53,6 +53,11 @@ class CaseResult:
     answer_type: str = ''
     grounded: bool | None = None
     answer_ok: bool | None = None
+    # Cases that name items a complete answer must contain (`expect_all`): did every item
+    # reach the answer prompt, and did the written answer name every one?
+    list_complete: bool | None = None
+    answer_complete: bool | None = None
+    intent_ok: bool | None = None
     error: str = ''
 
     @property
@@ -83,6 +88,14 @@ class Report:
         rows = [r for r in self.results if r.answer_ok is not None]
         return sum(1 for r in rows if r.answer_ok) / len(rows) if rows else None
 
+    def list_completeness(self):
+        rows = [r for r in self.results if r.list_complete is not None]
+        return sum(1 for r in rows if r.list_complete) / len(rows) if rows else None
+
+    def intent_accuracy(self):
+        rows = [r for r in self.results if r.intent_ok is not None]
+        return sum(1 for r in rows if r.intent_ok) / len(rows) if rows else None
+
     def important_misses(self):
         return [
             r.case['id']
@@ -97,25 +110,49 @@ def expected_type(case):
     return AnswerType.ANSWERED if case['answerable'] else AnswerType.NO_ANSWER
 
 
+# The question type the analysis should give for cases that expect a non-search reply.
+INTENT_FOR_TYPE = {
+    AnswerType.SMALLTALK: Intent.GREETING,
+    AnswerType.CONVERSATION: Intent.CONVERSATION,
+    AnswerType.OUT_OF_SCOPE: Intent.OUT_OF_SCOPE,
+    AnswerType.PERSONAL_RECORD: Intent.PERSONAL_RECORD,
+}
+
+
+def names_all(text, items):
+    text = text.lower()
+    return all(item.lower() in text for item in items)
+
+
 def evaluate_case(llm, case, *, use_rerank=False, with_answers=False):
     result = CaseResult(case=case)
     history = case.get('history', [])
     analysis = analyze(llm, case['question'], history=history)
     result.intent = analysis.intent
     result.standalone = analysis.standalone_query
-    if analysis.intent == Intent.COLLEGE and case['expected']:
+    expected_intent = INTENT_FOR_TYPE.get(case.get('expect_type'))
+    if expected_intent:
+        result.intent_ok = analysis.intent == expected_intent
+    if analysis.intent == Intent.COLLEGE and (case['expected'] or case.get('expect_all')):
         retrieval = retrieve(llm, analysis)
-        result.rank = first_hit(retrieval.candidates, case['expected'])
-        kept = retrieval.candidates[:8]
+        kept = retrieval.candidates[:KEEP]
         if use_rerank:
             kept, _ = rerank(llm, analysis.standalone_query, retrieval.candidates)
-        sources = build_sources(kept)
-        result.source_hit = any(_matches(s.url, s.content, case['expected']) for s in sources)
+        sources, _ = sources_for(analysis, kept, retrieval.candidates[KEEP:])
+        if case['expected']:
+            result.rank = first_hit(retrieval.candidates, case['expected'])
+            result.source_hit = any(_matches(s.url, s.content, case['expected']) for s in sources)
+        if case.get('expect_all'):
+            result.list_complete = names_all(' '.join(s.content for s in sources),
+                                             case['expect_all'])
     if with_answers:
         final = answer(case['question'], llm=llm, history=history, rerank_enabled=use_rerank)
         result.answer_type = final.answer_type
         result.grounded = final.grounded
         result.answer_ok = final.answer_type == expected_type(case)
+        if case.get('expect_all'):
+            result.answer_complete = names_all(final.text, case['expect_all'])
+            result.answer_ok = result.answer_ok and result.answer_complete
     return result
 
 

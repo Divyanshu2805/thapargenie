@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "notes": "A case passes retrieval when a retrieved chunk comes from an expected URL and contains every `contains` phrase (case-insensitive). URLs survive re-imports; chunk ids do not. Several targets mean any of them is correct (the same PDF is published at two URLs; programme-specific admission status lives on two pages).",
+  "notes": "A case passes retrieval when a retrieved chunk comes from an expected URL and contains every `contains` phrase (case-insensitive). URLs survive re-imports; chunk ids do not. Several targets mean any of them is correct (the same PDF is published at two URLs; programme-specific admission status lives on two pages). List cases carry `expect_all`: every item must reach the answer prompt (and, with --answers, the written answer); they have no expected documents, so they are not counted in recall. `expect_type` for the intent cases (smalltalk, conversation, out_of_scope, personal_record) also checks the question type the analysis gives.",
   "cases": [
     {
       "id": "fees-be-cse-2026-27",
@@ -351,6 +351,61 @@
       "important": false,
       "tags": [
         "intent"
+      ]
+    },
+    {
+      "id": "hostels-list-all-boys",
+      "question": "What are the boys hostels at Thapar? give me list of all",
+      "expected": [],
+      "answerable": false,
+      "expect_type": "answered",
+      "expect_all": [
+        "Agira",
+        "Amritam",
+        "Prithvi",
+        "Neeram",
+        "Vyan",
+        "Tejas",
+        "Ambaram",
+        "Viyat",
+        "Anantam",
+        "Vyom"
+      ],
+      "important": true,
+      "tags": [
+        "list",
+        "hostel"
+      ]
+    },
+    {
+      "id": "hostels-complaint-followup",
+      "question": "why didnt you give this info before then?",
+      "history": [
+        {
+          "role": "user",
+          "content": "Which hostels are there for boys?"
+        },
+        {
+          "role": "assistant",
+          "content": "The boys hostels include Agira, Prithvi, Vyan and Tejas [1]."
+        },
+        {
+          "role": "user",
+          "content": "give me list of all"
+        },
+        {
+          "role": "assistant",
+          "content": "The sources name Agira, Prithvi, Vyan, Tejas, Ambaram, Anantam, Vyom and Hostel L. The remaining halls are not listed in the sources I have [1]."
+        }
+      ],
+      "expected": [],
+      "answerable": false,
+      "expect_type": "conversation",
+      "important": true,
+      "tags": [
+        "intent",
+        "followup",
+        "hostel"
       ]
     }
   ]
