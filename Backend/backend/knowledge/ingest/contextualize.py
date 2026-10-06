@@ -7,12 +7,14 @@ added to `search_text` only; the LLM always answers from the original chunk cont
 
 import logging
 
-from rag.llm import BadResponse, LLMError
+from rag.llm import BadResponse, LLMError, QuotaExhausted
 
 logger = logging.getLogger(__name__)
 
 BATCH = 10
-DOCUMENT_EXCERPT_CHARS = 12_000
+# The model reads the document to place each chunk, so a long page must fit: the Boys Hostel
+# page is ~30,000 characters, and with a shorter excerpt the later halls were never seen.
+DOCUMENT_EXCERPT_CHARS = 60_000
 
 SCHEMA = {
     'type': 'object',
@@ -49,8 +51,12 @@ document. Do not repeat the chunk.
 Return JSON: {{"contexts": [{{"index": <chunk number>, "context": "<sentence>"}}]}}"""
 
 
-def contextualize(llm, *, title, document_text, contents):
-    """Return one context sentence per chunk content ('' where none was produced)."""
+def contextualize(llm, *, title, document_text, contents, strict=False):
+    """Return one context sentence per chunk content ('' where none was produced).
+
+    A failed batch leaves its chunks without context. With `strict` a used-up quota is raised
+    instead, so a bulk run stops and can be resumed rather than silently skipping documents.
+    """
     excerpt = document_text[:DOCUMENT_EXCERPT_CHARS]
     results = [''] * len(contents)
     for start in range(0, len(contents), BATCH):
@@ -64,6 +70,11 @@ def contextualize(llm, *, title, document_text, contents):
             data = llm.generate_json(
                 prompt, json_schema=SCHEMA, fast=True, temperature=0, max_output_tokens=2048
             )
+        except QuotaExhausted:
+            if strict:
+                raise
+            logger.warning('Contextualisation skipped for %r: quota used up', title)
+            continue
         except (BadResponse, LLMError) as error:
             # Context is an enhancement; a failed batch must not fail the document.
             logger.warning('Contextualisation failed for %r: %s', title, error)

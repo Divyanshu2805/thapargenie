@@ -288,6 +288,49 @@ class CrawlerImportTests(KnowledgeTestCase):
             crawler_import.import_records(records, llm, batch_texts=2)
         self.assertEqual(Document.objects.filter(status=DocumentStatus.READY).count(), 2)
 
+    def test_contextualise_adds_a_sentence_to_each_chunks_search_text_only(self):
+        records = crawler_import.read_records(
+            write_export(tempfile.mkdtemp(), [
+                row('hostel', 0, 'Hostel L has double rooms.'),
+                row('hostel', 1, 'Hall B has single rooms.'),
+            ]),
+            categories={'hostel_campus_life'},
+        )
+        self.fake.queue({'contexts': [{'index': 0, 'context': 'Viyat Hall, formerly Hostel L.'},
+                                      {'index': 1, 'context': 'Hall B of the boys hostels.'}]})
+        from rag.llm import get_llm
+
+        crawler_import.import_records(records, get_llm(), contextualise=True)
+
+        first, second = Document.objects.get().chunks.order_by('chunk_index')
+        self.assertIn('Viyat Hall, formerly Hostel L.', first.search_text)
+        self.assertIn('Hall B of the boys hostels.', second.search_text)
+        self.assertEqual(first.content, 'Hostel L has double rooms.')
+
+    def test_without_contextualise_nothing_is_added_and_no_model_call_is_made(self):
+        call_command('import_crawler_export', self.export([row('a', 0, 'Hall A.')]),
+                     stdout=_Null())
+        self.assertEqual(self.fake.requests, [])
+
+    def test_a_used_up_quota_stops_a_contextualised_import_instead_of_skipping_context(self):
+        records = crawler_import.read_records(
+            write_export(tempfile.mkdtemp(), [row('a', 0, 'Hall A.')]),
+            categories={'hostel_campus_life'},
+        )
+        self.fake.queue(QuotaExhausted('daily'))
+        from rag.llm import get_llm
+
+        with self.assertRaises(QuotaExhausted):
+            crawler_import.import_records(records, get_llm(), contextualise=True)
+        self.assertFalse(Document.objects.exists())  # re-running will do it properly
+
+    def test_dry_run_estimates_the_context_calls(self):
+        out = _Capture()
+        folder = self.export([row('a', n, f'Hall {n}.') for n in range(12)])
+        call_command('import_crawler_export', folder, '--dry-run', '--contextualize', stdout=out)
+        self.assertIn('~2 fast-model calls', out.text)
+        self.assertEqual(self.fake.requests, [])
+
     def test_dry_run_calls_no_api(self):
         call_command('import_crawler_export', self.export([row('a', 0, 'x')]), '--dry-run',
                      stdout=_Null())
@@ -323,3 +366,11 @@ class _Null:
 
     def flush(self):
         pass
+
+
+class _Capture(_Null):
+    def __init__(self):
+        self.text = ''
+
+    def write(self, text='', *args, **kwargs):
+        self.text += text

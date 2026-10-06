@@ -6,6 +6,7 @@ from rag.llm import QuotaExhausted, RetryableError, get_llm
 from knowledge.ingest.crawler_import import (
     DEFAULT_CATEGORIES,
     estimate,
+    estimate_context_calls,
     import_records,
     plan_import,
     read_records,
@@ -25,10 +26,14 @@ class Command(BaseCommand):
         parser.add_argument('--include-review', action='store_true',
                             help='Also import rows the crawler marked "review".')
         parser.add_argument('--limit', type=int, help='Import at most N records (for trials).')
+        parser.add_argument('--contextualize', action='store_true',
+                            help='Also write a sentence of context for every chunk (one '
+                                 'fast-model call per 10 chunks) so related names are found.')
         parser.add_argument('--dry-run', action='store_true',
                             help='Show what would be imported; call no APIs.')
 
-    def handle(self, export_dir, categories, include_review, limit, dry_run, **options):
+    def handle(self, export_dir, categories, include_review, limit, dry_run, contextualize,
+               **options):
         path = Path(export_dir) / 'chunks.jsonl.gz'
         if not path.exists():
             raise CommandError(f'{path} not found.')
@@ -43,6 +48,8 @@ class Command(BaseCommand):
             f'{len(records)} records selected; {stats.skipped} already imported; '
             f'{len(pending)} to import ({texts} chunks, ~{tokens:,} tokens).'
         )
+        if contextualize:
+            self.stdout.write(f'Context: ~{estimate_context_calls(pending)} fast-model calls.')
         if dry_run or not pending:
             return
 
@@ -54,7 +61,7 @@ class Command(BaseCommand):
 
         llm = get_llm()
         try:
-            stats = import_records(records, llm, progress=report)
+            stats = import_records(records, llm, progress=report, contextualise=contextualize)
         except (QuotaExhausted, RetryableError) as exc:
             self.stdout.write('')
             raise CommandError(
