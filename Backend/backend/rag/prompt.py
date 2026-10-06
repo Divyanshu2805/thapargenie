@@ -72,6 +72,12 @@ def answer_prompt(analysis, sources, *, profile=None, memory='', today=None):
     lines.append(format_sources(sources) if sources else '<sources>\n(none found)\n</sources>')
     lines.append('')
     question = analysis.question.strip()
+    if analysis.wants_complete_list:
+        lines.append(
+            'The student wants the complete list. The sources hold the whole page: name every '
+            'item they contain, none left out, exactly as written. If an item appears under an '
+            'old and a new name, say so once instead of listing it twice.'
+        )
     lines.append(f'<question>{question}</question>')
     standalone = analysis.standalone_query.strip()
     if standalone and standalone.lower() != question.lower():

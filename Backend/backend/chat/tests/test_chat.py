@@ -34,7 +34,8 @@ from chat.models import (
 ANALYSIS = {
     'intent': 'college_query', 'standalone_query': 'boys hostel fee 2026-27',
     'alternate_queries': [], 'keywords': 'hostel fee', 'categories': [],
-    'academic_year': '', 'needs_current': True, 'language': 'english',
+    'academic_year': '', 'needs_current': True, 'wants_complete_list': False,
+    'language': 'english',
 }
 ANSWER = 'The boys hostel fee is Rs 1,20,000 per year [1].'
 

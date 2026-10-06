@@ -361,7 +361,8 @@ def candidate_source(number, content):
 
 ANALYSIS = {'intent': 'college_query', 'standalone_query': 'boys hostel fee 2026-27',
             'alternate_queries': [], 'keywords': 'hostel fee', 'categories': [],
-            'academic_year': '', 'needs_current': True, 'language': 'english'}
+            'academic_year': '', 'needs_current': True, 'wants_complete_list': False,
+            'language': 'english'}
 
 
 class PipelineTests(TestCase):

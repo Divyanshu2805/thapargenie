@@ -39,6 +39,7 @@ SCHEMA = {
         'categories': {'type': 'array', 'items': {'type': 'string', 'enum': Category.values}},
         'academic_year': {'type': 'string'},
         'needs_current': {'type': 'boolean'},
+        'wants_complete_list': {'type': 'boolean'},
         'language': {'type': 'string', 'enum': ['english', 'hinglish', 'other']},
     },
     'required': [
@@ -49,6 +50,7 @@ SCHEMA = {
         'categories',
         'academic_year',
         'needs_current',
+        'wants_complete_list',
         'language',
     ],
     'additionalProperties': False,
@@ -87,6 +89,9 @@ years, document names), space separated.
 - academic_year: "YYYY-YY" if the question implies one (use the current session for "this \
 year"), else "".
 - needs_current: true for fees, deadlines, dates, cutoffs, admissions status, schedules.
+- wants_complete_list: true when the student asks for every item of a set rather than one \
+fact: "list all", "all the hostels", "every department", "complete list of", "how many \
+scholarships are there". False for a single fee, date or rule.
 For other intents, set standalone_query to the message and leave the rest empty/false.
 language: the language style of the user's message."""
 
@@ -111,6 +116,7 @@ class QueryAnalysis:
     categories: list[str] = field(default_factory=list)
     academic_year: str = ''
     needs_current: bool = False
+    wants_complete_list: bool = False
     language: str = 'english'
     fallback: bool = False
 
@@ -134,6 +140,7 @@ class QueryAnalysis:
             'categories': self.categories,
             'academic_year': self.academic_year,
             'needs_current': self.needs_current,
+            'wants_complete_list': self.wants_complete_list,
             'language': self.language,
             'fallback': self.fallback,
         }
@@ -177,6 +184,7 @@ def _clean(data, question):
         categories=[c for c in (data.get('categories') or []) if c in Category.values][:2],
         academic_year=year if _YEAR.match(year) else '',
         needs_current=bool(data.get('needs_current')),
+        wants_complete_list=bool(data.get('wants_complete_list')),
         language=data.get('language') if data.get('language') in
         ('english', 'hinglish', 'other') else 'english',
     )

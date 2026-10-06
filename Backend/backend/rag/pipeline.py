@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 from rag import conversation, grounding, prompt
 from rag.analysis import Intent, QueryAnalysis, analyze
-from rag.context import build_sources
+from rag.context import sources_for
 from rag.llm import LLMError, StreamEnd, get_llm
 from rag.rerank import KEEP, rerank
 from rag.retrieve import KeywordSearch, retrieve
@@ -187,7 +187,7 @@ def answer_events(
         candidates, reranked = rerank(llm, analysis.standalone_query, retrieval.candidates)
         timer.lap('rerank')
 
-    sources = build_sources(candidates)
+    sources, completed = sources_for(analysis, candidates, retrieval.candidates[KEEP:])
     timer.lap('context')
     yield 'sources', {'sources': [source.public() for source in sources]}
 
@@ -236,7 +236,7 @@ def answer_events(
         unsupported=check.unsupported,
         model=model,
         reranked=reranked,
-        retrieval_trace=retrieval.trace(),
+        retrieval_trace={**retrieval.trace(), 'complete_list': completed},
         timings=timer.total(),
         query_vector=cache_vector,
     )
