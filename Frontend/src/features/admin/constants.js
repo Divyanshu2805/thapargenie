@@ -46,6 +46,7 @@ export const ANSWER_TYPES = {
   cached: 'Cached answer',
   no_answer: 'Not found',
   smalltalk: 'Small talk',
+  conversation: 'About the chat',
   out_of_scope: 'Out of scope',
   personal_record: 'Personal record',
   error: 'Error',

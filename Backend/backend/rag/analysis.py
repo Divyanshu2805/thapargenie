@@ -23,9 +23,10 @@ logger = logging.getLogger(__name__)
 class Intent:
     COLLEGE = 'college_query'
     GREETING = 'greeting'
+    CONVERSATION = 'conversation'
     OUT_OF_SCOPE = 'out_of_scope'
     PERSONAL_RECORD = 'personal_record'
-    ALL = (COLLEGE, GREETING, OUT_OF_SCOPE, PERSONAL_RECORD)
+    ALL = (COLLEGE, GREETING, CONVERSATION, OUT_OF_SCOPE, PERSONAL_RECORD)
 
 
 SCHEMA = {
@@ -60,7 +61,13 @@ Classify the latest user message:
 - college_query: anything about TIET: admissions, fees, scholarships, hostels, mess, \
 academic calendar, exams, courses, syllabus, rules, departments, faculty, placements, notices, \
 campus facilities, contacts. When unsure, choose this.
-- greeting: greetings, thanks, small talk, "what can you do".
+- greeting: greetings, thanks, small talk, "what can you do". Not a complaint or question \
+about an earlier answer.
+- conversation: a remark about this chat itself rather than about TIET: a complaint or \
+question about one of the assistant's earlier answers ("why didn't you tell me before?", \
+"that's wrong", "you missed X", "are you sure?", "explain your last answer"). Only when the \
+conversation above contains an assistant answer. A new question about TIET, even a short \
+follow-up like "and for girls?", is college_query.
 - personal_record: the user's own marks, attendance, fee dues, results or login problems \
 (these live in the Webkiosk portal, not in public documents).
 - out_of_scope: clearly unrelated to TIET (general coding help, homework, news, other \
@@ -198,4 +205,8 @@ def analyze(llm, question, *, history=(), memory='', profile=None, today=None):
         logger.warning('Query analysis failed, using the raw question: %s', error)
         return QueryAnalysis(question=question, standalone_query=question, keywords=question,
                              fallback=True)
-    return _clean(data, question)
+    analysis = _clean(data, question)
+    if analysis.intent == Intent.CONVERSATION and not history:
+        # Nothing was said before, so it can only be a question about TIET.
+        analysis.intent = Intent.COLLEGE
+    return analysis

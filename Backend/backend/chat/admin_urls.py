@@ -7,6 +7,7 @@ urlpatterns = [
     path('stats/export/', views.StatsExportView.as_view(), name='admin-stats-export'),
     path('gaps/', views.GapsView.as_view(), name='admin-gaps'),
     path('gaps/export/', views.GapsExportView.as_view(), name='admin-gaps-export'),
+    path('complaints/', views.ComplaintsView.as_view(), name='admin-complaints'),
     path('feedback/', views.FeedbackListView.as_view(), name='admin-feedback'),
     path('feedback/export/', views.FeedbackExportView.as_view(), name='admin-feedback-export'),
     path('feedback/<uuid:feedback_id>/', views.FeedbackDetailView.as_view(),

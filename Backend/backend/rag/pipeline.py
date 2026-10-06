@@ -9,10 +9,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
-from rag import grounding, prompt
+from rag import conversation, grounding, prompt
 from rag.analysis import Intent, QueryAnalysis, analyze
 from rag.context import build_sources
-from rag.llm import StreamEnd, get_llm
+from rag.llm import LLMError, StreamEnd, get_llm
 from rag.rerank import KEEP, rerank
 from rag.retrieve import KeywordSearch, retrieve
 
@@ -54,10 +54,12 @@ class AnswerType:
     OUT_OF_SCOPE = 'out_of_scope'
     PERSONAL_RECORD = 'personal_record'
     CACHED = 'cached'
+    CONVERSATION = 'conversation'
 
 
 _INTENT_TYPES = {
     Intent.GREETING: AnswerType.SMALLTALK,
+    Intent.CONVERSATION: AnswerType.CONVERSATION,
     Intent.OUT_OF_SCOPE: AnswerType.OUT_OF_SCOPE,
     Intent.PERSONAL_RECORD: AnswerType.PERSONAL_RECORD,
 }
@@ -150,6 +152,12 @@ def answer_events(
                            today=today)
     timer.lap('analysis')
 
+    if history and analysis.intent in (Intent.CONVERSATION, Intent.GREETING):
+        # Mid-chat, "why didn't you tell me before?" or "thanks" is about the chat, and the
+        # canned greeting would ignore what was said.
+        yield from _conversation_reply(analysis, llm, history, memory, today, timer)
+        return
+
     if analysis.intent != Intent.COLLEGE:
         text = CANNED[analysis.intent]
         timer.mark('first_token')
@@ -231,6 +239,44 @@ def answer_events(
         retrieval_trace=retrieval.trace(),
         timings=timer.total(),
         query_vector=cache_vector,
+    )
+
+
+def _conversation_reply(analysis, llm, history, memory, today, timer):
+    """Answer a message about the chat from the chat alone: no search, no sources."""
+    yield 'status', {'stage': 'writing'}
+    parts, model = [], ''
+    try:
+        for item in llm.stream(
+            conversation.answer_prompt(analysis.question, memory=memory, today=today),
+            system=conversation.SYSTEM,
+            history=conversation.history_messages(history),
+            temperature=0.3,
+            max_output_tokens=400,
+        ):
+            if isinstance(item, StreamEnd):
+                model = item.generation.model
+            else:
+                timer.mark('first_token')
+                parts.append(item)
+                yield 'delta', {'text': item}
+    except LLMError:
+        # Small talk must not fail because the model is busy; a complaint should be retried.
+        if analysis.intent != Intent.GREETING or parts:
+            raise
+    text = ''.join(parts).strip()
+    if not text:
+        text = CANNED[Intent.GREETING]
+        timer.mark('first_token')
+        yield 'delta', {'text': text}
+    answer_type = (AnswerType.CONVERSATION if analysis.intent == Intent.CONVERSATION
+                   else AnswerType.SMALLTALK)
+    yield 'done', AnswerResult(
+        text=text,
+        answer_type=answer_type,
+        analysis=analysis,
+        model=model,
+        timings=timer.total(),
     )
 
 

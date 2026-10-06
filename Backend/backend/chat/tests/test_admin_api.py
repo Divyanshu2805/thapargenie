@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 
 from api.models import AuditEvent
 from common.tests.helpers import client_for, make_user
@@ -168,6 +169,39 @@ class GapTests(AdminChatTestCase):
         raw = json.dumps(response.data, default=str)
         self.assertNotIn('thapar.edu', raw)
         self.assertNotIn('when is the pool open', raw)
+
+
+class ComplaintTests(AdminChatTestCase):
+    def follow_up(self, remark, *, user=None, answer_type='conversation'):
+        """A remark under the last answer of a chat, answered by the chat handler."""
+        earlier = self.turn('list all boys hostels', answer='Agira, Prithvi.', user=user)
+        said = Message.objects.create(conversation=earlier.conversation, parent=earlier,
+                                      role='user', content=remark)
+        return Message.objects.create(conversation=earlier.conversation, parent=said,
+                                      role='assistant', content='Sorry.', answer_type=answer_type)
+
+    def test_remarks_come_with_the_question_and_answer_they_are_about(self):
+        self.follow_up('why didnt you give this before?')
+        self.turn('hostel fee?')  # an ordinary answer is not a complaint
+        self.follow_up('thanks', answer_type='smalltalk')  # neither is small talk
+
+        response = self.client.get(f'{BASE}/complaints/')
+        self.assertEqual(response.status_code, 200)
+        [row] = response.data['results']
+        self.assertEqual(row['remark'], 'why didnt you give this before?')
+        self.assertEqual(row['question'], 'list all boys hostels')
+        self.assertEqual(row['answer'], 'Agira, Prithvi.')
+        self.assertEqual(len(row['reporter']), 12)
+        self.assertNotIn('thapar.edu', json.dumps(response.data, default=str))
+
+    def test_the_range_is_validated_and_old_remarks_drop_out(self):
+        old = self.follow_up('that is wrong')
+        Message.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=40))
+        self.assertEqual(self.client.get(f'{BASE}/complaints/').data['results'], [])
+        self.assertEqual(self.client.get(f'{BASE}/complaints/', {'range': '1y'}).status_code, 400)
+
+    def test_students_are_refused(self):
+        self.assertEqual(client_for(self.student).get(f'{BASE}/complaints/').status_code, 403)
 
 
 class SettingsTests(AdminChatTestCase):

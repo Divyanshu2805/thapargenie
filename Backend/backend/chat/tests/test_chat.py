@@ -245,6 +245,22 @@ class AskTests(ChatTestCase):
         self.assertEqual(assistant.status, Message.Status.STOPPED)
         self.assertTrue(assistant.content.startswith('The'))
 
+    def test_a_complaint_after_an_answer_is_answered_about_the_chat_not_with_the_greeting(self):
+        conversation = self.conversation()
+        self.answered(conversation)
+        self.fake.queue({**ANALYSIS, 'intent': 'conversation'},
+                        'You are right, that answer left things out. Ask me for the full list.')
+        events = read_events(self.ask(conversation, content='why didnt you give this before?'))
+
+        self.assertEqual(events[-1][0], 'done')
+        reply = Message.objects.filter(role=Message.Role.ASSISTANT).latest('created_at')
+        self.assertEqual(reply.answer_type, Message.AnswerType.CONVERSATION)
+        self.assertNotIn("I'm ThaparGenie", reply.content)
+        self.assertFalse(reply.sources.exists())
+        self.assertEqual(reply.trace.analysis['intent'], 'conversation')
+        request = self.fake.requests[-1]
+        self.assertEqual(request.history[0].content, 'boys hostel fee?')  # it saw the chat
+
     def test_greeting_is_answered_without_sources(self):
         conversation = self.conversation()
         self.fake.queue({**ANALYSIS, 'intent': 'greeting'})
