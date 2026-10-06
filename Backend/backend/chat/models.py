@@ -88,6 +88,7 @@ class AnswerType(models.TextChoices):
     OUT_OF_SCOPE = 'out_of_scope', 'Out of scope'
     PERSONAL_RECORD = 'personal_record', 'Personal record'
     CACHED = 'cached', 'Cached answer'
+    CONVERSATION = 'conversation', 'About the chat'
     ERROR = 'error', 'Error'
 
 

@@ -6,13 +6,20 @@ table or stops mid-thought. Adjacent chunks from one document are merged into a 
 source, so a fee table split in two comes back whole under one citation number.
 """
 
-from dataclasses import dataclass, field
+from collections import Counter
+from dataclasses import dataclass, field, replace
 
 from common.text import estimate_tokens
 from django.db.models import Q
 from knowledge.models import Chunk
 
 BUDGET_TOKENS = 6000
+# "List all" questions: a whole page, and room for it. The Boys Hostel page is ~7.5k tokens.
+LIST_BUDGET_TOKENS = 12000
+# One document must hold at least this many (and this share) of the kept chunks before the
+# question is treated as "everything on that page".
+LIST_MIN_CHUNKS = 3
+LIST_MIN_SHARE = 0.5
 _ENDINGS = ('.', '!', '?', ':', ')', '|', '"')
 
 
@@ -52,6 +59,52 @@ class Source:
             'category': self.category,
             'snippet': ' '.join(self.content.split())[:300],
         }
+
+
+def complete_list_candidates(top, more=()):
+    """For "list all" questions: the whole document most of the kept chunks come from.
+
+    A complete set (every hostel, every department) is usually one page split into many
+    chunks, and the answer model only sees the few that scored best. When most of the kept
+    chunks share a document, its other chunks are added so no item is missed. A document
+    too large for LIST_BUDGET_TOKENS is not loaded whole: its other retrieved chunks (from
+    `more`) are added instead. Returns (candidates, expanded).
+    """
+    if not top:
+        return list(top), False
+    document_id, count = Counter(c.document_id for c in top).most_common(1)[0]
+    if count < LIST_MIN_CHUNKS or count / len(top) < LIST_MIN_SHARE:
+        return list(top), False
+    meta = next(c for c in top if c.document_id == document_id)
+    rows = list(
+        Chunk.objects.filter(document_id=document_id, is_searchable=True)
+        .order_by('chunk_index')
+        .values('id', 'chunk_index', 'content', 'heading_path', 'page_start', 'page_end')
+    )
+    others = [c for c in top if c.document_id != document_id]
+    if sum(estimate_tokens(row['content']) for row in rows) > LIST_BUDGET_TOKENS:
+        kept = {c.chunk_id for c in top}
+        extra = [c for c in more if c.document_id == document_id and c.chunk_id not in kept]
+        return [*top, *extra], bool(extra)
+    whole = [
+        replace(meta, chunk_id=str(row['id']), chunk_index=row['chunk_index'],
+                content=row['content'], heading_path=row['heading_path'],
+                page_start=row['page_start'], page_end=row['page_end'], ranks={})
+        for row in rows
+    ]
+    return [*whole, *others], len(whole) > count
+
+
+def sources_for(analysis, kept, more=()):
+    """The numbered sources for the answer prompt, from the chunks kept after ranking.
+
+    A "list all" question gets its whole page and the larger budget (see
+    complete_list_candidates). Returns (sources, completed).
+    """
+    if analysis.wants_complete_list:
+        kept, completed = complete_list_candidates(kept, more)
+        return build_sources(kept, budget=LIST_BUDGET_TOKENS), completed
+    return build_sources(kept), False
 
 
 def _needs_neighbours(content):

@@ -239,6 +239,19 @@ class GapsOut(serializers.Serializer):
     results = GapOut(many=True)
 
 
+class ComplaintOut(serializers.Serializer):
+    remark = serializers.CharField(help_text='What the student said about the earlier answer.')
+    question = serializers.CharField(help_text='The question that earlier answer was for.')
+    answer = serializers.CharField(help_text='The start of that earlier answer.')
+    created_at = serializers.DateTimeField()
+    reporter = serializers.CharField(help_text='A stable pseudonym, never the email.')
+
+
+class ComplaintsOut(serializers.Serializer):
+    range_days = serializers.IntegerField()
+    results = ComplaintOut(many=True)
+
+
 class PlaygroundSourceOut(serializers.Serializer):
     position = serializers.IntegerField()
     title = serializers.CharField()

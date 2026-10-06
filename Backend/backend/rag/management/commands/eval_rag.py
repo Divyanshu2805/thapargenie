@@ -36,6 +36,13 @@ class Command(BaseCommand):
                 status = self.style.ERROR(f'ERROR {result.error}')
             elif not case['expected']:
                 status = f'intent={result.intent}'
+                if result.intent_ok is not None:
+                    status += ' (ok)' if result.intent_ok else self.style.ERROR(' (WRONG)')
+                if result.list_complete is not None:
+                    if result.list_complete:
+                        status = self.style.SUCCESS('whole list in sources')
+                    else:
+                        status = self.style.ERROR('list INCOMPLETE in sources')
             elif result.rank and result.rank <= 5:
                 status = self.style.SUCCESS(f'rank {result.rank}')
             elif result.rank:
@@ -64,6 +71,10 @@ class Command(BaseCommand):
         self.stdout.write(f'MRR        {report.mrr():.2f}')
         if report.source_hit_rate() is not None:
             self.stdout.write(f'in sources {report.source_hit_rate():.2f}')
+        if report.list_completeness() is not None:
+            self.stdout.write(f'full lists {report.list_completeness():.2f}')
+        if report.intent_accuracy() is not None:
+            self.stdout.write(f'intents    {report.intent_accuracy():.2f}')
         if report.answer_accuracy() is not None:
             self.stdout.write(f'answers    {report.answer_accuracy():.2f}')
         self.stdout.write(f'LLM calls  {llm.usage.calls}')

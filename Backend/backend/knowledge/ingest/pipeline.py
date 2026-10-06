@@ -27,7 +27,7 @@ from knowledge.storage import StorageError, get_storage
 logger = logging.getLogger(__name__)
 
 # Contextual sentences cost one fast-model call per 10 chunks; skip for huge documents.
-CONTEXTUALIZE_MAX_CHUNKS = 60
+CONTEXTUALIZE_MAX_CHUNKS = 150
 
 
 class ProcessingError(Exception):

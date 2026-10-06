@@ -9,3 +9,5 @@ each part runs is in [Architecture](architecture.md#where-it-runs).
 - [Answer pipeline](answer-pipeline.md): analysis, hybrid search, reranking, grounding and the cache.
 - [Ingestion](ingestion.md): how documents are extracted, chunked and embedded.
 - [Database](database.md): the main tables and what is kept for how long.
+- [Known gaps](known-gaps.md): answer-quality problems found so far, their causes, the
+  fixes and the flags to catch new ones.

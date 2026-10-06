@@ -26,6 +26,8 @@ from chat.models import AnswerCache, ChatSettings, Feedback, Message, SiteFeedba
 
 RANGES = {'7d': 7, '30d': 30}
 GAP_LIMIT = 100
+COMPLAINT_LIMIT = 50
+COMPLAINT_CHARS = 400
 
 
 def since(days):
@@ -285,6 +287,37 @@ def gaps(days):
          'askers': row['askers'], 'last_seen': row['last_seen']}
         for row in rows
     ]
+
+
+def complaints(days):
+    """Remarks about an earlier answer ("that's wrong"), newest first.
+
+    Each is a sign the answer before it failed, so it comes with the question that answer
+    was for and an excerpt of the answer. Students appear only as a stable pseudonym.
+    """
+    _, start = since(days)
+    replies = (
+        Message.objects.filter(
+            role=Message.Role.ASSISTANT,
+            answer_type=Message.AnswerType.CONVERSATION,
+            created_at__gte=start,
+        )
+        .select_related('conversation', 'parent__parent__parent')
+        .order_by('-created_at')[:COMPLAINT_LIMIT]
+    )
+    rows = []
+    for reply in replies:
+        remark = reply.parent
+        earlier = remark.parent if remark else None
+        asked = earlier.parent if earlier else None
+        rows.append({
+            'remark': (remark.content if remark else '')[:COMPLAINT_CHARS],
+            'question': (asked.content if asked else '')[:COMPLAINT_CHARS],
+            'answer': (earlier.content if earlier else '')[:COMPLAINT_CHARS],
+            'created_at': reply.created_at,
+            'reporter': pseudonym(reply.conversation.user_id),
+        })
+    return rows
 
 
 # -- CSV exports ---------------------------------------------------------------------

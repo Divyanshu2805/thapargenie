@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from chat import admin_services
 from chat.admin_serializers import (
+    ComplaintsOut,
     FeedbackItemOut,
     FeedbackReviewSerializer,
     GapsOut,
@@ -51,6 +52,16 @@ class GapsView(AdminAPIView):
     def get(self, request):
         days = _range(request, '30d')
         return Response({'range_days': days, 'results': admin_services.gaps(days)})
+
+
+class ComplaintsView(AdminAPIView):
+    @extend_schema(operation_id='admin_complaints', tags=TAGS,
+                   parameters=[OpenApiParameter('range', str, enum=list(admin_services.RANGES),
+                                                default='30d')],
+                   responses=ComplaintsOut)
+    def get(self, request):
+        days = _range(request, '30d')
+        return Response({'range_days': days, 'results': admin_services.complaints(days)})
 
 
 class FeedbackListView(AdminAPIView):

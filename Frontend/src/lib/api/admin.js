@@ -11,6 +11,7 @@ export const adminKeys = {
   siteFeedback: (filters = {}) => ['admin', 'site-feedback', filters],
   notices: (filters = {}) => ['admin', 'notices', filters],
   gaps: (range) => ['admin', 'gaps', range],
+  complaints: (range) => ['admin', 'complaints', range],
   settings: ['admin', 'settings'],
   invitations: (q) => ['admin', 'invitations', q],
   users: (filters = {}) => ['admin', 'users', filters],
@@ -86,6 +87,7 @@ export const deleteNotice = (id, { deleteDocument = false } = {}) =>
   admin(`notices/${id}/${query({ delete_document: deleteDocument ? 'true' : undefined })}`, { method: 'DELETE' });
 
 export const listGaps = (range = '30d') => admin(`gaps/${query({ range })}`);
+export const listComplaints = (range = '30d') => admin(`complaints/${query({ range })}`);
 
 // CSV downloads: same filters as the lists, at most 5,000 rows.
 const adminCsv = (path) => apiBlobRequest(`admin/${path}`, { timeoutMs: 60_000 });

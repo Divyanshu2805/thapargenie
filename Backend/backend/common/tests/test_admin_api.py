@@ -35,8 +35,8 @@ class AdminPermissionTests(TestCase):
     def test_every_admin_route_is_covered(self):
         paths = {path.split('/')[4] for path, _ in admin_routes()}
         self.assertEqual(paths, {
-            'documents', 'chunks', 'stats', 'gaps', 'feedback', 'site-feedback', 'settings',
-            'playground', 'invitations', 'users', 'audit-log', 'notices',
+            'documents', 'chunks', 'stats', 'gaps', 'complaints', 'feedback', 'site-feedback',
+            'settings', 'playground', 'invitations', 'users', 'audit-log', 'notices',
         })
 
     def assert_refused(self, client, expected):

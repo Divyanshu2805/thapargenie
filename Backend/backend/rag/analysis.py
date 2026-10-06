@@ -23,9 +23,10 @@ logger = logging.getLogger(__name__)
 class Intent:
     COLLEGE = 'college_query'
     GREETING = 'greeting'
+    CONVERSATION = 'conversation'
     OUT_OF_SCOPE = 'out_of_scope'
     PERSONAL_RECORD = 'personal_record'
-    ALL = (COLLEGE, GREETING, OUT_OF_SCOPE, PERSONAL_RECORD)
+    ALL = (COLLEGE, GREETING, CONVERSATION, OUT_OF_SCOPE, PERSONAL_RECORD)
 
 
 SCHEMA = {
@@ -38,6 +39,7 @@ SCHEMA = {
         'categories': {'type': 'array', 'items': {'type': 'string', 'enum': Category.values}},
         'academic_year': {'type': 'string'},
         'needs_current': {'type': 'boolean'},
+        'wants_complete_list': {'type': 'boolean'},
         'language': {'type': 'string', 'enum': ['english', 'hinglish', 'other']},
     },
     'required': [
@@ -48,6 +50,7 @@ SCHEMA = {
         'categories',
         'academic_year',
         'needs_current',
+        'wants_complete_list',
         'language',
     ],
     'additionalProperties': False,
@@ -60,7 +63,13 @@ Classify the latest user message:
 - college_query: anything about TIET: admissions, fees, scholarships, hostels, mess, \
 academic calendar, exams, courses, syllabus, rules, departments, faculty, placements, notices, \
 campus facilities, contacts. When unsure, choose this.
-- greeting: greetings, thanks, small talk, "what can you do".
+- greeting: greetings, thanks, small talk, "what can you do". Not a complaint or question \
+about an earlier answer.
+- conversation: a remark about this chat itself rather than about TIET: a complaint or \
+question about one of the assistant's earlier answers ("why didn't you tell me before?", \
+"that's wrong", "you missed X", "are you sure?", "explain your last answer"). Only when the \
+conversation above contains an assistant answer. A new question about TIET, even a short \
+follow-up like "and for girls?", is college_query.
 - personal_record: the user's own marks, attendance, fee dues, results or login problems \
 (these live in the Webkiosk portal, not in public documents).
 - out_of_scope: clearly unrelated to TIET (general coding help, homework, news, other \
@@ -80,6 +89,9 @@ years, document names), space separated.
 - academic_year: "YYYY-YY" if the question implies one (use the current session for "this \
 year"), else "".
 - needs_current: true for fees, deadlines, dates, cutoffs, admissions status, schedules.
+- wants_complete_list: true when the student asks for every item of a set rather than one \
+fact: "list all", "all the hostels", "every department", "complete list of", "how many \
+scholarships are there". False for a single fee, date or rule.
 For other intents, set standalone_query to the message and leave the rest empty/false.
 language: the language style of the user's message."""
 
@@ -104,6 +116,7 @@ class QueryAnalysis:
     categories: list[str] = field(default_factory=list)
     academic_year: str = ''
     needs_current: bool = False
+    wants_complete_list: bool = False
     language: str = 'english'
     fallback: bool = False
 
@@ -127,6 +140,7 @@ class QueryAnalysis:
             'categories': self.categories,
             'academic_year': self.academic_year,
             'needs_current': self.needs_current,
+            'wants_complete_list': self.wants_complete_list,
             'language': self.language,
             'fallback': self.fallback,
         }
@@ -170,6 +184,7 @@ def _clean(data, question):
         categories=[c for c in (data.get('categories') or []) if c in Category.values][:2],
         academic_year=year if _YEAR.match(year) else '',
         needs_current=bool(data.get('needs_current')),
+        wants_complete_list=bool(data.get('wants_complete_list')),
         language=data.get('language') if data.get('language') in
         ('english', 'hinglish', 'other') else 'english',
     )
@@ -198,4 +213,8 @@ def analyze(llm, question, *, history=(), memory='', profile=None, today=None):
         logger.warning('Query analysis failed, using the raw question: %s', error)
         return QueryAnalysis(question=question, standalone_query=question, keywords=question,
                              fallback=True)
-    return _clean(data, question)
+    analysis = _clean(data, question)
+    if analysis.intent == Intent.CONVERSATION and not history:
+        # Nothing was said before, so it can only be a question about TIET.
+        analysis.intent = Intent.COLLEGE
+    return analysis

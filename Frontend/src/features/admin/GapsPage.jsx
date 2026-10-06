@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BookPlus, FlaskConical, SearchX } from 'lucide-react';
+import { BookPlus, FlaskConical, MessageSquareWarning, SearchX } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AddKnowledgeDialog from '@/features/admin/AddKnowledgeDialog';
 import { EmptyState, ErrorState, TableSkeleton } from '@/features/admin/components';
 import { faqDraft } from '@/features/admin/FeedbackPage';
-import { adminKeys, exportGapsCsv, listGaps } from '@/lib/api/admin';
+import { adminKeys, exportGapsCsv, listComplaints, listGaps } from '@/lib/api/admin';
 import { formatNumber, formatRelative } from '@/lib/format';
 
 export default function GapsPage() {
@@ -20,6 +20,8 @@ export default function GapsPage() {
   const [faqFor, setFaqFor] = useState(null);
   const gaps = useQuery({ queryKey: adminKeys.gaps(range), queryFn: () => listGaps(range) });
   const rows = gaps.data?.results || [];
+  const complaints = useQuery({ queryKey: adminKeys.complaints(range), queryFn: () => listComplaints(range) });
+  const remarks = complaints.data?.results || [];
 
   return (
     <div className="page-wide space-y-6">
@@ -87,6 +89,47 @@ export default function GapsPage() {
                       </Button>
                     </div>
                   </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </SplitSection>
+
+      <SplitSection
+        icon={MessageSquareWarning}
+        title="Follow-ups about earlier answers"
+        description="Students who said an answer was wrong or incomplete, with the question it was for. Each is a likely failure to look into."
+        flush
+      >
+        {complaints.isPending ? (
+          <TableSkeleton />
+        ) : complaints.isError ? (
+          <ErrorState error={complaints.error} onRetry={() => complaints.refetch()} />
+        ) : remarks.length === 0 ? (
+          <EmptyState icon={MessageSquareWarning} title="No follow-ups in this period">
+            Messages about an earlier answer will be listed here.
+          </EmptyState>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>What the student said</TableHead>
+                <TableHead>The question it followed</TableHead>
+                <TableHead className="hidden text-right md:table-cell">When</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {remarks.map((remark, index) => (
+                <TableRow key={`${remark.created_at}-${remark.reporter}-${index}`}>
+                  <TableCell className="max-w-xs">
+                    <p className="line-clamp-3">{remark.remark || '(empty)'}</p>
+                  </TableCell>
+                  <TableCell className="max-w-md">
+                    <p className="line-clamp-2 font-medium">{remark.question || '(not found)'}</p>
+                    {remark.answer ? <p className="line-clamp-2 text-xs text-muted-foreground">{remark.answer}</p> : null}
+                  </TableCell>
+                  <TableCell className="hidden text-right text-muted-foreground md:table-cell">{formatRelative(remark.created_at)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

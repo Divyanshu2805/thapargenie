@@ -23,7 +23,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from knowledge.ingest.chunk import ChunkDraft, build_chunks
-from knowledge.ingest.pipeline import prepare_chunks
+from knowledge.ingest.contextualize import BATCH, contextualize
+from knowledge.ingest.pipeline import CONTEXTUALIZE_MAX_CHUNKS, prepare_chunks
 from knowledge.models import Category, Chunk, Document, DocumentStatus, SourceType
 from knowledge.signals import knowledge_changed
 
@@ -189,10 +190,25 @@ def _save(document, chunks, embedding_model, stats):
         Chunk.objects.bulk_create(chunks, batch_size=500)
 
 
-def import_records(records, llm, *, batch_texts=200, progress=None):
+def _contexts(llm, document, drafts):
+    """One sentence per chunk saying what it belongs to (None for pages too long to read)."""
+    if len(drafts) > CONTEXTUALIZE_MAX_CHUNKS:
+        return None
+    return contextualize(
+        llm,
+        title=document.title,
+        document_text='\n\n'.join(draft.content for draft in drafts),
+        contents=[draft.content for draft in drafts],
+        strict=True,
+    )
+
+
+def import_records(records, llm, *, batch_texts=200, progress=None, contextualise=False):
     """Embed and store records. Embeddings are batched across records to save requests.
 
     Raises whatever the LLM raises (e.g. QuotaExhausted) after saving completed work.
+    With `contextualise`, each page's chunks also get a sentence saying what they belong to
+    (one fast-model call per 10 chunks), so "Hostel L" is found as "Viyat Hall".
     """
     pending, stats = plan_import(records)
     queue = []
@@ -226,7 +242,8 @@ def import_records(records, llm, *, batch_texts=200, progress=None):
                 stats.empty += 1
                 continue
             document = build_document(record)
-            chunks = prepare_chunks(document, drafts)
+            contexts = _contexts(llm, document, drafts) if contextualise else None
+            chunks = prepare_chunks(document, drafts, contexts)
             queue.append((document, chunks))
             queued_texts += len(chunks)
             if queued_texts >= batch_texts:
@@ -242,4 +259,14 @@ def estimate(records):
     texts = sum(len(_drafts(record)) for record in records)
     tokens = sum(estimate_tokens(row['text']) for record in records for row in record.rows)
     return texts, tokens
+
+
+def estimate_context_calls(records):
+    """Fast-model calls `contextualise` would make: one per 10 chunks of each readable page."""
+    calls = 0
+    for record in records:
+        count = len(_drafts(record))
+        if 0 < count <= CONTEXTUALIZE_MAX_CHUNKS:
+            calls += -(-count // BATCH)
+    return calls
 

@@ -11,7 +11,7 @@ from knowledge.models import Chunk, Document, DocumentStatus, SourceType
 from rag import evaluation, grounding
 from rag.analysis import Intent, QueryAnalysis, _clean, analyze, current_session
 from rag.context import build_sources
-from rag.llm import BadResponse, use_provider
+from rag.llm import BadResponse, LLMError, use_provider
 from rag.llm.client import LLM
 from rag.llm.fake import FakeProvider, hashed_embedding
 from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events
@@ -122,6 +122,24 @@ class AnalysisTests(SimpleTestCase):
         self.assertIn('program: BE COE', prompt)
         self.assertIn('2026-27', prompt)
         self.assertEqual(fake.requests[0].model, 'fast')
+
+    def test_a_remark_about_the_chat_needs_a_chat_to_be_about(self):
+        reply = {'intent': 'conversation', 'standalone_query': 'why not before?',
+                 'alternate_queries': [], 'keywords': '', 'categories': [],
+                 'academic_year': '', 'needs_current': False, 'language': 'english'}
+        history = [{'role': 'user', 'content': 'boys hostels?'},
+                   {'role': 'assistant', 'content': 'Agira, Prithvi.'}]
+        for given, expected in ((history, Intent.CONVERSATION), ((), Intent.COLLEGE)):
+            fake = FakeProvider()
+            fake.queue(reply)
+            analysis = analyze(make_llm(fake), 'why didnt you tell me before?', history=given)
+            self.assertEqual(analysis.intent, expected)
+
+    def test_prompt_teaches_the_conversation_intent(self):
+        from rag.analysis import SCHEMA, SYSTEM
+
+        self.assertIn('conversation', SCHEMA['properties']['intent']['enum'])
+        self.assertIn('- conversation:', SYSTEM)
 
     def test_current_session(self):
         self.assertEqual(current_session(date(2026, 9, 1)), '2026-27')
@@ -343,7 +361,8 @@ def candidate_source(number, content):
 
 ANALYSIS = {'intent': 'college_query', 'standalone_query': 'boys hostel fee 2026-27',
             'alternate_queries': [], 'keywords': 'hostel fee', 'categories': [],
-            'academic_year': '', 'needs_current': True, 'language': 'english'}
+            'academic_year': '', 'needs_current': True, 'wants_complete_list': False,
+            'language': 'english'}
 
 
 class PipelineTests(TestCase):
@@ -359,6 +378,45 @@ class PipelineTests(TestCase):
         self.assertEqual(result.answer_type, AnswerType.SMALLTALK)
         self.assertEqual(len(self.fake.requests), 1)
         self.assertEqual(self.fake.embed_calls, [])
+
+    def test_a_complaint_mid_chat_is_answered_from_the_chat_without_searching(self):
+        history = [{'role': 'user', 'content': 'list all boys hostels'},
+                   {'role': 'assistant',
+                    'content': 'Agira and Prithvi. The rest are not in my sources.'}]
+        self.fake.queue({**ANALYSIS, 'intent': 'conversation'},
+                        'You are right: my list was incomplete. Ask me for the complete list.')
+        events = list(answer_events('why didnt you give this before?', history=history))
+        result = events[-1][1]
+        self.assertEqual(result.answer_type, AnswerType.CONVERSATION)
+        self.assertEqual(result.sources, [])
+        self.assertIn('incomplete', result.text)
+        self.assertEqual(self.fake.embed_calls, [])  # nothing was searched
+        request = self.fake.requests[1]
+        self.assertIn('conversation itself', request.system)
+        self.assertEqual([m.content for m in request.history],
+                         [m['content'] for m in history])
+        self.assertIn('why didnt you give this before?', request.prompt)
+
+    def test_thanks_mid_chat_gets_a_reply_that_sees_the_chat(self):
+        history = [{'role': 'user', 'content': 'hostel fee?'},
+                   {'role': 'assistant', 'content': 'Rs 1,20,000 [1].'}]
+        self.fake.queue({**ANALYSIS, 'intent': 'greeting'}, 'Glad it helped!')
+        result = answer('thanks', history=history)
+        self.assertEqual(result.answer_type, AnswerType.SMALLTALK)
+        self.assertEqual(result.text, 'Glad it helped!')
+
+    def test_small_talk_mid_chat_falls_back_to_the_greeting_if_the_model_fails(self):
+        history = [{'role': 'user', 'content': 'hi'}, {'role': 'assistant', 'content': 'Hello'}]
+        self.fake.queue({**ANALYSIS, 'intent': 'greeting'}, LLMError('busy'))
+        result = answer('thanks', history=history)
+        self.assertEqual(result.answer_type, AnswerType.SMALLTALK)
+        self.assertIn("I'm ThaparGenie", result.text)
+
+    def test_a_complaint_is_not_swallowed_when_the_model_fails(self):
+        history = [{'role': 'user', 'content': 'hi'}, {'role': 'assistant', 'content': 'Hello'}]
+        self.fake.queue({**ANALYSIS, 'intent': 'conversation'}, LLMError('busy'))
+        with self.assertRaises(LLMError):
+            answer('that is wrong', history=history)
 
     def test_answered_with_citation(self):
         self.fake.queue(ANALYSIS, 'The boys hostel fee is Rs 1,20,000 [1].')

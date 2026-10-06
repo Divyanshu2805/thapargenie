@@ -79,7 +79,7 @@ Staff only, under `admin/`. Deleting anything needs a recent sign-in.
 | GET | `documents/ids/` | Every id matching the list filters. |
 | POST | `documents/suggest-details/` | Suggested session and issue date. |
 | GET, PATCH, DELETE | `documents/<id>/chunks/`, `chunks/<id>/` | View and edit passages. |
-| GET | `stats/`, `gaps/`, `feedback/`, `site-feedback/` | Insight. |
+| GET | `stats/`, `gaps/`, `complaints/`, `feedback/`, `site-feedback/` | Insight. `complaints/` lists remarks about an earlier answer with the question it followed. |
 | GET | `stats/export/`, `gaps/export/`, `feedback/export/` | The same as CSV. |
 | PATCH | `feedback/<id>/`, `site-feedback/<id>/` | Review: resolve, dismiss, add a note. |
 | GET, PATCH | `settings/` | Limits, maintenance mode, banner, starter questions. |
