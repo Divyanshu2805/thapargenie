@@ -6,6 +6,7 @@ import AppShell from './components/layout/AppShell';
 import ChatHome from './features/chat/ChatHome';
 import { LoadedLanding, landingLoaded, preloadLanding } from './features/landing/load';
 import AdminRoute from './layouts/AdminRoute';
+import { PageMeta } from './lib/page-meta';
 import { authRedirectHeld } from './lib/page-slide';
 import PrivateRoute from './layouts/PrivateRoute';
 import AuthAction from './views/auth/AuthAction';
@@ -57,6 +58,7 @@ function LandingRoute() {
 export default function App() {
   return (
     <BrowserRouter>
+      <PageMeta />
       <Routes>
         <Route path="/" element={<LandingRoute />} />
         <Route path="/register/" element={<SignedOutRoute><Register /></SignedOutRoute>} />

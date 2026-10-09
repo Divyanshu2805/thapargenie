@@ -1,0 +1,13 @@
+# ThaparGenie
+
+> Answers to questions about Thapar Institute of Engineering and Technology (TIET), each
+> linked to the official document or page it came from.
+
+Students sign in and ask in plain English or Hinglish about admissions, fees, hostels,
+the academic calendar, courses, rules and campus life. Answers are written only from
+official TIET documents and pages, and cite them.
+
+- [Home](https://thapargenie.divyanshuagrahari.dev/): what the service does.
+- [Privacy notice](https://thapargenie.divyanshuagrahari.dev/privacy): what is stored and for how long.
+
+Asking questions needs a signed-in account. There is no public API.
