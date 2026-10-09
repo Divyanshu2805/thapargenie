@@ -36,6 +36,7 @@ const apiEnv = {
   SUPABASE_SERVICE_ROLE_KEY: '',
   OFFLINE_LLM_DELAY_MS: '60',
   LOG_ACCESS: 'false',
+  STAFF_TWO_FACTOR_REQUIRED: 'false',
   PYTHONUNBUFFERED: '1',
 };
 

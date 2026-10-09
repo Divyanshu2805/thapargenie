@@ -2124,9 +2124,6 @@ html.lenis body {
     display: inline-flex;
     height: 5.5rem;
     justify-content: center;
-    /* On phones the cards wrap below the logo; these margins give it a line of its own. */
-    margin: 0 calc(50% - 2.75rem) 1rem;
-    order: -1;
     width: 5.5rem;
   }
 
@@ -2325,6 +2322,87 @@ html.lenis body {
       animation:
         landing-chip-in 0.6s var(--spring) calc(var(--i) * 90ms + 200ms) both,
         landing-bob 6s ease-in-out calc(var(--i) * -0.8s) infinite;
+    }
+  }
+
+  /* Phones: the same story top to bottom. The question, the sources it reads, the answer. */
+  @media (max-width: 39.99rem) {
+    .landing-converge {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: 24rem;
+    }
+
+    .landing-converge__ask {
+      animation: lp-msg-in 0.5s var(--ease-out) both;
+      background: var(--primary);
+      border-radius: 0.9rem 0.9rem 0.25rem 0.9rem;
+      box-shadow: 0 10px 24px -12px rgb(140 28 43 / 0.7);
+      color: #fff;
+      display: block;
+      font-size: 13px;
+      font-weight: 560;
+      grid-column: 1 / -1;
+      justify-self: end;
+      margin-bottom: 0.6rem;
+      max-width: 100%;
+      order: -2;
+      overflow: hidden;
+      padding: 0.45rem 0.85rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .landing-chip {
+      max-width: none;
+      min-width: 0;
+    }
+
+    .landing-converge__core {
+      border-radius: 1.2rem;
+      grid-column: 1 / -1;
+      height: 4rem;
+      justify-self: center;
+      margin: 1.75rem 0 0;
+      order: 1;
+      position: relative;
+      width: 4rem;
+    }
+
+    /* The sources feed the logo: a short line that turns gold once the answer is ready. */
+    .landing-converge__core::before {
+      border-left: 1.5px dashed color-mix(in oklab, var(--primary) 45%, transparent);
+      bottom: 100%;
+      content: '';
+      height: 1.75rem;
+      left: 50%;
+      position: absolute;
+      transition: border-color 0.4s;
+    }
+
+    .landing-converge[data-answered] .landing-converge__core::before {
+      border-left-color: color-mix(in oklab, var(--amber) 85%, transparent);
+      border-left-style: solid;
+    }
+
+    .landing-converge__out {
+      align-items: center;
+      animation: lp-chip-pop 0.4s var(--spring) both;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      box-shadow: var(--shadow-lift);
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 650;
+      gap: 0.4rem;
+      grid-column: 1 / -1;
+      justify-self: center;
+      margin-top: 0.35rem;
+      max-width: 100%;
+      order: 2;
+      padding: 0.35rem 0.8rem;
+      white-space: nowrap;
     }
   }
 

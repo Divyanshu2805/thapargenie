@@ -11,7 +11,7 @@ import { validityOf } from './constants';
 import { changedFields } from './DocumentDetailPage';
 import { faqDraft } from './FeedbackPage';
 import { summarize } from './OverviewPage';
-import { settingsChanges, validateSettings } from './SettingsAdminPage';
+import { openAccessAudience, settingsChanges, validateSettings } from './SettingsAdminPage';
 import { formatBytes, formatMs, formatPercent, formatRelative } from '@/lib/format';
 
 describe('document metadata', () => {
@@ -67,6 +67,13 @@ describe('document validity', () => {
 });
 
 describe('admin settings', () => {
+  it('says which addresses get in without approval', () => {
+    expect(openAccessAudience(['thapar.edu'])).toBe('anyone who signs in with a verified @thapar.edu email');
+    expect(openAccessAudience(['thapar.edu', 'example.org'])).toContain('@thapar.edu or @example.org');
+    expect(openAccessAudience([])).toBe('anyone who signs in with a verified email');
+    expect(openAccessAudience(undefined)).toBe('anyone who signs in with a verified email');
+  });
+
   const saved = {
     daily_question_limit: 30,
     global_daily_llm_calls: 5000,

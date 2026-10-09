@@ -520,6 +520,7 @@ cryptography==50.0.1 \
     --hash=sha256:ff838d62ec1bfce4f9ba7fa16f4a7b554cd8d0c299e6be37502161a660c84eef
     # via
     #   -c requirements.txt
+    #   -r requirements.in
     #   google-auth
     #   pyjwt
 cyclonedx-python-lib==11.12.0 \

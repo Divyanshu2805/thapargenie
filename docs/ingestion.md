@@ -14,8 +14,9 @@ The work itself is in `knowledge/ingest/pipeline.py`:
    tokens with a little overlap. Tables are kept whole where possible and split by rows
    otherwise, each part repeating the header row.
 4. **Context** (optional). One sentence per chunk saying where it sits in the document,
-   written by the fast model, which reads up to 60,000 characters of the page. It only goes
-   into the search text.
+   written by the fast model. It reads the page (up to 60,000 characters; of a longer page,
+   the opening and the chunks around the ones being described). It only goes into the
+   search text.
 5. **Embed.** The search text (title, category, headings and the chunk) is embedded in
    batches of 50.
 6. **Swap.** Old chunks are replaced by the new ones in one transaction, so a document
@@ -35,8 +36,17 @@ context sentence. Two ways to add it:
 - `python manage.py contextualize_documents` adds them to pages already stored, without the
   export file: it reads each page once, writes a sentence for each chunk and re-embeds only
   those chunks. Run it with `--dry-run` first; `--limit` and `--title` allow a trial. It can
-  be stopped (for example by the daily AI quota) and run again, and pages of more than 150
-  chunks are skipped.
+  be stopped (for example by the daily AI quota) and run again. Pages of more than 150
+  chunks are skipped unless `--include-long` is given, because each takes many calls.
 
 Documents can carry a "valid until" date. After it they are marked not current, which
 lowers them in search; `python manage.py expire_documents` does this on demand.
+
+## Keeping web pages current
+
+A page added by URL is read once. `python manage.py refresh_web_pages` fetches each of
+them again and re-processes only the ones whose readable text changed (markup, scripts
+and menus are ignored). A page that cannot be fetched keeps its stored passages. Every
+re-read is in the audit log as `document.refreshed`. The maintenance workflow runs it
+weekly; `--dry-run` lists what would be re-read. Crawler-imported pages have no stored
+source and are not covered: they change by importing a new export.

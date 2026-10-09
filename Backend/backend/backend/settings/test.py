@@ -5,7 +5,7 @@ import os
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
-from .base import REST_FRAMEWORK, database_config
+from .base import CACHES, REST_FRAMEWORK, database_config
 
 DEBUG = False
 SECRET_KEY = 'test-only-not-a-secret-' + ('x' * 64)
@@ -27,9 +27,16 @@ STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.InMemoryStorage'},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
+# Tests clear the database cache between cases; keep throttle counters there too so a
+# test's requests cannot count against the next one. (The memory cache is tested directly.)
+CACHES = {**CACHES, 'throttle': CACHES['default']}
 # Throttle behaviour is tested explicitly; keep it out of every other test.
 REST_FRAMEWORK = {**REST_FRAMEWORK, 'DEFAULT_THROTTLE_CLASSES': ()}
 FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID') or 'demo-thapargenie'
 SSE_INLINE = True
+# Tests sign in with made-up addresses; the domain rule has its own tests.
+OPEN_ACCESS_EMAIL_DOMAINS = ()
+# Admin tests sign in without the second step; two-factor has its own tests.
+STAFF_TWO_FACTOR_REQUIRED = False
 # Pool threads cannot see a test's transaction; the parallel path has its own test.
 RETRIEVE_PARALLEL = False

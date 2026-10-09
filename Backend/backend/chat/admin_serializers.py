@@ -1,4 +1,6 @@
+from access.policy import open_access_domains
 from api.serializers import RejectUnknownFieldsMixin
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from chat.models import MAX_QUESTION_CHARS, ChatSettings, Feedback, SiteFeedback
@@ -15,6 +17,8 @@ class SettingsSerializer(RejectUnknownFieldsMixin, serializers.ModelSerializer):
     daily_question_limit = serializers.IntegerField(min_value=1, max_value=1000)
     global_daily_llm_calls = serializers.IntegerField(min_value=100, max_value=1_000_000)
     starter_questions = StarterQuestionInput(many=True, max_length=8)
+    # Set by the deployment (OPEN_ACCESS_EMAIL_DOMAINS), shown beside the approval switch.
+    open_access_domains = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatSettings
@@ -22,9 +26,13 @@ class SettingsSerializer(RejectUnknownFieldsMixin, serializers.ModelSerializer):
             'daily_question_limit', 'global_daily_llm_calls', 'rerank_enabled',
             'cache_enabled', 'contextualize_default', 'auto_title_enabled',
             'maintenance_mode', 'maintenance_message', 'banner_text', 'starter_questions',
-            'require_approval', 'updated_at',
+            'require_approval', 'open_access_domains', 'updated_at',
         )
         read_only_fields = ('updated_at',)
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_open_access_domains(self, obj):
+        return list(open_access_domains())
 
     def validate_starter_questions(self, value):
         # Partial updates make nested fields optional too; each question needs both.

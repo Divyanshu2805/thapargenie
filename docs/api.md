@@ -66,7 +66,12 @@ creates a second copy of the question.
 
 ## Admin
 
-Staff only, under `admin/`. Deleting anything needs a recent sign-in.
+Staff only, under `admin/`. Deleting anything needs a recent sign-in. Every endpoint
+except `two-factor/…` answers 403 `second_factor_required` (or
+`second_factor_setup_required`) until the sign-in has passed the second step:
+`GET two-factor/` for the state, `POST two-factor/setup/` then `confirm/` to enrol an
+authenticator app, `POST two-factor/verify/` with `code` or `recovery_code` after each
+sign-in, and `POST two-factor/recovery-codes/` for new backup codes.
 
 | Method | Path | |
 |---|---|---|

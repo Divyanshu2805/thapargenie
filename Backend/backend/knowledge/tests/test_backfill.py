@@ -69,6 +69,28 @@ class BackfillTests(KnowledgeTestCase):
         self.assertEqual((stats.documents, stats.too_long), (0, 1))
         self.assertEqual(self.fake.requests, [])
 
+    def test_long_pages_are_processed_on_request(self):
+        count = backfill.CONTEXTUALIZE_MAX_CHUNKS + 1
+        stored_document('Huge', [f'Part {n}.' for n in range(count)])
+        stats = backfill.backfill_context(None, dry_run=True, include_long=True)
+        self.assertEqual((stats.documents, stats.too_long, stats.model_calls), (1, 0, 16))
+
+    def test_a_long_document_is_read_around_the_chunks_being_described(self):
+        from knowledge.ingest import contextualize as module
+
+        contents = [f'Section {n}. ' + 'x' * 2000 for n in range(60)]  # ~120,000 characters
+        text = '\n\n'.join(contents)
+        excerpt = module._excerpt(text, contents, 40, 10)
+        self.assertLessEqual(len(excerpt), module.DOCUMENT_EXCERPT_CHARS + 200)
+        self.assertTrue(excerpt.startswith('Section 0. '))  # the opening is always there
+        for n in range(40, 50):
+            self.assertIn(f'Section {n}. ', excerpt)
+        self.assertIn('Section 39. ', excerpt)  # and the neighbours on both sides
+        self.assertIn('Section 50. ', excerpt)
+        self.assertNotIn('Section 20. ', excerpt)
+        # A document that fits is read whole.
+        self.assertEqual(module._excerpt('short', ['short'], 0, 1), 'short')
+
     def test_dry_run_counts_the_work_and_calls_nothing(self):
         stored_document('Boys Hostel', [f'Hall {n}.' for n in range(25)])
         stats = backfill.backfill_context(None, dry_run=True)

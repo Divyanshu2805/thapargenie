@@ -57,7 +57,8 @@ class EvaluationOfListsAndIntentsTests(TestCase):
     def test_the_golden_file_holds_both_regression_cases(self):
         cases = {c['id']: c for c in evaluation.load_cases()}
         listing = cases['hostels-list-all-boys']
-        self.assertEqual(listing['expect_all'], HALLS)
+        # The page also lists Hostel-FRF/G.
+        self.assertEqual(listing['expect_all'], [*HALLS, 'FRF/G'])
         complaint = cases['hostels-complaint-followup']
         self.assertEqual(complaint['expect_type'], 'conversation')
         self.assertEqual(complaint['history'][-1]['role'], 'assistant')
