@@ -16,6 +16,7 @@ export const adminKeys = {
   invitations: (q) => ['admin', 'invitations', q],
   users: (filters = {}) => ['admin', 'users', filters],
   auditLog: (filters = {}) => ['admin', 'audit-log', filters],
+  twoFactor: ['admin', 'two-factor'],
 };
 
 function query(params) {
@@ -95,6 +96,14 @@ export const exportFeedbackCsv = ({ reviewStatus, rating, answerType, reason } =
   adminCsv(`feedback/export/${query({ review_status: reviewStatus, rating, answer_type: answerType, reason })}`);
 export const exportGapsCsv = (range = '30d') => adminCsv(`gaps/export/${query({ range })}`);
 export const exportStatsCsv = (range = '7d') => adminCsv(`stats/export/${query({ range })}`);
+
+// The second sign-in step for staff (features/admin/TwoFactorGate.jsx).
+export const getTwoFactorStatus = () => admin('two-factor/');
+export const setUpTwoFactor = () => admin('two-factor/setup/', { method: 'POST' });
+export const confirmTwoFactor = (code) => admin('two-factor/confirm/', { method: 'POST', body: { code: code.trim() } });
+// `body` is { code } from the app or { recovery_code } from the saved backup codes.
+export const verifyTwoFactor = (body) => admin('two-factor/verify/', { method: 'POST', body });
+export const newRecoveryCodes = () => admin('two-factor/recovery-codes/', { method: 'POST' });
 
 export const getSettings = () => admin('settings/');
 export const updateSettings = (changes) => admin('settings/', { method: 'PATCH', body: changes });

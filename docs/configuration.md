@@ -37,6 +37,8 @@ The daily question limit and the starter questions live in the database
 | `DJANGO_SECRET_KEY` | At least 50 characters. |
 | `DJANGO_ALLOWED_HOSTS` | The API's host names. `*` is refused. |
 | `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | The web app's origin, `https://` only. |
+| `STAFF_TWO_FACTOR_REQUIRED` | Default `true`: staff enter a code from an authenticator app after signing in before the admin API answers. `false` switches the step off (an emergency switch, or for local work). |
+| `STAFF_TWO_FACTOR_SESSION_HOURS` | How long a passed check lasts for that sign-in (default 12, 1 to 720). |
 | `TRUSTED_PROXY_COUNT` | Proxies in front of the API (1 on Render), so rate limits use the real client address. |
 | `DJANGO_ADMIN_ENABLED` | Keep `false`; the Django admin is off in production. |
 | `FIREBASE_ALLOWED_SIGN_IN_PROVIDERS` | Default `password,google.com`. |

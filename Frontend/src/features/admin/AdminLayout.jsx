@@ -20,6 +20,7 @@ import SidebarLayout, { SidebarGroupLabel, SidebarHeader, SidebarItem, useRail }
 import UserMenu from '@/components/layout/UserMenu';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import TwoFactorGate from '@/features/admin/TwoFactorGate';
 import { cn } from '@/lib/utils';
 
 const ADMIN_SECTIONS = [
@@ -94,7 +95,10 @@ export default function AdminLayout() {
       <ErrorBoundary key={location.pathname}>
         <Suspense fallback={<PageFallback />}>
           <div className="animate-page-in">
-            <Outlet />
+            {/* Nothing in the dashboard loads until this sign-in has passed two-factor. */}
+            <TwoFactorGate>
+              <Outlet />
+            </TwoFactorGate>
           </div>
         </Suspense>
       </ErrorBoundary>

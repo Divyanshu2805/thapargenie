@@ -2,6 +2,7 @@
 
 import re
 
+from access.permissions import HasSecondFactor
 from api.pagination import BoundedCursorPagination
 from api.permissions import HasRecentFirebaseAuthentication, HasVerifiedEligibleIdentity
 from rest_framework.exceptions import ValidationError
@@ -13,9 +14,10 @@ from common.throttles import AdminWriteThrottle
 
 
 class AdminAPIView(APIView):
-    """Staff only; every DELETE also needs a recent sign-in."""
+    """Staff who have passed two-factor; every DELETE also needs a recent sign-in."""
 
-    permission_classes = [IsAuthenticated, HasVerifiedEligibleIdentity, IsAdminUser]
+    permission_classes = [IsAuthenticated, HasVerifiedEligibleIdentity, IsAdminUser,
+                          HasSecondFactor]
 
     def get_permissions(self):
         permissions = super().get_permissions()

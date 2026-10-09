@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { ErrorState } from '@/features/admin/components';
+import { TwoFactorSettings } from '@/features/admin/TwoFactorGate';
 import { adminKeys, getSettings, updateSettings } from '@/lib/api/admin';
 import { chatKeys } from '@/lib/api/chat';
 import { formatDateTime } from '@/lib/format';
@@ -180,6 +181,8 @@ function SettingsForm({ saved }) {
           </p>
         ) : null}
       </SplitSection>
+
+      <TwoFactorSettings />
 
       <SplitSection icon={Radio} title="Service status" description="Pause asking, or show a notice on every student screen.">
         <SectionToggle

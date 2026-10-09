@@ -194,6 +194,12 @@ IDENTITY_OPEN_ACCESS = "access.policy.open_access_enabled"
 # With approval switched off, only these email domains get in directly; everyone else
 # still waits for an admin. Empty means any verified address.
 OPEN_ACCESS_EMAIL_DOMAINS = tuple(env_list("OPEN_ACCESS_EMAIL_DOMAINS", "thapar.edu"))
+# Staff enter a code from an authenticator app after signing in, before the admin API
+# answers (access/two_factor.py). A passed check lasts this long for that sign-in.
+STAFF_TWO_FACTOR_REQUIRED = env_bool("STAFF_TWO_FACTOR_REQUIRED", True)
+STAFF_TWO_FACTOR_SESSION_HOURS = env_int("STAFF_TWO_FACTOR_SESSION_HOURS", 12)
+if not 1 <= STAFF_TWO_FACTOR_SESSION_HOURS <= 720:
+    raise ValueError("STAFF_TWO_FACTOR_SESSION_HOURS must be between 1 and 720.")
 if not 0 <= FIREBASE_REVOCATION_CACHE_SECONDS <= 300:
     raise ValueError("FIREBASE_REVOCATION_CACHE_SECONDS must be between 0 and 300.")
 if FIREBASE_RECENT_AUTH_SECONDS < 0:
