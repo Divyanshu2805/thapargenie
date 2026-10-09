@@ -110,7 +110,7 @@ def session_hours():
 def session_valid(user, auth_time):
     cutoff = timezone.now() - timedelta(hours=session_hours())
     return SecondFactorSession.objects.filter(
-        user=user, auth_time=auth_time, verified_at__gt=cutoff
+        user=user, verified_at__gt=cutoff, auth_time=auth_time
     ).exists()
 
 

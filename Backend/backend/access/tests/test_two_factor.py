@@ -4,6 +4,8 @@ import base64
 import time
 from datetime import timedelta
 from io import StringIO
+from types import SimpleNamespace
+from unittest import mock
 
 from api.models import AuditEvent
 from common.tests.helpers import client_for, make_user
@@ -20,7 +22,8 @@ URL = f'{BASE}/two-factor/'
 
 
 def code_for(secret, offset=0):
-    return two_factor.totp(secret, int(time.time() // two_factor.PERIOD) + offset)
+    # two_factor.time is frozen in TwoFactorTests, so both sides agree on the time step.
+    return two_factor.totp(secret, int(two_factor.time.time() // two_factor.PERIOD) + offset)
 
 
 class TotpTests(TestCase):
@@ -43,6 +46,12 @@ class TwoFactorTests(TestCase):
     def setUp(self):
         self.admin = make_user('admin@thapar.edu', staff=True)
         self.client = client_for(self.admin)
+        # Codes change every 30 seconds: hold the clock still, or a test that straddles
+        # a boundary sees a different code than it computed.
+        now = time.time()
+        clock = mock.patch.object(two_factor, 'time', SimpleNamespace(time=lambda: now))
+        clock.start()
+        self.addCleanup(clock.stop)
 
     def enrol(self, client=None):
         client = client or self.client
