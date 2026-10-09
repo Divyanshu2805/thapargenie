@@ -24,6 +24,7 @@ import { MaintenanceCard } from '@/features/chat/Maintenance';
 import { dismissNotice, useDismissedNotice } from '@/features/notices/seen';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { createConversation } from '@/lib/api/chat';
+import { cn } from '@/lib/utils';
 
 const CATEGORY_ICONS = {
   fees: IndianRupee,
@@ -53,7 +54,7 @@ function StarterQuestions({ onPick }) {
     return (
       <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
         {[0, 1, 2, 3].map((item) => (
-          <Skeleton key={item} className="h-[4.5rem] rounded-xl" />
+          <Skeleton key={item} className={cn('h-[4.5rem] rounded-xl', item > 1 && 'max-sm:hidden')} />
         ))}
       </div>
     );
@@ -67,7 +68,8 @@ function StarterQuestions({ onPick }) {
       {questions.map((question, index) => {
         const Icon = CATEGORY_ICONS[question.category?.toLowerCase()] || Sparkles;
         return (
-          <li key={question.text} className="animate-rise" style={{ animationDelay: `${80 + index * 50}ms` }}>
+          // A phone shows two, so the question box stays in view above them.
+          <li key={question.text} className={cn('animate-rise', index > 1 && 'max-sm:hidden')} style={{ animationDelay: `${80 + index * 50}ms` }}>
             <button
               type="button"
               onClick={() => onPick(question.text)}
