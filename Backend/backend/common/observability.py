@@ -37,8 +37,9 @@ class RequestContextMiddleware:
             user_id = getattr(user, 'pk', None) if signed_in else None
             if user_id is not None:
                 user_id_var.set(str(user_id))
-            # How many addresses X-Forwarded-For holds (never the addresses): the number
-            # of proxies in front is one less, which is what TRUSTED_PROXY_COUNT must be.
+            # How many addresses X-Forwarded-For holds (never the addresses). Each proxy in
+            # front appends one, so for an ordinary request this is what TRUSTED_PROXY_COUNT
+            # must be.
             forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
             hops = len([part for part in forwarded.split(',') if part.strip()])
             # The path only: query strings can hold search terms. No bodies, ever.

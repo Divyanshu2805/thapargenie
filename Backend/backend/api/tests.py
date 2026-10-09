@@ -49,6 +49,11 @@ class TestStageZeroContainment(TestCase):
         self.assertEqual(ready.status_code, 200)
         self.assertEqual(ready.json(), {'status': 'ready'})
 
+        # Uptime monitors send HEAD; anything that changes state is still refused.
+        for path in ('/health/live/', '/health/ready/'):
+            self.assertEqual(self.client.head(path).status_code, 200)
+            self.assertEqual(self.client.post(path).status_code, 405)
+
     def test_failed_readiness_check_is_logged(self):
         with mock.patch('api.views.connection.cursor', side_effect=RuntimeError('down')), \
                 self.assertLogs('api.views', level='WARNING') as captured:

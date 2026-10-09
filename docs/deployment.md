@@ -67,7 +67,9 @@ the service's environment with the value `--bind=0.0.0.0:10000`.
 `X-Forwarded-For` before the request reaches gunicorn. Too low and the per-address rate
 limits on the public endpoints count a proxy's address, shared by everyone. Too high and
 a caller can forge the address. Every access-log line ends with `xff=N`, the number of
-addresses in that header: `TRUSTED_PROXY_COUNT` is `N - 1`.
+addresses in that header for an ordinary request: `TRUSTED_PROXY_COUNT` is that `N`,
+because each proxy appends one address and the client's is the first of them. On Render
+behind its Cloudflare edge `N` is 3.
 
 A free instance sleeps after 15 minutes without traffic and takes up to a minute to wake.
 GitHub's scheduler is too irregular to prevent that (`keepalive.yml` is best effort); an

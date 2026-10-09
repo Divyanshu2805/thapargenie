@@ -46,7 +46,7 @@ function AdminNav() {
       <p className="sidebar-label -mt-2 px-3 pb-2 text-[11px] font-semibold tracking-wider whitespace-nowrap text-primary uppercase dark:text-accent-foreground">
         Admin
       </p>
-      <nav aria-label="Admin" className={cn('scrollbar-thin min-h-0 flex-1 px-3 py-1', rail ? 'overflow-hidden' : 'overflow-y-auto')}>
+      <nav aria-label="Admin" className={cn('min-h-0 flex-1 px-3 py-1', rail ? 'overflow-hidden' : 'overflow-y-auto')}>
         {groups.map((group) => (
           <div key={group} className="flex flex-col gap-0.5 pb-3">
             <SidebarGroupLabel>{group}</SidebarGroupLabel>

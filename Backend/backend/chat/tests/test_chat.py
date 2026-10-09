@@ -145,6 +145,29 @@ class AskTests(ChatTestCase):
         self.assertEqual(done['message']['sources'][0]['position'], 1)
         self.assertEqual(done['remaining_today'], 39)
 
+    def test_a_not_found_reply_shows_no_references(self):
+        conversation = self.conversation()
+        events = self.answered(conversation, answer="I couldn't find the accounts office.")
+        message = events[-1][1]['message']
+        self.assertEqual(message['answer_type'], 'no_answer')
+        self.assertEqual(message['sources'], [])
+        # The passages that were searched stay on record for the admin pages.
+        assistant = Message.objects.get(role=Message.Role.ASSISTANT)
+        self.assertTrue(MessageSource.objects.filter(message=assistant).exists())
+        # The same when the chat is loaded again.
+        detail = self.client.get(f'/api/v1/conversations/{conversation.pk}/messages/')
+        answer = next(m for m in detail.data['messages'] if m['role'] == 'assistant')
+        self.assertEqual(answer['sources'], [])
+
+    def test_a_not_found_reply_keeps_a_source_it_points_to(self):
+        conversation = self.conversation()
+        events = self.answered(
+            conversation, answer='I couldn’t find the Wi-Fi password. Hostel IT desk: [1].'
+        )
+        message = events[-1][1]['message']
+        self.assertEqual(message['answer_type'], 'no_answer')
+        self.assertEqual([source['position'] for source in message['sources']], [1])
+
     def test_sources_carry_live_freshness_from_the_document(self):
         Document.objects.filter(pk=self.document.pk).update(
             academic_year='2026-27', effective_date='2026-08-12')

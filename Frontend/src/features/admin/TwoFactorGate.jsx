@@ -72,8 +72,8 @@ function QrCode({ value }) {
 function Shell({ icon: Icon = ShieldCheck, title, children }) {
   return (
     <div className="mx-auto w-full max-w-lg px-4 py-10 sm:py-16">
-      <div className="rounded-2xl border bg-card p-6 shadow-soft sm:p-8">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+      <div className="rounded-2xl border bg-card p-6 text-center shadow-soft sm:p-8">
+        <span className="mx-auto flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
           <Icon className="size-[18px]" aria-hidden="true" />
         </span>
         <h1 className="mt-4 text-heading">{title}</h1>
@@ -86,7 +86,9 @@ function Shell({ icon: Icon = ShieldCheck, title, children }) {
 function CodeField({ id, label, value, onChange, error, recovery, autoFocus = true }) {
   return (
     <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="justify-center">
+        {label}
+      </Label>
       <Input
         id={id}
         value={value}
@@ -98,7 +100,7 @@ function CodeField({ id, label, value, onChange, error, recovery, autoFocus = tr
         placeholder={recovery ? 'ABCD-EFGH' : '123456'}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="font-mono text-base tracking-widest"
+        className="text-center font-mono text-base tracking-widest"
       />
       {error ? (
         <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
@@ -130,7 +132,7 @@ function BackupCodes({ codes, onDone }) {
           <li key={code}>{code}</li>
         ))}
       </ul>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
         <Button type="button" variant="outline" size="sm" onClick={copy}>
           <Copy /> Copy
         </Button>
@@ -185,7 +187,7 @@ function Enrol({ onEnrolled }) {
         <li>
           <p className="font-semibold">2. Scan this code, or type the key</p>
           {setup.data ? (
-            <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="mt-3 flex flex-col items-center gap-4">
               <QrCode value={setup.data.otpauth_uri} />
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Key</p>
@@ -193,7 +195,7 @@ function Enrol({ onEnrolled }) {
               </div>
             </div>
           ) : (
-            <Skeleton className="mt-3 size-44 rounded-xl" aria-label="Loading the QR code" />
+            <Skeleton className="mx-auto mt-3 size-44 rounded-xl" aria-label="Loading the QR code" />
           )}
         </li>
         <li>

@@ -242,7 +242,7 @@ export default function ChatSidebar({ onNavigate: onNavigateProp }) {
         </SidebarItem>
       </nav>
 
-      <div inert={rail} className={cn('sidebar-label scrollbar-thin min-h-0 flex-1', rail ? 'overflow-hidden' : 'overflow-y-auto')}>
+      <div inert={rail} className={cn('sidebar-label min-h-0 flex-1', rail ? 'overflow-hidden' : 'overflow-y-auto')}>
         <ConversationList archived={archived} onNavigate={onNavigate} />
       </div>
 
