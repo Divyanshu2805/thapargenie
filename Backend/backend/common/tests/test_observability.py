@@ -34,6 +34,17 @@ class LoggingContextTests(TestCase):
         self.assertIn('GET /api/v1/conversations/ 200', record.getMessage())
         self.assertNotIn('private-search', record.getMessage())
 
+    def test_access_log_counts_forwarded_addresses_without_logging_them(self):
+        user = make_user('student@thapar.edu')
+        with self.assertLogs('thapargenie.access', level='INFO') as logs:
+            client_for(user).get('/api/v1/conversations/',
+                               HTTP_X_FORWARDED_FOR='203.0.113.7, 10.0.0.1')
+            client_for(user).get('/api/v1/conversations/')
+        self.assertTrue(logs.records[0].getMessage().endswith('xff=2'))
+        self.assertEqual(logs.records[0].xff, 2)
+        self.assertNotIn('203.0.113.7', logs.records[0].getMessage())
+        self.assertTrue(logs.records[1].getMessage().endswith('xff=0'))
+
     def test_health_checks_are_not_access_logged(self):
         with self.assertNoLogs('thapargenie.access', level='INFO'):
             self.client.get('/health/live/')

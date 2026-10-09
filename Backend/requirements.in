@@ -13,6 +13,9 @@ pgvector
 python-dotenv
 whitenoise
 
+# Encrypts staff two-factor keys at rest (access/two_factor.py)
+cryptography
+
 # Error tracking (optional, active only when SENTRY_DSN is set)
 sentry-sdk[django]
 

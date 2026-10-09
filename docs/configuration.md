@@ -15,8 +15,9 @@ Copy `.env.example` and fill it in. `APP_ENV` picks the settings profile: `local
 | `CHAT_MODEL`, `FAST_MODEL`, `EMBED_MODEL` | Model names. Check the provider docs for current ones. |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | The private bucket for uploaded files. |
 | `INGEST_URL_ALLOWLIST` | Domains pages may be added from. |
+| `OPEN_ACCESS_EMAIL_DOMAINS` | Default `thapar.edu`. When admins switch approval off, only verified addresses on these domains get in directly; any other address still waits for an admin to approve or invite it. Empty allows any verified address. |
 | `INGEST_MAX_FILE_MB`, `INGEST_MAX_PAGES` | Upload limits. |
-| `THROTTLE_*` | Request rate limits: `USER` 120/min, `ASK` 6/min, `SUGGEST` 10/min, `ADMIN_WRITE` 30/min, `EXPORT` 5/hour, `CLIENT_ERROR` 20/min, `SITE_FEEDBACK` 5/hour, `ADMIN_EXPORT` 30/hour, `SHARED_VIEW` 60/min. |
+| `THROTTLE_*` | Request rate limits: `USER` 120/min, `ASK` 6/min, `SUGGEST` 10/min, `ADMIN_WRITE` 30/min, `EXPORT` 5/hour, `CLIENT_ERROR` 20/min, `SITE_FEEDBACK` 5/hour, `ADMIN_EXPORT` 30/hour, `SHARED_VIEW` 60/min. Counted in each worker's memory, not in the database, so every worker allows the full rate: with `WEB_CONCURRENCY=2` a limit can be used up to twice over. The daily question limit is exact (it is in the database). |
 | `LLM_PROVIDER`, `EMBED_PROVIDER`, `OPENAI_API_KEY` | Switch to OpenAI. |
 | `FAST_THINKING`, `ANSWER_THINKING` | Reasoning level for quick calls and for answers. |
 | `RETENTION_*_DAYS` | How long chats, traces, usage and logs are kept. |
@@ -36,6 +37,8 @@ The daily question limit and the starter questions live in the database
 | `DJANGO_SECRET_KEY` | At least 50 characters. |
 | `DJANGO_ALLOWED_HOSTS` | The API's host names. `*` is refused. |
 | `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | The web app's origin, `https://` only. |
+| `STAFF_TWO_FACTOR_REQUIRED` | Default `true`: staff enter a code from an authenticator app after signing in before the admin API answers. `false` switches the step off (an emergency switch, or for local work). |
+| `STAFF_TWO_FACTOR_SESSION_HOURS` | How long a passed check lasts for that sign-in (default 12, 1 to 720). |
 | `TRUSTED_PROXY_COUNT` | Proxies in front of the API (1 on Render), so rate limits use the real client address. |
 | `DJANGO_ADMIN_ENABLED` | Keep `false`; the Django admin is off in production. |
 | `FIREBASE_ALLOWED_SIGN_IN_PROVIDERS` | Default `password,google.com`. |
@@ -45,6 +48,7 @@ The daily question limit and the starter questions live in the database
 | `APP_RELEASE` | Tags logs and errors with the deploy; falls back to `RENDER_GIT_COMMIT`. |
 | `WEB_CONCURRENCY`, `GUNICORN_THREADS`, `GUNICORN_TIMEOUT` | Workers, threads per worker and request timeout (2, 8, 120 s). See `gunicorn.conf.py`. |
 | `GUNICORN_MAX_REQUESTS` | Requests before a worker is recycled (10,000). |
+| `FIREBASE_REVOCATION_CACHE_SECONDS` | How long (default 60, 0 to 300) a token Firebase just confirmed is trusted without asking again. Students only: staff are checked with Firebase on every request. A student disabled or revoked in the Firebase console keeps access for at most this long; "sign out everywhere", suspension and approval are checked in our database on every request. 0 asks on every request. |
 | `FIREBASE_HTTP_POOL_SIZE` | Connections kept to Google for the revocation check; defaults to `GUNICORN_THREADS`. |
 | `DATABASE_TRANSACTION_POOLING` | `true` with the Supabase transaction pooler (port 6543). Needed above about 2×16 threads; `check --deploy` warns otherwise. |
 

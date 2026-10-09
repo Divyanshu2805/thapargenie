@@ -37,6 +37,7 @@ class AdminPermissionTests(TestCase):
         self.assertEqual(paths, {
             'documents', 'chunks', 'stats', 'gaps', 'complaints', 'feedback', 'site-feedback',
             'settings', 'playground', 'invitations', 'users', 'audit-log', 'notices',
+            'two-factor',
         })
 
     def assert_refused(self, client, expected):

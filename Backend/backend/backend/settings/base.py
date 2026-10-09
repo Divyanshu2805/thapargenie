@@ -154,7 +154,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "common.errors.exception_handler",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.UserRateThrottle",),
+    "DEFAULT_THROTTLE_CLASSES": ("common.throttles.UserThrottle",),
     "DEFAULT_THROTTLE_RATES": {
         "user": os.getenv("THROTTLE_USER", "120/min"),
         "ask": os.getenv("THROTTLE_ASK", "6/min"),
@@ -182,11 +182,26 @@ FIREBASE_ALLOWED_SIGN_IN_PROVIDERS = tuple(
 # so with more worker threads than that, connections are dropped and reopened each time.
 FIREBASE_HTTP_POOL_SIZE = env_int("FIREBASE_HTTP_POOL_SIZE", env_int("GUNICORN_THREADS", 8))
 FIREBASE_RECENT_AUTH_SECONDS = int(os.getenv("FIREBASE_RECENT_AUTH_SECONDS", "300"))
+# How long a token Firebase has just confirmed is trusted without asking again (students only;
+# staff are always checked live). A user disabled or revoked in the Firebase console keeps
+# access for at most this long. 0 asks Firebase on every request.
+FIREBASE_REVOCATION_CACHE_SECONDS = int(os.getenv("FIREBASE_REVOCATION_CACHE_SECONDS", "60"))
 # A freshly issued token is "used too early" if this server's clock trails Google's by even
 # a second, so the first request after signing in would fail. Allow a little drift.
 FIREBASE_CLOCK_SKEW_SECONDS = int(os.getenv("FIREBASE_CLOCK_SKEW_SECONDS", "10"))
-# Returns True when new verified users are approved without an admin.
+# Returns True when a new verified user with this email is approved without an admin.
 IDENTITY_OPEN_ACCESS = "access.policy.open_access_enabled"
+# With approval switched off, only these email domains get in directly; everyone else
+# still waits for an admin. Empty means any verified address.
+OPEN_ACCESS_EMAIL_DOMAINS = tuple(env_list("OPEN_ACCESS_EMAIL_DOMAINS", "thapar.edu"))
+# Staff enter a code from an authenticator app after signing in, before the admin API
+# answers (access/two_factor.py). A passed check lasts this long for that sign-in.
+STAFF_TWO_FACTOR_REQUIRED = env_bool("STAFF_TWO_FACTOR_REQUIRED", True)
+STAFF_TWO_FACTOR_SESSION_HOURS = env_int("STAFF_TWO_FACTOR_SESSION_HOURS", 12)
+if not 1 <= STAFF_TWO_FACTOR_SESSION_HOURS <= 720:
+    raise ValueError("STAFF_TWO_FACTOR_SESSION_HOURS must be between 1 and 720.")
+if not 0 <= FIREBASE_REVOCATION_CACHE_SECONDS <= 300:
+    raise ValueError("FIREBASE_REVOCATION_CACHE_SECONDS must be between 0 and 300.")
 if FIREBASE_RECENT_AUTH_SECONDS < 0:
     raise ValueError("FIREBASE_RECENT_AUTH_SECONDS cannot be negative.")
 if not 0 <= FIREBASE_CLOCK_SKEW_SECONDS <= 60:
@@ -198,11 +213,22 @@ EXTERNAL_HTTP_TIMEOUT_SECONDS = float(os.getenv("EXTERNAL_HTTP_TIMEOUT_SECONDS",
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024)))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024)))
 
-# Shared across gunicorn workers so throttles count per user, not per process.
+# "default" is shared by every worker and instance (the answer-coverage cache and audit
+# de-duplication use it). Rate-limit counters get their own cache in process memory: they
+# used to cost 6 database statements on every request (about 360 ms from Singapore). Each
+# gunicorn worker counts on its own, so a limit can be used up to WEB_CONCURRENCY times
+# over; the daily question quota and the one-stream-per-user rule stay exact because they
+# live in the database. Counts restart with the worker. MAX_ENTRIES is 10,000 because a
+# full cache drops a third of its entries, which would reset those users' counts early.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.db.DatabaseCache",
         "LOCATION": "django_cache",
+    },
+    "throttle": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "throttle",
+        "OPTIONS": {"MAX_ENTRIES": 10000},
     },
 }
 

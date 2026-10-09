@@ -15,8 +15,10 @@ class Command(BaseCommand):
         parser.add_argument('--title', default='', help='Only documents whose title contains this.')
         parser.add_argument('--dry-run', action='store_true',
                             help='Count what would be done; call no APIs and save nothing.')
+        parser.add_argument('--include-long', action='store_true',
+                            help='Also process pages with more than 150 chunks (many calls each).')
 
-    def handle(self, limit, title, dry_run, **options):
+    def handle(self, limit, title, dry_run, include_long, **options):
         def report(stats):
             self.stdout.write(f'  {stats.documents} documents, {stats.chunks} chunks', ending='\r')
             self.stdout.flush()
@@ -24,7 +26,8 @@ class Command(BaseCommand):
         llm = None if dry_run else get_llm()
         try:
             stats = backfill_context(llm, limit=limit, title_contains=title, dry_run=dry_run,
-                                     progress=None if dry_run else report)
+                                     progress=None if dry_run else report,
+                                     include_long=include_long)
         except (QuotaExhausted, RetryableError) as exc:
             self.stdout.write('')
             raise CommandError(
@@ -36,5 +39,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'{verb} {stats.documents} documents ({stats.chunks} chunks, '
             f'~{stats.model_calls} fast-model calls and one embedding per chunk). '
-            f'Already had context: {stats.already_done}. Too long to read: {stats.too_long}.'
+            f'Already had context: {stats.already_done}. Skipped as long: {stats.too_long}'
+            f'{"" if include_long or not stats.too_long else " (add --include-long)"}.'
         ))

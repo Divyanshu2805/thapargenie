@@ -74,6 +74,35 @@ class OpenAccessTests(TestCase):
         newcomer = resolve_local_identity(identity(uid='new-uid', email='new@example.com'))
         self.assertEqual(newcomer.eligibility_state, EligibilityState.PENDING)
 
+    @override_settings(OPEN_ACCESS_EMAIL_DOMAINS=('thapar.edu',))
+    def test_only_the_allowed_domains_get_in_without_approval(self):
+        require_approval(False)
+        student = resolve_local_identity(identity(uid='s', email='Student@THAPAR.EDU'))
+        self.assertEqual(student.eligibility_state, EligibilityState.APPROVED)
+        for number, email in enumerate(('someone@gmail.com', 'x@thapar.edu.evil.com',
+                                        'x@sub.thapar.edu', 'thapar.edu@example.com')):
+            with self.subTest(email=email):
+                outsider = resolve_local_identity(identity(uid=f'o{number}', email=email))
+                self.assertEqual(outsider.eligibility_state, EligibilityState.PENDING)
+        self.assertEqual(AuditEvent.objects.filter(action='eligibility.auto_approved').count(), 1)
+
+    @override_settings(OPEN_ACCESS_EMAIL_DOMAINS=('thapar.edu',))
+    def test_an_outsider_can_still_be_invited(self):
+        from userauths.models import IdentityInvitation
+
+        require_approval(False)
+        IdentityInvitation.objects.create(email='guest@gmail.com')
+        guest = resolve_local_identity(identity(uid='g', email='guest@gmail.com'))
+        guest.refresh_from_db()
+        self.assertEqual(guest.eligibility_state, EligibilityState.APPROVED)
+        self.assertTrue(AuditEvent.objects.filter(
+            action='eligibility.invitation_accepted').exists())
+
+    def test_the_default_is_thapar_addresses_only(self):
+        from backend.settings import base
+
+        self.assertEqual(base.OPEN_ACCESS_EMAIL_DOMAINS, ('thapar.edu',))
+
     @override_settings(IDENTITY_OPEN_ACCESS='')
     def test_auth_apps_alone_always_require_approval(self):
         require_approval(False)

@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from api.models import AuditEvent
 from api.pagination import BoundedCursorPagination
+from api.permissions import HasRecentFirebaseAuthentication, HasVerifiedEligibleIdentity
 from common.admin_api import (
     AdminAPIView,
     choice_param,
@@ -16,17 +17,24 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from userauths.models import EligibilityState, IdentityInvitation, User
 
-from access import services
+from access import services, two_factor
 from access.admin_serializers import (
     AuditEventSerializer,
     EligibilitySerializer,
     InvitationCreateSerializer,
     InvitationSerializer,
+    TwoFactorCodeSerializer,
+    TwoFactorRecoveryCodesSerializer,
+    TwoFactorSetupSerializer,
+    TwoFactorStatusSerializer,
+    TwoFactorVerifySerializer,
     UserSerializer,
 )
+from access.permissions import HasSecondFactor
 
 TAGS = ['admin: access']
 # Audit actions are dotted lowercase names ("document.deleted"); a trailing dot filters by prefix.
@@ -150,3 +158,87 @@ class AuditLogView(AdminAPIView):
         if resource_id := pattern_param(request, 'resource_id', r'\S+', 128):
             events = events.filter(resource_id=resource_id)
         return paginate(self, events, lambda e: AuditEventSerializer(e).data)
+
+
+class TwoFactorView(AdminAPIView):
+    """The second sign-in step itself: open to staff who have not passed it yet."""
+
+    permission_classes = [IsAuthenticated, HasVerifiedEligibleIdentity, IsAdminUser]
+
+    def fail(self, exc):
+        if exc.code == 'second_factor_locked':
+            code = status.HTTP_429_TOO_MANY_REQUESTS
+        elif exc.code == 'second_factor_invalid_code':
+            code = status.HTTP_400_BAD_REQUEST
+        else:
+            code = status.HTTP_409_CONFLICT
+        return error_response(self.request, code, exc.code, str(exc))
+
+    def current(self):
+        return two_factor.status(self.request.user, self.request.auth.auth_time)
+
+
+class TwoFactorStatusView(TwoFactorView):
+    @extend_schema(operation_id='admin_two_factor_status', tags=TAGS,
+                   responses=TwoFactorStatusSerializer)
+    def get(self, request):
+        return Response(self.current())
+
+
+class TwoFactorSetupView(TwoFactorView):
+    @extend_schema(operation_id='admin_two_factor_setup', tags=TAGS, request=None,
+                   responses=TwoFactorSetupSerializer)
+    def post(self, request):
+        try:
+            return Response(two_factor.begin_setup(request.user))
+        except two_factor.TwoFactorError as exc:
+            return self.fail(exc)
+
+
+class TwoFactorConfirmView(TwoFactorView):
+    @extend_schema(operation_id='admin_two_factor_confirm', tags=TAGS,
+                   request=TwoFactorCodeSerializer, responses=TwoFactorRecoveryCodesSerializer)
+    def post(self, request):
+        serializer = TwoFactorCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            codes = two_factor.confirm_setup(
+                request.user, serializer.validated_data['code'], request.auth.auth_time,
+                request_id=request_id(request),
+            )
+        except two_factor.TwoFactorError as exc:
+            return self.fail(exc)
+        return Response({'recovery_codes': codes, 'status': self.current()})
+
+
+class TwoFactorVerifyView(TwoFactorView):
+    @extend_schema(operation_id='admin_two_factor_verify', tags=TAGS,
+                   request=TwoFactorVerifySerializer, responses=TwoFactorStatusSerializer)
+    def post(self, request):
+        serializer = TwoFactorVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            return Response(two_factor.verify(
+                request.user, request.auth.auth_time, code=data.get('code', ''),
+                recovery_code=data.get('recovery_code', ''), request_id=request_id(request),
+            ))
+        except two_factor.TwoFactorError as exc:
+            return self.fail(exc)
+
+
+class TwoFactorRecoveryCodesView(TwoFactorView):
+    """New backup codes replace the old ones: needs the second step and a recent sign-in."""
+
+    permission_classes = [*TwoFactorView.permission_classes, HasSecondFactor,
+                          HasRecentFirebaseAuthentication]
+
+    @extend_schema(operation_id='admin_two_factor_recovery_codes', tags=TAGS, request=None,
+                   responses=TwoFactorRecoveryCodesSerializer)
+    def post(self, request):
+        try:
+            codes = two_factor.regenerate_recovery_codes(request.user,
+                                                         request_id=request_id(request))
+        except two_factor.TwoFactorError as exc:
+            return self.fail(exc)
+        return Response({'recovery_codes': codes, 'status': self.current()})

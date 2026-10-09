@@ -15,6 +15,7 @@ from api.firebase import (
     FirebaseIdentityUnavailable,
     InvalidFirebaseToken,
     RevokedFirebaseToken,
+    recently_verified,
     verify_firebase_id_token,
 )
 from api.identity import (
@@ -132,12 +133,21 @@ class FirebaseAuthentication(BaseAuthentication):
             ) from exc
 
         try:
-            claims = verify_firebase_id_token(token)
+            # A token Firebase confirmed a moment ago is not sent to Firebase again (see
+            # api/firebase.py), but only for students: staff are always checked live, so
+            # a staff member disabled or revoked in Firebase is cut off at once.
+            claims = recently_verified(token)
+            from_recent = claims is not None
+            if not from_recent:
+                claims = verify_firebase_id_token(token)
             identity = _validated_identity(token, claims)
             user = resolve_local_identity(
                 identity,
                 request_id=getattr(request, 'request_id', None),
             )
+            if from_recent and (user.is_staff or user.is_superuser):
+                claims = verify_firebase_id_token(token)
+                identity = _validated_identity(token, claims)
         except ExpiredFirebaseToken as exc:
             raise AuthenticationFailed(
                 'The identity token has expired.', code='expired_identity_token'

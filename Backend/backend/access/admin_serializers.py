@@ -30,6 +30,40 @@ class InvitationCreateSerializer(RejectUnknownFieldsMixin, serializers.Serialize
     expires_in_days = serializers.IntegerField(min_value=1, max_value=365, required=False)
 
 
+class TwoFactorStatusSerializer(serializers.Serializer):
+    required = serializers.BooleanField()
+    enrolled = serializers.BooleanField()
+    verified = serializers.BooleanField()
+    recovery_codes_left = serializers.IntegerField()
+    session_hours = serializers.IntegerField()
+
+
+class TwoFactorSetupSerializer(serializers.Serializer):
+    secret = serializers.CharField()
+    otpauth_uri = serializers.CharField()
+
+
+class TwoFactorCodeSerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    code = serializers.RegexField(r'^\s*\d{3}\s?\d{3}\s*$', max_length=12)
+
+
+class TwoFactorVerifySerializer(RejectUnknownFieldsMixin, serializers.Serializer):
+    code = serializers.RegexField(r'^\s*\d{3}\s?\d{3}\s*$', max_length=12, required=False)
+    recovery_code = serializers.RegexField(
+        r'^\s*[A-Za-z2-7]{4}[- ]?[A-Za-z2-7]{4}\s*$', max_length=16, required=False
+    )
+
+    def validate(self, attrs):
+        if bool(attrs.get('code')) == bool(attrs.get('recovery_code')):
+            raise serializers.ValidationError('Send a code or a backup code.')
+        return attrs
+
+
+class TwoFactorRecoveryCodesSerializer(serializers.Serializer):
+    recovery_codes = serializers.ListField(child=serializers.CharField())
+    status = TwoFactorStatusSerializer()
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
