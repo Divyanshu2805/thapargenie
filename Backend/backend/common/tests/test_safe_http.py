@@ -82,6 +82,59 @@ class FetchTests(SimpleTestCase):
         with self.assertRaises(UnsafeURLError):
             self.run_fetch(handler)
 
+    def test_connects_to_the_checked_address(self):
+        # The name is resolved once: a second lookup at connect time could be answered
+        # with an internal address (DNS rebinding).
+        seen = []
+
+        def handler(request):
+            seen.append((request.url.host, request.headers['host'], request.extensions))
+            return httpx.Response(200, text='ok')
+
+        result = self.run_fetch(handler, url='https://www.thapar.edu/a?b=1')
+        host, header, extensions = seen[0]
+        self.assertEqual(host, '8.8.8.10')
+        self.assertEqual(header, 'www.thapar.edu')
+        self.assertEqual(extensions['sni_hostname'], 'www.thapar.edu')
+        self.assertEqual(result.url, 'https://www.thapar.edu/a?b=1')
+
+    def test_resolves_once_per_hop(self):
+        calls = []
+
+        def resolver(host):
+            calls.append(host)
+            return {'8.8.8.10'}
+
+        fetch(
+            'https://www.thapar.edu/a',
+            max_bytes=1000,
+            allowlist=ALLOW,
+            resolver=resolver,
+            transport=httpx.MockTransport(lambda request: httpx.Response(200, text='ok')),
+        )
+        self.assertEqual(calls, ['www.thapar.edu'])
+
+    def test_prefers_ipv4_and_brackets_ipv6(self):
+        seen = []
+
+        def handler(request):
+            seen.append(request.url.host)
+            return httpx.Response(200, text='ok')
+
+        for addresses in ({'2001:4860:4860::8888', '8.8.8.10'}, {'2001:4860:4860::8888'}):
+            fetch(
+                'https://www.thapar.edu/a',
+                max_bytes=1000,
+                allowlist=ALLOW,
+                resolver=lambda _host, addresses=addresses: addresses,
+                transport=httpx.MockTransport(handler),
+            )
+        self.assertEqual(seen, ['8.8.8.10', '2001:4860:4860::8888'])
+
+    def test_unresolvable_host_rejected(self):
+        with self.assertRaises(UnsafeURLError):
+            validate_url('https://www.thapar.edu/', ALLOW, lambda _host: set())
+
     def test_caps_body_size(self):
         with self.assertRaises(FetchError):
             self.run_fetch(lambda request: httpx.Response(200, content=b'x' * 2000))
