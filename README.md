@@ -115,6 +115,10 @@ cd Frontend && npm test
 More detail is in [docs/](docs/README.md): how the pieces fit together, the API and the
 settings.
 
+## Licence
+
+[MIT](LICENSE).
+
 ## Screens
 
 The landing page is at `/`, the student app under `/chat/` and the admin dashboard under
