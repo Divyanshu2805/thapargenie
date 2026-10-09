@@ -43,6 +43,44 @@ _DATE_PATTERNS = [
 ]
 
 
+# Calendar tables keep the month in one column ("Sept", "Sept-Oct", "Oct / Nov") and the days
+# in another as a range ("31-4"). Answers rewrite them as "31 Aug - 4 Sep".
+_MONTH_WORD = re.compile(r'\b(' + '|'.join(sorted(_MONTHS, key=len, reverse=True)) + r')\b\.?',
+                         re.IGNORECASE)
+_DAY_RANGE = re.compile(r'(?<![\d/.,-])(\d{1,2})\s*[-–—]\s*(\d{1,2})(?![\d/.,-])')
+
+
+def range_dates(text):
+    """Dates a table row implies: a month word and a day range on one line.
+
+    "Sept | 31-4" holds 31 Aug and 4 Sep: a range that runs backwards in number crosses
+    into the next month. With two months on the row ("Sept-Oct | 28-3") the first day is
+    in the first and the last in the second; when the numbers do not decide, either month
+    is accepted. Only used for the sources: it explains how an answer could write a full
+    date, it does not make a date in the answer count as written.
+    """
+    tokens = set()
+    for line in text.splitlines():
+        months = [_MONTHS[m.group(1).lower()] for m in _MONTH_WORD.finditer(line)]
+        months = list(dict.fromkeys(months))
+        if not months or len(months) > 2:
+            continue
+        for match in _DAY_RANGE.finditer(line):
+            first, last = int(match.group(1)), int(match.group(2))
+            if not (1 <= first <= 31 and 1 <= last <= 31):
+                continue
+            if len(months) == 1:
+                month = months[0]
+                start = month if first <= last else (month - 2) % 12 + 1
+                pairs = [(start, first), (month, last)]
+            elif first > last:
+                pairs = [(months[0], first), (months[1], last)]
+            else:
+                pairs = [(m, day) for m in months for day in (first, last)]
+            tokens |= {f'date:{m:02d}-{day:02d}' for m, day in pairs}
+    return tokens
+
+
 @dataclass
 class Grounding:
     cited: list = field(default_factory=list)
@@ -105,7 +143,7 @@ def check(answer, sources, question=''):
     for source in pool:
         # The model also sees each source's title, section and year (prompt.format_sources).
         header = ' '.join((source.title, source.heading_path, source.academic_year))
-        available |= figures(f'{header}\n{source.content}')
+        available |= figures(f'{header}\n{source.content}') | range_dates(source.content)
     available |= figures(question)
     unsupported = sorted(
         figure for figure in figures(answer) if figure not in available and len(figure) > 1

@@ -99,8 +99,8 @@ change so a fix for one pattern does not break another.
 
 **Regression cases** (in `rag/eval/golden.json`, run by `eval_rag`):
 
-- `hostels-list-all-boys`: "list all boys hostels" must name all 10 halls: Agira, Amritam,
-  Prithvi, Neeram, Vyan, Tejas, Ambaram, Viyat, Anantam and Vyom. `eval_rag` reports
+- `hostels-list-all-boys`: "list all boys hostels" must name all 11 hostels: Agira, Amritam,
+  Prithvi, Neeram, Vyan, Tejas, Ambaram, Viyat, Anantam, Vyom and Hostel-FRF/G. `eval_rag` reports
   "full lists", and with `--answers` the written answer must name every hall too.
 - `hostels-complaint-followup`: the hostel conversation must be recognised as a remark
   about the chat (`intents` in the report), not small talk.
@@ -115,9 +115,29 @@ These two only mean something against the production corpus: run `eval_rag --ans
 | 2. "List all" questions return part of the list | 2026-10-05 | `wants_complete_list`; the whole page is loaded with a 12,000-token budget (`rag/context.py`) |
 | 3. Chunks lose the section they belong to | 2026-10-05 | Crawler import can write context sentences; the model reads up to 60,000 characters; `contextualize_documents` adds them to stored pages |
 
-## To do on the live data
+## Applied to the live data (2026-10-06)
 
-1. Run `python manage.py contextualize_documents --dry-run` against production to see the
-   number of model calls, then run it without `--dry-run` (it can be stopped and resumed).
-2. Run `python manage.py eval_rag --answers` and check "full lists" and "intents".
-3. Ask "list all boys hostels" and the hostel conversation by hand.
+- `contextualize_documents` ran on production: 652 documents (4,646 chunks, about 1,060
+  fast-model calls) got context sentences. 669 already had them and 21 pages were skipped
+  as too long (over 150 chunks). It met Gemini 429 rate limits on the way; the client's
+  retries absorbed them and it finished in one run.
+- `eval_rag --answers` afterwards: recall@5 1.00, recall@10 1.00, MRR 0.97, in sources
+  1.00, full lists 1.00, intents 1.00, answers 0.96 (102 model calls).
+- "list all boys hostels" on the site now names all ten halls with their former hostel
+  letters, cited to the one Boys Hostel page.
+
+## Still open
+
+- The 21 pages with more than 150 chunks have no context sentences. Raise
+  `CONTEXTUALIZE_MAX_CHUNKS` or process them in parts if questions about them fail.
+- In the eval run, `admissions-status-2026-27` scored WRONG (answer type `no_answer`) although
+  search found the page at rank 1. Asked again with `manage.py ask`, it answered and was
+  grounded ("applications are now closed", from admission.thapar.edu), so this is run-to-run
+  variation in the model, not a change from the work above. If it fails again in the nightly
+  eval, look at the answer text.
+- In the same run `academic-calendar-first-year-2026-27` was flagged UNGROUNDED, wrongly: the
+  calendar table keeps the month and the day range in separate columns ("Sept" and "31-4")
+  and the answer wrote "31 Aug - 4 Sep", so the six dates that span two months were not found
+  as written. The grounding check now reads a month plus a day range on one table row as
+  the dates it implies (`range_dates` in `rag/grounding.py`). Re-run the calendar question
+  with `manage.py ask` on production to confirm it is grounded.
