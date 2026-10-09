@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildCsp } from './csp.config.js';
+import { buildCsp, preconnectOrigins } from './csp.config.js';
 
 const parse = (csp) => Object.fromEntries(csp.split('; ').map((part) => {
   const [name, ...values] = part.split(' ');
   return [name, values];
 }));
+
+describe('preconnectOrigins', () => {
+  it('names the Firebase Auth host and gapi, or only gapi without a project', () => {
+    expect(preconnectOrigins('demo.firebaseapp.com')).toEqual(['https://demo.firebaseapp.com', 'https://apis.google.com']);
+    expect(preconnectOrigins(undefined)).toEqual(['https://apis.google.com']);
+  });
+});
 
 describe('buildCsp', () => {
   const csp = parse(

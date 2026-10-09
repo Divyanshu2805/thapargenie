@@ -899,14 +899,6 @@ export default function LandingPage() {
   // Momentum scrolling: the wheel glides to a stop instead of jumping in steps.
   useEffect(() => startSmoothScroll(), []);
 
-  useEffect(() => {
-    const previous = document.title;
-    document.title = 'ThaparGenie · Answers about Thapar, straight from the source';
-    return () => {
-      document.title = previous;
-    };
-  }, []);
-
   return (
     <div ref={rootRef} className="landing min-h-dvh overflow-x-clip bg-background text-foreground">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:shadow-lift">

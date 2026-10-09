@@ -54,6 +54,12 @@ export function buildCsp({ apiBaseUrl, firebaseAuthDomain, authEmulatorUrl }) {
     .join('; ');
 }
 
+/** Origins every page talks to while Firebase Auth starts; connecting early saves a
+ * round trip on the first load. */
+export function preconnectOrigins(firebaseAuthDomain) {
+  return [firebaseAuthDomain ? `https://${firebaseAuthDomain}` : null, 'https://apis.google.com'].filter(Boolean);
+}
+
 /** Vite plugin: adds the CSP <meta> to index.html in production builds only (the dev
  * server needs inline scripts and websockets for hot reload). */
 export function cspPlugin(env) {
@@ -66,7 +72,14 @@ export function cspPlugin(env) {
         firebaseAuthDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
         authEmulatorUrl: env.VITE_FIREBASE_AUTH_EMULATOR_URL,
       });
-      return [{ tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content }, injectTo: 'head-prepend' }];
+      return [
+        { tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content }, injectTo: 'head-prepend' },
+        ...preconnectOrigins(env.VITE_FIREBASE_AUTH_DOMAIN).map((href) => ({
+          tag: 'link',
+          attrs: { rel: 'preconnect', href, crossorigin: '' },
+          injectTo: 'head',
+        })),
+      ];
     },
   };
 }

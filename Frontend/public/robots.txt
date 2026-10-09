@@ -1,0 +1,11 @@
+# The landing page and the privacy notice are public. Everything else needs a
+# sign-in, and shared answers are private links.
+User-agent: *
+Allow: /
+Disallow: /chat/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /s/
+Disallow: /auth/
+
+Sitemap: https://thapargenie.divyanshuagrahari.dev/sitemap.xml
