@@ -128,8 +128,10 @@ These two only mean something against the production corpus: run `eval_rag --ans
 
 ## Still open
 
-- The 21 pages with more than 150 chunks have no context sentences. Raise
-  `CONTEXTUALIZE_MAX_CHUNKS` or process them in parts if questions about them fail.
+- The 21 pages with more than 150 chunks have no context sentences yet. The code now
+  reads a long page in windows (its opening plus the chunks around the ones being
+  described); run `contextualize_documents --include-long --dry-run` on production to see
+  the number of calls, then without `--dry-run`.
 - In the eval run, `admissions-status-2026-27` scored WRONG (answer type `no_answer`) although
   search found the page at rank 1. Asked again with `manage.py ask`, it answered and was
   grounded ("applications are now closed", from admission.thapar.edu), so this is run-to-run

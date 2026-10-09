@@ -6,6 +6,7 @@ transaction: a reprocessed document stays searchable on its old chunks until the
 ones are ready.
 """
 
+import hashlib
 import logging
 
 from common.safe_http import FetchError, UnsafeURLError, fetch
@@ -32,6 +33,11 @@ CONTEXTUALIZE_MAX_CHUNKS = 150
 
 class ProcessingError(Exception):
     """A failure with a message that is safe to show to admins."""
+
+
+def page_fingerprint(markdown):
+    """Identifies a web page's readable text, ignoring whitespace."""
+    return hashlib.sha256(' '.join(markdown.split()).encode()).hexdigest()
 
 
 def progress(document, detail):
@@ -160,6 +166,13 @@ def process_document(document_id, *, llm=None):
             if extracted.page_count:
                 Document.objects.filter(pk=document.pk).update(page_count=extracted.page_count)
             markdown = extracted.markdown
+            if document.source_type == SourceType.URL:
+                # What the page said when it was read, for the scheduled re-check
+                # (knowledge/refresh.py).
+                document.metadata = {
+                    **document.metadata, 'page_fingerprint': page_fingerprint(markdown)
+                }
+                Document.objects.filter(pk=document.pk).update(metadata=document.metadata)
             drafts = build_chunks(markdown)
         if not drafts:
             raise ProcessingError('No text could be extracted from this document.')

@@ -47,9 +47,13 @@ def _documents(title_contains=''):
     return documents.order_by('created_at')
 
 
-def backfill_context(llm, *, limit=None, title_contains='', dry_run=False, progress=None):
+def backfill_context(llm, *, limit=None, title_contains='', dry_run=False, progress=None,
+                     include_long=False):
     """Returns BackfillStats. With `dry_run` nothing is called or saved; the counts are what
     a real run would do (`model_calls` is the number of fast-model calls it would make).
+
+    Pages over CONTEXTUALIZE_MAX_CHUNKS are skipped unless `include_long`: each takes many
+    calls, so they are done on request.
 
     Raises whatever the LLM raises (e.g. QuotaExhausted) after saving finished documents.
     """
@@ -62,7 +66,7 @@ def backfill_context(llm, *, limit=None, title_contains='', dry_run=False, progr
             if not todo:
                 stats.already_done += 1
                 continue
-            if len(chunks) > CONTEXTUALIZE_MAX_CHUNKS:
+            if len(chunks) > CONTEXTUALIZE_MAX_CHUNKS and not include_long:
                 stats.too_long += 1
                 continue
             stats.documents += 1

@@ -12,7 +12,7 @@ JSON, except answers, which stream as server-sent events.
 | Database and uploaded files | Supabase, Singapore |
 | Sign-in | Firebase Authentication (a production project separate from development) |
 | Answers and embeddings | Google Gemini API |
-| Scheduled jobs | GitHub Actions: daily purge and search-quality check, weekly encrypted backup |
+| Scheduled jobs | GitHub Actions: daily purge and search-quality check, weekly encrypted backup and re-check of web pages |
 
 ### How changes go live
 
