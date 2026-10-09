@@ -131,6 +131,18 @@ def feedback_payload(feedback):
     return {'rating': feedback.rating, 'reason': feedback.reason, 'comment': feedback.comment}
 
 
+def shown_sources(message, sources):
+    """The sources a student sees under an answer.
+
+    A reply that says the answer was not found lists only what it cited, which is
+    usually nothing: the passages that were searched and did not help are not
+    references. They stay stored for the admin pages (knowledge gaps, feedback).
+    """
+    if message.answer_type == 'no_answer':
+        return [source for source in sources if source.cited]
+    return list(sources)
+
+
 def message_payload(message, *, siblings=None, sources=None, feedback=None):
     """Public JSON for one message. Pass prefetched relations to avoid extra queries."""
     if sources is None:
@@ -150,7 +162,7 @@ def message_payload(message, *, siblings=None, sources=None, feedback=None):
         'grounded': message.grounded,
         'error_code': message.error_code or None,
         'created_at': message.created_at.isoformat(),
-        'sources': [source_payload(source) for source in sources],
+        'sources': [source_payload(source) for source in shown_sources(message, sources)],
         'feedback': feedback_payload(feedback),
         'suggestions': message.suggestions,
     }

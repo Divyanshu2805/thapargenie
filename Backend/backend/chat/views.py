@@ -62,6 +62,7 @@ from chat.serializers import (
     feedback_payload,
     message_payload,
     search_snippet,
+    shown_sources,
     site_feedback_payload,
     source_payload,
 )
@@ -484,7 +485,8 @@ class ExportView(APIView):
                             'content': message.content,
                             'status': message.status,
                             'created_at': message.created_at.isoformat(),
-                            'sources': [source_payload(s) for s in message.sources.all()],
+                            'sources': [source_payload(s) for s in
+                                        shown_sources(message, message.sources.all())],
                         }
                         for message in conversation.messages.all()
                     ],

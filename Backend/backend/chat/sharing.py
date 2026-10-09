@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from chat.models import SHARE_DAYS, Message, SharedAnswer
+from chat.serializers import shown_sources
 
 TOKEN_RE = re.compile(r'^[A-Za-z0-9_-]{32}$')
 
@@ -29,7 +30,7 @@ def _sources(message):
             'page_end': source.page_end,
             'cited': source.cited,
         }
-        for source in message.sources.order_by('position')
+        for source in shown_sources(message, message.sources.order_by('position'))
     ]
 
 

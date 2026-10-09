@@ -4,7 +4,7 @@ import logging
 
 from django.db import connection
 from django.http import JsonResponse
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_safe
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -25,12 +25,13 @@ def service_index(request):
     return JsonResponse({'service': 'thapargenie-api'})
 
 
-@require_GET
+# GET or HEAD: uptime monitors usually send HEAD.
+@require_safe
 def health_live(request):
     return JsonResponse({'status': 'ok'})
 
 
-@require_GET
+@require_safe
 def health_ready(request):
     try:
         with connection.cursor() as cursor:

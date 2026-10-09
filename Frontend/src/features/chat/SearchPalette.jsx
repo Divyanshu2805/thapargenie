@@ -118,7 +118,7 @@ function SearchPalette({ open, onOpenChange }) {
           <kbd className="hidden rounded border px-1.5 py-0.5 font-sans text-[11px] text-muted-foreground [@media(pointer:fine)]:inline">Esc</kbd>
         </div>
 
-        <div className="scrollbar-thin h-[min(22rem,60dvh)] overflow-y-auto p-2">
+        <div className="h-[min(22rem,60dvh)] overflow-y-auto p-2">
           <ul id={listId} role="listbox" aria-label={searching ? 'Results' : 'Suggestions'}>
             {items.map((item, index) => {
               const selected = index === current;

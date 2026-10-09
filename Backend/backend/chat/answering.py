@@ -38,7 +38,7 @@ from chat.models import (
     Message,
     MessageSource,
 )
-from chat.serializers import message_payload, source_payload
+from chat.serializers import message_payload, shown_sources, source_payload
 
 logger = logging.getLogger(__name__)
 
@@ -239,7 +239,8 @@ def _fail(turn, code, partial=''):
 def replay_events(turn):
     message = turn.assistant_message
     yield 'meta', _meta(turn)
-    sources = [source_payload(s) for s in message.sources.select_related('document')]
+    stored = message.sources.select_related('document')
+    sources = [source_payload(s) for s in shown_sources(message, stored)]
     yield 'sources', {'sources': sources}
     if message.content:
         yield 'delta', {'text': message.content}

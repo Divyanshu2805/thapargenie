@@ -249,7 +249,7 @@ function ConversationView({ conversationId }) {
         {conversation ? <ConversationToolbar conversation={conversation} group="end" /> : null}
       </div>
 
-      <div ref={scrollRef} onScroll={onScroll} className="scrollbar-thin min-h-0 flex-1 overflow-y-auto print:overflow-visible">
+      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">
         {isPending && !thread.length ? (
           <ThreadSkeleton />
         ) : (
