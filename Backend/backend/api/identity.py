@@ -87,15 +87,17 @@ def _approve_from_invitation(user, email, request_id):
     )
 
 
-def _open_access_enabled():
+def _open_access_enabled(email):
     # The switch lives outside the auth apps, so it is
     # named by an import path. Unset means approval is always required.
+    # It is given the verified email, so it can admit some addresses and not others.
     path = getattr(settings, 'IDENTITY_OPEN_ACCESS', '')
-    return bool(path) and bool(import_string(path)())
+    return bool(path) and bool(import_string(path)(email))
 
 
 def _approve_open_access(user, request_id):
-    if user.eligibility_state != EligibilityState.PENDING or not _open_access_enabled():
+    if (user.eligibility_state != EligibilityState.PENDING
+            or not _open_access_enabled(user.email)):
         return
 
     user.eligibility_state = EligibilityState.APPROVED

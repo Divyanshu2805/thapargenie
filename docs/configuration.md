@@ -15,6 +15,7 @@ Copy `.env.example` and fill it in. `APP_ENV` picks the settings profile: `local
 | `CHAT_MODEL`, `FAST_MODEL`, `EMBED_MODEL` | Model names. Check the provider docs for current ones. |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | The private bucket for uploaded files. |
 | `INGEST_URL_ALLOWLIST` | Domains pages may be added from. |
+| `OPEN_ACCESS_EMAIL_DOMAINS` | Default `thapar.edu`. When admins switch approval off, only verified addresses on these domains get in directly; any other address still waits for an admin to approve or invite it. Empty allows any verified address. |
 | `INGEST_MAX_FILE_MB`, `INGEST_MAX_PAGES` | Upload limits. |
 | `THROTTLE_*` | Request rate limits: `USER` 120/min, `ASK` 6/min, `SUGGEST` 10/min, `ADMIN_WRITE` 30/min, `EXPORT` 5/hour, `CLIENT_ERROR` 20/min, `SITE_FEEDBACK` 5/hour, `ADMIN_EXPORT` 30/hour, `SHARED_VIEW` 60/min. Counted in each worker's memory, not in the database, so every worker allows the full rate: with `WEB_CONCURRENCY=2` a limit can be used up to twice over. The daily question limit is exact (it is in the database). |
 | `LLM_PROVIDER`, `EMBED_PROVIDER`, `OPENAI_API_KEY` | Switch to OpenAI. |

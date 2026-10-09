@@ -34,5 +34,7 @@ CACHES = {**CACHES, 'throttle': CACHES['default']}
 REST_FRAMEWORK = {**REST_FRAMEWORK, 'DEFAULT_THROTTLE_CLASSES': ()}
 FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID') or 'demo-thapargenie'
 SSE_INLINE = True
+# Tests sign in with made-up addresses; the domain rule has its own tests.
+OPEN_ACCESS_EMAIL_DOMAINS = ()
 # Pool threads cannot see a test's transaction; the parallel path has its own test.
 RETRIEVE_PARALLEL = False

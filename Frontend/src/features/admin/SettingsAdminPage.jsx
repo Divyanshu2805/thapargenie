@@ -120,6 +120,13 @@ function StarterEditor({ items, onChange, error }) {
   );
 }
 
+/** Who gets in without approval, given the email domains the deployment allows. */
+export function openAccessAudience(domains) {
+  if (!domains?.length) return 'anyone who signs in with a verified email';
+  const list = new Intl.ListFormat('en', { type: 'disjunction' }).format(domains.map((domain) => `@${domain}`));
+  return `anyone who signs in with a verified ${list} email`;
+}
+
 function SettingsForm({ saved }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(() => structuredClone(saved));
@@ -160,14 +167,16 @@ function SettingsForm({ saved }) {
         <SectionToggle
           id="require-approval"
           title="Require admin approval for new users"
-          description="On: new users wait on the Users page until an admin approves them. Off: anyone who signs in with a verified email can ask questions."
+          description={`On: new users wait on the Users page until an admin approves them. Off: ${openAccessAudience(saved?.open_access_domains)} can ask questions.`}
           checked={form.require_approval}
           onChange={(value) => set('require_approval', value)}
         />
         {!form.require_approval ? (
           <p className="bg-warning/5 px-5 py-3 text-xs leading-relaxed text-muted-foreground sm:px-6">
-            Users waiting for approval get in on their next visit. Denied and suspended users stay blocked, and the daily question limit and AI
-            budget still apply. Turning approval back on doesn’t remove anyone already approved; suspend them on the Users page.
+            {saved.open_access_domains?.length
+              ? 'Waiting users with an allowed address get in on their next visit; other addresses still wait for approval or an invitation.'
+              : 'Users waiting for approval get in on their next visit.'}{' '}
+            Denied and suspended users stay blocked, and the daily question limit and AI budget still apply. Turning approval back on doesn’t remove anyone already approved; suspend them on the Users page.
           </p>
         ) : null}
       </SplitSection>

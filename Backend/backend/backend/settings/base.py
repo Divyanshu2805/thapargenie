@@ -189,8 +189,11 @@ FIREBASE_REVOCATION_CACHE_SECONDS = int(os.getenv("FIREBASE_REVOCATION_CACHE_SEC
 # A freshly issued token is "used too early" if this server's clock trails Google's by even
 # a second, so the first request after signing in would fail. Allow a little drift.
 FIREBASE_CLOCK_SKEW_SECONDS = int(os.getenv("FIREBASE_CLOCK_SKEW_SECONDS", "10"))
-# Returns True when new verified users are approved without an admin.
+# Returns True when a new verified user with this email is approved without an admin.
 IDENTITY_OPEN_ACCESS = "access.policy.open_access_enabled"
+# With approval switched off, only these email domains get in directly; everyone else
+# still waits for an admin. Empty means any verified address.
+OPEN_ACCESS_EMAIL_DOMAINS = tuple(env_list("OPEN_ACCESS_EMAIL_DOMAINS", "thapar.edu"))
 if not 0 <= FIREBASE_REVOCATION_CACHE_SECONDS <= 300:
     raise ValueError("FIREBASE_REVOCATION_CACHE_SECONDS must be between 0 and 300.")
 if FIREBASE_RECENT_AUTH_SECONDS < 0:

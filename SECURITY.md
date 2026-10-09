@@ -9,6 +9,8 @@ instead, with steps to reproduce, and give a reasonable time to fix it before sh
   confirms the signature and that the account is not disabled or revoked on every request
   for staff, and at most once a minute for students. Accounts must have a verified email
   and be approved. Admin endpoints need staff, and deletes need a recent sign-in.
+- With admin approval switched off, only verified `thapar.edu` addresses get in without
+  an admin; any other address still waits to be approved or invited.
 - Students only ever see their own chats; any other id looks like a missing one (404).
 - Uploaded files sit in a private bucket and are opened through short-lived signed links.
 - Web pages can only be added from allowlisted domains, and every redirect is checked.
