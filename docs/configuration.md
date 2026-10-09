@@ -16,7 +16,7 @@ Copy `.env.example` and fill it in. `APP_ENV` picks the settings profile: `local
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | The private bucket for uploaded files. |
 | `INGEST_URL_ALLOWLIST` | Domains pages may be added from. |
 | `INGEST_MAX_FILE_MB`, `INGEST_MAX_PAGES` | Upload limits. |
-| `THROTTLE_*` | Request rate limits: `USER` 120/min, `ASK` 6/min, `SUGGEST` 10/min, `ADMIN_WRITE` 30/min, `EXPORT` 5/hour, `CLIENT_ERROR` 20/min, `SITE_FEEDBACK` 5/hour, `ADMIN_EXPORT` 30/hour, `SHARED_VIEW` 60/min. |
+| `THROTTLE_*` | Request rate limits: `USER` 120/min, `ASK` 6/min, `SUGGEST` 10/min, `ADMIN_WRITE` 30/min, `EXPORT` 5/hour, `CLIENT_ERROR` 20/min, `SITE_FEEDBACK` 5/hour, `ADMIN_EXPORT` 30/hour, `SHARED_VIEW` 60/min. Counted in each worker's memory, not in the database, so every worker allows the full rate: with `WEB_CONCURRENCY=2` a limit can be used up to twice over. The daily question limit is exact (it is in the database). |
 | `LLM_PROVIDER`, `EMBED_PROVIDER`, `OPENAI_API_KEY` | Switch to OpenAI. |
 | `FAST_THINKING`, `ANSWER_THINKING` | Reasoning level for quick calls and for answers. |
 | `RETENTION_*_DAYS` | How long chats, traces, usage and logs are kept. |
@@ -45,6 +45,7 @@ The daily question limit and the starter questions live in the database
 | `APP_RELEASE` | Tags logs and errors with the deploy; falls back to `RENDER_GIT_COMMIT`. |
 | `WEB_CONCURRENCY`, `GUNICORN_THREADS`, `GUNICORN_TIMEOUT` | Workers, threads per worker and request timeout (2, 8, 120 s). See `gunicorn.conf.py`. |
 | `GUNICORN_MAX_REQUESTS` | Requests before a worker is recycled (10,000). |
+| `FIREBASE_REVOCATION_CACHE_SECONDS` | How long (default 60, 0 to 300) a token Firebase just confirmed is trusted without asking again. Students only: staff are checked with Firebase on every request. A student disabled or revoked in the Firebase console keeps access for at most this long; "sign out everywhere", suspension and approval are checked in our database on every request. 0 asks on every request. |
 | `FIREBASE_HTTP_POOL_SIZE` | Connections kept to Google for the revocation check; defaults to `GUNICORN_THREADS`. |
 | `DATABASE_TRANSACTION_POOLING` | `true` with the Supabase transaction pooler (port 6543). Needed above about 2×16 threads; `check --deploy` warns otherwise. |
 
