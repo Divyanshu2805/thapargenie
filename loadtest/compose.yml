@@ -1,0 +1,139 @@
+# Local load-test stack. Nothing here talks to production, Supabase, Firebase or Gemini.
+#   db         Postgres 17 + pgvector; up.sh imports the knowledge base (offline embeddings)
+#   toxiproxy  adds network delay in front of the database and the Auth emulator
+#   emulator   Firebase Auth emulator
+#   api        the API under the repo's gunicorn.conf.py, sized like a Render plan
+#   setup      migrations, test accounts, limits lifted (run once: see run.sh)
+#   locust     the load generator
+name: thapargenie-loadtest
+
+x-api-env: &api-env
+  APP_ENV: local
+  DJANGO_DEBUG: "false"
+  DJANGO_SECRET_KEY: loadtest-only-secret-key-not-used-anywhere-else-0123456789abcdef
+  DJANGO_ALLOWED_HOSTS: api,localhost,127.0.0.1
+  DATABASE_URL: postgres://${LT_DB:-thapargenie}:${LT_DB:-thapargenie}@toxiproxy:5432/${LT_DB:-thapargenie}
+  DATABASE_SSL_REQUIRE: "false"
+  DATABASE_CONN_MAX_AGE: "60"
+  FIREBASE_PROJECT_ID: demo-thapargenie
+  FIREBASE_AUTH_EMULATOR_HOST: toxiproxy:9099
+  GOOGLE_APPLICATION_CREDENTIALS: ""
+  LLM_PROVIDER: offline
+  EMBED_PROVIDER: offline
+  CHAT_MODEL: offline-chat
+  FAST_MODEL: offline-fast
+  EMBED_MODEL: offline-embed
+  GEMINI_API_KEY: ""
+  OPENAI_API_KEY: ""
+  STORAGE_BACKEND: memory
+  SUPABASE_URL: ""
+  SUPABASE_SERVICE_ROLE_KEY: ""
+  SENTRY_DSN: ""
+  STAFF_TWO_FACTOR_REQUIRED: "false"
+  LOG_ACCESS: "false"
+  LOG_LEVEL: WARNING
+  PYTHONPATH: /loadtest
+  PORT: "8000"
+  # How long the stand-in AI takes (median, ms); see app/lt_wsgi.py.
+  OFFLINE_LLM_DELAY_MS: ${LT_WORD_MS:-55}
+  LT_CALL_MS: ${LT_CALL_MS:-1500}
+  LT_EMBED_MS: ${LT_EMBED_MS:-600}
+  LT_FIRST_WORD_MS: ${LT_FIRST_WORD_MS:-5500}
+  LT_JITTER_SIGMA: ${LT_JITTER_SIGMA:-0.35}
+  WEB_CONCURRENCY: ${LT_WORKERS:-2}
+  GUNICORN_THREADS: ${LT_THREADS:-8}
+  THROTTLE_USER: ${LT_THROTTLE_USER:-120/min}
+  THROTTLE_ASK: ${LT_THROTTLE_ASK:-6/min}
+  THROTTLE_SUGGEST: ${LT_THROTTLE_SUGGEST:-10/min}
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    command: postgres -c max_connections=400 -c shared_buffers=256MB
+    environment:
+      # LT_DB names the user, the password and the database.
+      POSTGRES_USER: ${LT_DB:-thapargenie}
+      POSTGRES_PASSWORD: ${LT_DB:-thapargenie}
+      POSTGRES_DB: ${LT_DB:-thapargenie}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    cpus: 2
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  emulator:
+    build:
+      context: .
+      dockerfile: emulator.Dockerfile
+    image: thapargenie-loadtest-emulator:latest
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    command: ["-host=0.0.0.0", "-config=/config/toxiproxy.json"]
+    volumes:
+      - ./toxiproxy.json:/config/toxiproxy.json:ro
+    ports:
+      - "127.0.0.1:8474:8474"
+    depends_on:
+      db:
+        condition: service_healthy
+      emulator:
+        condition: service_started
+
+  api:
+    build:
+      context: ../Backend
+      dockerfile: ../loadtest/Dockerfile
+    image: thapargenie-loadtest-api:latest
+    environment: *api-env
+    volumes:
+      - ../Backend/backend:/app:ro
+      - ./empty.env:/app/.env:ro
+      - ./app:/loadtest:ro
+    cpus: ${LT_CPUS:-0.5}
+    mem_limit: ${LT_MEM:-512m}
+    memswap_limit: ${LT_MEM:-512m}
+    ports:
+      - "127.0.0.1:8090:8000"
+    depends_on:
+      - toxiproxy
+
+  setup:
+    image: thapargenie-loadtest-api:latest
+    profiles: [tools]
+    environment:
+      <<: *api-env
+      # Straight to the emulator and the database: no added delay while seeding.
+      DATABASE_URL: postgres://${LT_DB:-thapargenie}:${LT_DB:-thapargenie}@db:5432/${LT_DB:-thapargenie}
+      FIREBASE_AUTH_EMULATOR_HOST: emulator:9099
+      LT_ACCOUNTS: ${LT_ACCOUNTS:-2000}
+      LT_DB: ${LT_DB:-thapargenie}
+    volumes:
+      - ../Backend/backend:/app:ro
+      - ./empty.env:/app/.env:ro
+      - ./app:/loadtest:ro
+    command: ["python", "/loadtest/seed.py"]
+    depends_on:
+      db:
+        condition: service_healthy
+      emulator:
+        condition: service_started
+
+  locust:
+    image: locustio/locust:2.37.0
+    profiles: [tools]
+    environment:
+      LT_SCENARIO: ${LT_SCENARIO:-mix}
+      LT_ACCOUNTS: ${LT_ACCOUNTS:-2000}
+      LT_POPULAR_SHARE: ${LT_POPULAR_SHARE:-0.15}
+      LT_OUT: ${LT_OUT:-/mnt/locust/results/adhoc}
+    volumes:
+      - ./:/mnt/locust
+    working_dir: /mnt/locust
+
+volumes:
+  pgdata:
