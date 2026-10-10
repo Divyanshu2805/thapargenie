@@ -21,7 +21,6 @@ if not TEST_DATABASE_URL:
     )
 DATABASES = {'default': database_config(TEST_DATABASE_URL, ssl_require=False, conn_max_age=0)}
 
-EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.InMemoryStorage'},

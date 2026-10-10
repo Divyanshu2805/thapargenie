@@ -171,15 +171,6 @@ class KeywordSearch:
         return self._future.result() if self._future else keyword_list(self.text)
 
 
-def ranked_lists(vectors, keywords, *, size=LIST_SIZE):
-    """{list_name: [chunk_id, ...best first]} for each query vector and the keywords."""
-    lists = vector_lists(vectors, size=size)
-    ids = keyword_list(keywords, size=size)
-    if ids:
-        lists['keyword'] = ids
-    return lists
-
-
 def fuse(lists, k=RRF_K):
     """Reciprocal rank fusion: sum of 1 / (k + rank) over every list a chunk appears in."""
     scores, ranks = {}, {}

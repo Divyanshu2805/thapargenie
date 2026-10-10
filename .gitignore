@@ -1,4 +1,5 @@
 **/.venv/
+**/venv/
 **/__pycache__/
 **/*.pyc
 **/.env
@@ -22,7 +23,5 @@
 .firebase/
 .pytest_cache/
 .ruff_cache/
-audit/dependency-summary.json
-audit/python-dependency-audit.json
-audit/verification-results.json
-audit/yarn-audit.jsonl
+.coverage
+loadtest/results/
