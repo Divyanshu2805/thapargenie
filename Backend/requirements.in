@@ -1,5 +1,5 @@
 # Direct runtime dependencies. Lock with:
-#   uv pip compile requirements.in --python-version 3.13 --generate-hashes -o requirements.txt
+#   uv pip compile requirements.in --python-version 3.13 --generate-hashes --universal -o requirements.txt
 Django>=5.2,<5.3
 dj-database-url
 django-cors-headers

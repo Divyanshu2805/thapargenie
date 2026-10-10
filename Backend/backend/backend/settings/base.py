@@ -102,7 +102,7 @@ ROOT_URLCONF = "backend.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -138,12 +138,7 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
-DEFAULT_FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@localhost")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("api.authentication.FirebaseAuthentication",),
@@ -167,8 +162,8 @@ REST_FRAMEWORK = {
         "shared_view": os.getenv("THROTTLE_SHARED_VIEW", "60/min"),
     },
     # How many proxies sit in front of the app and append X-Forwarded-For. 0 (local)
-    # ignores the header; Render needs 1. Without it, anonymous clients could forge
-    # their address and dodge the per-address rate limit.
+    # ignores the header; on Render it is 3 (the `xff=` number in the access log). Too
+    # low counts a proxy shared by everyone; too high lets a client forge its address.
     "NUM_PROXIES": env_int("TRUSTED_PROXY_COUNT", 0),
 }
 

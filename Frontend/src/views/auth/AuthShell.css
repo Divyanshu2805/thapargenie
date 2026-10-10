@@ -758,15 +758,11 @@
   text-underline-offset: 3px;
 }
 
-.auth-error,
-.auth-field__error {
+.auth-error {
   color: var(--destructive);
   font-size: 0.875rem;
   line-height: 1.45;
   margin: 0;
-}
-
-.auth-error {
   background: color-mix(in oklab, var(--destructive) 8%, transparent);
   border: 1px solid color-mix(in oklab, var(--destructive) 25%, transparent);
   border-radius: 0.6rem;
