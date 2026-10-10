@@ -1,0 +1,4 @@
+[
+  {"name": "db", "listen": "0.0.0.0:5432", "upstream": "db:5432", "enabled": true},
+  {"name": "firebase", "listen": "0.0.0.0:9099", "upstream": "emulator:9099", "enabled": true}
+]

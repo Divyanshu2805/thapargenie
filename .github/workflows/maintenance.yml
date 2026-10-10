@@ -14,7 +14,7 @@ on:
   schedule:
     - cron: "30 21 * * *"   # purge: daily, 03:00 IST
     - cron: "30 20 * * *"   # eval: daily, 02:00 IST (search quality, ~40 AI calls)
-    - cron: "0 22 * * 0"    # backup: Sundays, 03:30 IST
+    - cron: "0 22 * * 0"    # backup: Mondays, 03:30 IST (Sunday 22:00 UTC)
     - cron: "30 22 * * 6"   # refresh: Sundays, 04:00 IST (re-reads web pages that changed)
   workflow_dispatch:
     inputs:
