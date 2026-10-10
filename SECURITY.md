@@ -1,24 +1,42 @@
-# Security
+# Security Policy
 
-If you find a security problem, please don't open a public issue. Email the maintainer
-instead, with steps to reproduce, and give a reasonable time to fix it before sharing it.
+## Reporting a vulnerability
+
+Please **do not open a public issue** for a security problem. Report it privately through
+GitHub: on the repository's **Security** tab, choose **Report a vulnerability**.
+
+Include what you found, how to reproduce it, and the impact you expect. You will get an
+acknowledgement, and a fix or mitigation will be agreed with you before any details are
+made public.
+
+Please do not test against other people's accounts or data on the live site, and do not
+run automated scanners or load against it.
+
+## Scope
+
+This repository's code and deployment configuration, and the live app at
+[thapargenie.divyanshuagrahari.dev](https://thapargenie.divyanshuagrahari.dev).
+
+The identifiers in `.github/workflows/`, `.firebaserc.example` and the `VITE_*` variables
+are public by design and are not secrets. The credentials in `compose.yml`, the CI workflow
+and `loadtest/` belong to throwaway local databases.
 
 ## How the app protects data
 
-- Every API request carries a Firebase token. Its expiry is checked each time. Firebase
-  confirms the signature and that the account is not disabled or revoked on every request
-  for staff, and at most once a minute for students. Accounts must have a verified email
-  and be approved. Admin endpoints need staff, and deletes need a recent sign-in.
-- Staff also pass a second step: a code from an authenticator app, entered after each
-  sign-in and asked again after 12 hours. The admin API refuses everything until then.
-  The app's key is stored encrypted and backup codes as hashes; five wrong codes lock
-  the step for five minutes.
-- With admin approval switched off, only verified `thapar.edu` addresses get in without
-  an admin; any other address still waits to be approved or invited.
-- Students only ever see their own chats; any other id looks like a missing one (404).
-- Uploaded files sit in a private bucket and are opened through short-lived signed links.
-- Web pages can only be added from allowlisted domains, and every redirect is checked.
-- Admins see feedback under a pseudonym, never the student's email, unless the student
-  agreed to be contacted.
-- The audit log stores metadata only. Logs have tokens and keys redacted.
-- Old data is deleted on a schedule; see [docs/database.md](docs/database.md).
+- **Every request is authenticated** with a Firebase ID token, verified on the server and
+  mapped to one account by Firebase UID. An account needs a verified email and approval.
+- **Students reach only their own chats.** Any other id answers "not found".
+- **Staff need a second step**: a code from an authenticator app after each sign-in, asked
+  again after 12 hours. Staff access itself is granted only from the command line.
+- **Irreversible actions need a recent sign-in.**
+- **Uploaded files are private** and opened through signed links that expire in 10 minutes.
+- **Pages are fetched only from allowlisted domains**, with every redirect and resolved
+  address checked.
+- **The model never receives a student's identity**, and question text is never logged.
+- **Admins see feedback under a pseudonym**, unless the student agreed to be contacted.
+- **Old data is deleted on a schedule**, and students can export or delete their chats.
+
+The full picture is in the [security model](docs/architecture/security-model.md); the rules
+every change must respect are in the
+[security guardrails](docs/practices/security-guardrails.md); and what the design accepts
+is in [known gaps](docs/known-gaps/README.md).
