@@ -9,12 +9,18 @@
 
 <p align="center">
   <a href="https://github.com/Divyanshu2805/thapargenie/actions/workflows/ci.yml"><img src="https://github.com/Divyanshu2805/thapargenie/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/Python-3.13-0a0b0d?logo=python" alt="Python" />
   <img src="https://img.shields.io/badge/Django-5.2-0a0b0d?logo=django" alt="Django" />
+  <img src="https://img.shields.io/badge/DRF-3.18-0a0b0d?logo=django" alt="Django REST Framework" />
+  <img src="https://img.shields.io/badge/PostgreSQL-pgvector-0a0b0d?logo=postgresql" alt="PostgreSQL with pgvector" />
+  <img src="https://img.shields.io/badge/Gemini-API-0a0b0d?logo=googlegemini" alt="Gemini" />
   <img src="https://img.shields.io/badge/React-19-0a0b0d?logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Vite-8-0a0b0d?logo=vite" alt="Vite" />
-  <img src="https://img.shields.io/badge/PostgreSQL-pgvector-0a0b0d?logo=postgresql" alt="PostgreSQL with pgvector" />
   <img src="https://img.shields.io/badge/Tailwind-4-0a0b0d?logo=tailwindcss" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Gemini-API-0a0b0d?logo=googlegemini" alt="Gemini" />
+  <img src="https://img.shields.io/badge/Firebase-Auth-0a0b0d?logo=firebase" alt="Firebase Authentication" />
+  <img src="https://img.shields.io/badge/Supabase-Storage-0a0b0d?logo=supabase" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Playwright-E2E-0a0b0d?logo=playwright" alt="Playwright" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-0a0b0d" alt="MIT License" /></a>
 </p>
 
 <p align="center">
@@ -38,6 +44,21 @@ post notices from a separate dashboard.
 | **Live app** | [thapargenie.divyanshuagrahari.dev](https://thapargenie.divyanshuagrahari.dev) |
 | **Getting in** | Register with an email and verify it. New accounts are approved by an admin; when the admins have switched approval off, a verified `thapar.edu` address gets in directly and any other address still waits |
 | **First request** | The API runs on a free instance. If it has been idle, the first request can take up to a minute |
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/assets/screenshots/answer.webp" alt="A chat: a question about the hostel fee, the answer with a numbered citation, the session the sources cover and the source document" width="900" />
+</p>
+
+| | |
+|---|---|
+| <img src="docs/assets/screenshots/home.webp" alt="The chat home screen with starter questions and the conversation history" /> | <img src="docs/assets/screenshots/admin-overview.webp" alt="The admin overview: questions per day, answer outcomes, AI calls against the daily budget and the knowledge base" /> |
+| Starter questions, history and the daily allowance | Admin overview: activity, AI budget and the knowledge base |
+| <img src="docs/assets/screenshots/admin-documents.webp" alt="The admin documents page listing documents with category, status and passage count" /> | <img src="docs/assets/screenshots/admin-playground.webp" alt="The admin playground showing an answer, whether it was grounded and the time each step took" /> |
+| Documents: search, filter and act in bulk | Playground: every step of an answer, with timings |
+
+Taken on a local stack with sample documents, so the figures shown are not TIET's.
 
 ## Features
 
@@ -120,14 +141,14 @@ More: [architecture overview](docs/architecture/README.md) ·
 [security model](docs/architecture/security-model.md) ·
 [all thirteen decisions](docs/architecture/decisions/README.md)
 
-## Measured
+## Quality
 
 | What | Measured |
 |---|---|
 | Search quality | recall@5 between **0.94 and 1.00** and MRR between 0.91 and 1.00 across four scored runs on the production knowledge base, re-scored every night |
-| Tests | **572** backend tests, **243** frontend tests and 5 browser journeys; 92% statement coverage of the answer, chat and knowledge code, with an 80% floor in CI |
+| Tests | **572** backend tests, **244** frontend tests and 5 browser journeys; 92% statement coverage of the answer, chat and knowledge code, with an 80% floor in CI |
 | Capacity | **400 students** using the app at once on half a CPU with no failed requests, in a load test of 102,194 requests; 8 answers at once at full speed on the free instance production runs on |
-| Speed | A full answer in **10.2 s** at the median; the first word in about 8 s, against a target of 3 |
+| Speed | A full answer in **10.2 s** at the median; the first word in about 8 s |
 | Accessibility | Lighthouse **100** on every page measured |
 | First screen | 218 kB of gzipped JavaScript; every later page loads on demand |
 
@@ -241,16 +262,6 @@ of expired data, a weekly encrypted backup and a weekly re-read of web pages.
 
 See [deployment](docs/deployment/README.md) and [operations](docs/deployment/operations.md).
 
-## Known limitations
-
-The first word of an answer takes about 8 seconds, not the 3 that was aimed for. The API
-runs on a free instance that sleeps when idle and serves about 8 answers at once at full
-speed. Rate limits are counted per worker process. Backups are weekly and a restore has not
-been drilled. Not built: personal records (those stay in Webkiosk), languages beyond
-English and Hinglish, offline use, email notifications, college single sign-on and a
-staging environment. Details, and the answer-quality problems found and fixed so far, are
-in [known gaps](docs/known-gaps/README.md).
-
 ## Documentation
 
 Everything lives in [`docs/`](docs/README.md):
@@ -264,10 +275,13 @@ Everything lives in [`docs/`](docs/README.md):
 | [API reference](docs/api/README.md) | Every endpoint, the event stream, errors and rate limits |
 | [Engineering practices](docs/practices/README.md) | Conventions, testing, guardrails, pitfalls, definition of done |
 | [Project metrics](docs/metrics.md) · [Load testing](docs/load-testing.md) | Measured quality, speed and capacity |
-| [Known gaps](docs/known-gaps/README.md) | Trade-offs, what is not built, answer-quality history |
 | [Deployment](docs/deployment/README.md) · [Operations](docs/deployment/operations.md) | Running it in production |
 | [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | Workflow and checks; reporting a vulnerability |
 
 ## License
 
 Released under the [MIT License](LICENSE).
+
+## Legal
+
+[Privacy](https://thapargenie.divyanshuagrahari.dev/privacy)
