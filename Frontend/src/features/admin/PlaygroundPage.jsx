@@ -76,7 +76,7 @@ function Analysis({ analysis }) {
     ['Intent', analysis.intent],
     ['Standalone question', analysis.standalone_query],
     ['Other phrasings', analysis.alternate_queries?.join(' · ')],
-    ['Keywords', analysis.keywords?.join(', ')],
+    ['Keywords', analysis.keywords],
     ['Categories', analysis.categories?.join(', ')],
     ['Academic year', analysis.academic_year],
     ['Needs current info', analysis.needs_current === undefined ? null : analysis.needs_current ? 'Yes' : 'No'],
