@@ -8,7 +8,7 @@ unless it says "about". Last measured on 2026-10-11, except where a date is give
 | Metric | Value | How to check |
 |---|---|---|
 | Backend tests | 572 in 56 files, all passing (3 need the Auth emulator and run in CI) | `pytest` |
-| Frontend unit tests | 243 in 47 files, all passing | `cd Frontend && npm test` |
+| Frontend unit tests | 244 in 48 files, all passing | `cd Frontend && npm test` |
 | End-to-end journeys | 5, in a real browser against the whole stack | `npm run test:e2e` under the Auth emulator |
 | Statement coverage | 92% of 5,504 statements in `rag`, `chat`, `knowledge` and `notices` | `pytest --cov` |
 | Coverage floor in CI | 80% | `.github/workflows/ci.yml` |

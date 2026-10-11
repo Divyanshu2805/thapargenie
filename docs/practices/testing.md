@@ -6,7 +6,7 @@ the whole stack, and a scored check of search quality. No test calls a paid serv
 | Suite | Size | Runs with |
 |---|---|---|
 | Backend (`pytest`) | 572 tests in 56 files | PostgreSQL with pgvector; a fake model provider |
-| Frontend (`vitest`) | 243 tests in 47 files | happy-dom and Testing Library |
+| Frontend (`vitest`) | 244 tests in 48 files | happy-dom and Testing Library |
 | End-to-end (Playwright) | 5 journeys in 3 files | The real API with the offline provider, a production build of the app, the Firebase Auth emulator |
 | Search quality (`eval_rag`) | 23 questions | The real models, against production, nightly |
 
