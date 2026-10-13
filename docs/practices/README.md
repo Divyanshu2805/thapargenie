@@ -11,4 +11,4 @@ How the codebase is kept consistent, safe and tested.
 | [Definition of done](definition-of-done.md) | The checklist before a pull request |
 
 The workflow itself (branches, pull requests, releases) is in
-[`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+[deployment](../deployment/README.md#releasing).
