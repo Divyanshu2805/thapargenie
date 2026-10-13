@@ -1,13 +1,12 @@
-// Applies the saved theme before first paint, so dark mode never flashes light.
+// Applies the saved theme before first paint, so light mode never flashes dark.
 // Kept as a file (not inline) so the CSP can stay script-src 'self'.
 (function () {
-  var dark;
+  // Dark unless the visitor chose light (see components/theme-provider.jsx).
+  var dark = true;
   try {
-    var stored = localStorage.getItem('thapargenie-theme');
-    dark = stored === 'dark' || (stored !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    dark = localStorage.getItem('thapargenie-theme') !== 'light';
   } catch {
-    // Storage can be blocked; fall back to the system preference.
-    dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    // Storage can be blocked; stay on the default.
   }
   document.documentElement.classList.toggle('dark', dark);
   document.documentElement.style.colorScheme = dark ? 'dark' : 'light';

@@ -40,7 +40,18 @@ describe('ThemeProvider', () => {
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
   });
 
-  it('ignores unknown themes and falls back to the stored or system value', () => {
+  it('starts a first-time visitor in dark', () => {
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText('dark/dark')).toBeInTheDocument();
+    expect(document.documentElement).toHaveClass('dark');
+  });
+
+  it('ignores unknown themes and keeps the stored value', () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
     render(
       <ThemeProvider>
