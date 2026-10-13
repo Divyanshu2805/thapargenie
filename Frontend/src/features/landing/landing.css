@@ -902,7 +902,7 @@ html.lenis body {
   }
 
   /*
-   * A dim warm light that follows the pointer (usePointerLight). It is a fixed-size disc moved
+   * A dim warm light that follows the pointer (hooks/use-pointer-light.js). It is a fixed-size disc moved
    * by a transform, so following the pointer never repaints the hero.
    */
   .lp-hero__light {
