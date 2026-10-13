@@ -55,8 +55,8 @@ const TOPICS = {
   notices: { icon: Megaphone, examples: ['When is backlog registration?', 'Is there a notice about auxiliary exams?'] },
   placements: { icon: Briefcase, examples: ['What was the average placement package?', 'How do I register for placements?'] },
   departments: { icon: Users, examples: ['Which programmes does the ECE department offer?', 'Who heads the Computer Science department?'] },
-  faculty: { icon: Users, examples: ['Who teaches in the Chemistry department?', 'What is Dr. Sharma’s research area?'] },
-  about_contact: { icon: Info, examples: ['What is the phone number of the admissions office?', 'Where is the accounts office?'] },
+  faculty: { icon: Users, examples: ['Which professors work on machine learning?', 'Which faculty members research renewable energy?'] },
+  about_contact: { icon: Info, examples: ['How do I contact the admissions office?', 'What is the address of Thapar Institute?'] },
   faq: { icon: MessageSquareQuote, examples: ['How do I get a bonafide certificate?', 'How do I reset my Webkiosk password?'] },
 };
 
