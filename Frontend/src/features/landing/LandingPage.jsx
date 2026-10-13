@@ -1,16 +1,20 @@
 import {
   ArrowUp,
+  BadgeCheck,
   BookOpen,
   Brain,
   Briefcase,
   Building2,
+  CalendarCheck,
   CalendarDays,
   Check,
   GraduationCap,
+  History,
   IndianRupee,
   Info,
   Languages,
   Landmark,
+  ListChecks,
   Megaphone,
   MessageSquareText,
   Mic,
@@ -22,7 +26,9 @@ import {
   SearchX,
   Share2,
   ShieldCheck,
+  SlidersHorizontal,
   Smartphone,
+  Sparkles,
   Sun,
   Users,
 } from 'lucide-react';
@@ -42,26 +48,32 @@ import {
   BranchVisual,
   CiteVisual,
   FollowVisual,
+  FreshVisual,
+  HistoryVisual,
   HonestVisual,
   InstallVisual,
+  ListVisual,
   NoticesVisual,
+  PersonalVisual,
   ShareVisual,
+  SuggestVisual,
+  VerifyVisual,
   VoiceVisual,
 } from './FeatureVisuals';
 import HeroDemo from './HeroDemo';
 import IdeaSection from './IdeaSection';
 import {
   prefersReducedMotion,
-  useCountUp,
   useCycle,
   useInView,
-  usePointerEffects,
-  useReveal,
+  usePlayOnView,
   useScrollSpy,
   useScrollState,
+  useTilt,
 } from './landing-hooks';
 import PrivacySection from './PrivacySection';
 import { Cta, SectionHeading } from './ui';
+import { onScrollFrame } from '@/lib/scroll-frame';
 import { scrollToTop, startSmoothScroll } from '@/lib/smooth-scroll';
 import './landing.css';
 
@@ -123,7 +135,7 @@ const STEPS = [
 const FAQS = [
   {
     q: 'Who can use ThaparGenie?',
-    a: 'Students of Thapar Institute of Engineering & Technology. Create an account with your email or sign in with Google; depending on how the admins have set things up, your account may need a quick approval first.',
+    a: 'Students of Thapar Institute of Engineering & Technology. Create an account with your email or sign in with Google, and verify the address. A thapar.edu email is the official way in: when the admins have opened access it gets you in straight away, while any other address waits for an admin to approve it.',
   },
   {
     q: 'Where do the answers come from?',
@@ -139,7 +151,11 @@ const FAQS = [
   },
   {
     q: 'Does it work on my phone?',
-    a: 'Yes. It works in any modern browser, and you can install it to your home screen like an app. You can even ask by voice.',
+    a: 'Yes. It works in any modern browser, and you can install it to your home screen like an app. In Chrome or Edge you can even ask by voice.',
+  },
+  {
+    q: 'Is there a limit on how much I can ask?',
+    a: 'Yes, a daily allowance of questions, so the service stays quick for everyone. The chat shows how many you have left, and it resets every day.',
   },
   {
     q: 'What happens to my chats?',
@@ -173,7 +189,7 @@ function LandingNav() {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(null);
   const listRef = useRef(null);
-  const barRef = useRef(null);
+  const progressRef = useRef(null);
   const [marks, setMarks] = useState({ hover: null, active: null });
   const leaveTimer = useRef(0);
 
@@ -208,29 +224,15 @@ function LandingNav() {
 
   // Reading progress, drawn as a hairline along the bar's bottom edge.
   useEffect(() => {
-    const node = barRef.current;
+    const node = progressRef.current;
     if (!node) return undefined;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      node.style.setProperty('--p', (max > 0 ? window.scrollY / max : 0).toFixed(4));
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
+    return onScrollFrame(({ progress }) => node.style.setProperty('--p', progress.toFixed(4)));
   }, []);
 
   const solid = scrolled || open;
   return (
     <header className="lp-nav" data-solid={solid || undefined}>
-      <div ref={barRef} className="lp-nav__bar">
+      <div className="lp-nav__bar">
         <a href="#top" aria-label="ThaparGenie, back to top" className="landing-brand" data-solid={solid || undefined}>
           <Brand />
         </a>
@@ -288,7 +290,7 @@ function LandingNav() {
           </button>
         </div>
 
-        <span aria-hidden="true" className="lp-nav__progress" />
+        <span ref={progressRef} aria-hidden="true" className="lp-nav__progress" />
 
         {open ? (
           <nav id="landing-mobile-nav" aria-label="Sections" className="lp-nav__sheet lg:hidden">
@@ -307,27 +309,16 @@ function LandingNav() {
 
 function ScrollTop() {
   const ref = useRef(null);
-  useEffect(() => {
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const node = ref.current;
-      if (!node) return;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = max > 0 ? window.scrollY / max : 0;
-      node.style.setProperty('--progress', progress.toFixed(4));
-      node.toggleAttribute('data-shown', window.scrollY > 700);
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, []);
+  useEffect(
+    () =>
+      onScrollFrame(({ y, progress }) => {
+        const node = ref.current;
+        if (!node) return;
+        node.style.setProperty('--progress', progress.toFixed(4));
+        node.toggleAttribute('data-shown', y > 700);
+      }),
+    [],
+  );
   return (
     <button ref={ref} type="button" className="lp-top" aria-label="Back to top" onClick={scrollToTop}>
       <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -364,9 +355,8 @@ const HERO_LINES = [
   ['the source.', true],
 ];
 
-function Hero() {
+function Hero({ signedIn }) {
   const ref = useRef(null);
-  const lightRef = useRef(null);
 
   // The photo drifts slower than the page and the copy fades as you scroll past. The value is
   // set only on the two layers that use it (it doesn't inherit; see landing.css), so a scroll
@@ -375,39 +365,20 @@ function Hero() {
     const node = ref.current;
     if (!node || prefersReducedMotion()) return undefined;
     const layers = node.querySelectorAll('.lp-hero__photo, .lp-hero__copy');
-    let frame = 0;
     let last = '';
-    const update = () => {
-      frame = 0;
-      const value = Math.min(window.scrollY, 1200).toFixed(0);
+    return onScrollFrame(({ y }) => {
+      const value = Math.min(y, 1200).toFixed(0);
       if (value === last) return;
       last = value;
       layers.forEach((layer) => layer.style.setProperty('--scroll', value));
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
+    });
   }, []);
 
-  // The warm light follows the pointer; only the light layer is touched.
-  const onPointerMove = (event) => {
-    const light = lightRef.current;
-    if (!light) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    light.style.setProperty('--px', `${event.clientX - rect.left}px`);
-    light.style.setProperty('--py', `${event.clientY - rect.top}px`);
-  };
-
   return (
-    <section id="top" ref={ref} onPointerMove={onPointerMove} className="lp-hero relative isolate overflow-hidden text-white">
+    <section id="top" ref={ref} className="lp-hero relative isolate overflow-hidden text-white">
       <div aria-hidden="true" className="lp-hero__photo" style={{ '--photo': `url(${campusPhoto})` }} />
       <div aria-hidden="true" className="lp-hero__tint" />
-      <div ref={lightRef} aria-hidden="true" className="lp-hero__light" />
+      <div aria-hidden="true" className="lp-hero__light" />
       <div aria-hidden="true" className="lp-grain" />
       <div aria-hidden="true" className="landing-stars">
         {Array.from({ length: 12 }, (_, index) => (
@@ -423,7 +394,7 @@ function Hero() {
         ))}
       </div>
 
-      <div className="lp-hero__inner relative mx-auto grid max-w-[76rem] items-center gap-14 px-4 pt-32 pb-24 sm:px-6 sm:pt-40 lg:grid-cols-[1.05fr_1fr] lg:gap-12 lg:px-8 lg:pt-44 lg:pb-32">
+      <div className="lp-hero__inner lp-wrap relative grid items-center gap-14 pt-32 pb-24 sm:pt-40 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pt-44 lg:pb-32">
         <div className="lp-hero__copy text-center lg:text-left">
           <h1 className="landing-h1">
             {HERO_LINES.map(([text, gold], index) => (
@@ -441,6 +412,13 @@ function Hero() {
             Fee structures, hostel rules, exam dates, syllabi and notices, scattered across dozens of PDFs and pages.
             Ask in plain English or Hinglish and get a clear answer, with every fact linked to where it came from.
           </p>
+
+          <div className="landing-enter mt-9 flex flex-wrap items-center justify-center gap-x-7 gap-y-4 lg:justify-start" style={{ '--d': '720ms' }}>
+            <Cta to={signedIn ? '/chat/' : '/register/'}>Get started</Cta>
+            <a href="#how" className="lp-hero__more">
+              See how it works
+            </a>
+          </div>
 
           <dl className="landing-enter lp-proof mt-10" style={{ '--d': '800ms' }}>
             {PROOF.map(([Icon, title, text], index) => (
@@ -489,7 +467,7 @@ function TopicMarquee() {
   );
   return (
     <section id="topics" aria-label="Topics ThaparGenie can answer" className="py-16 sm:py-20">
-      <p data-reveal className="mb-8 text-center text-[13px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+      <p className="mb-8 text-center text-[13px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
         Ask about anything official at TIET
       </p>
       <div className="grid gap-3">
@@ -501,13 +479,10 @@ function TopicMarquee() {
 }
 
 function Stat({ value, label, note, index }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true });
-  const shown = useCountUp(value, inView);
   return (
-    <div ref={ref} data-reveal style={{ '--d': `${index * 90}ms` }} className="lp-stat">
+    <div className="lp-stat">
       <span className="lp-stat__index">0{index + 1}</span>
-      <p className="lp-stat__value">{shown}</p>
+      <p className="lp-stat__value">{value}</p>
       <p className="lp-stat__label">{label}</p>
       <p className="lp-stat__note">{note}</p>
     </div>
@@ -516,12 +491,12 @@ function Stat({ value, label, note, index }) {
 
 function Stats() {
   return (
-    <section aria-label="ThaparGenie in numbers" className="mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8">
+    <section aria-label="ThaparGenie in numbers" className="lp-wrap">
       <div className="lp-stats">
-        <Stat index={0} value={12} label="topic areas" note="from fees to faculty" />
-        <Stat index={1} value={4} label="steps per answer" note="understand, search, read, write" />
-        <Stat index={2} value={2} label="languages" note="English and Hinglish" />
-        <Stat index={3} value={180} label="days of idle" note="then chats delete themselves" />
+        <Stat index={0} value="12" label="topic areas" note="from fees to faculty" />
+        <Stat index={1} value="1,300+" label="official documents" note="read for every answer" />
+        <Stat index={2} value="2" label="languages" note="English and Hinglish" />
+        <Stat index={3} value="100%" label="answers cited" note="every fact links to its source" />
       </div>
     </section>
   );
@@ -611,7 +586,7 @@ function HowItWorks() {
   return (
     <section id="how" className="landing-section relative">
       <div aria-hidden="true" className="landing-band" />
-      <div className="relative mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8">
+      <div className="lp-wrap relative">
         <SectionHeading index="02" eyebrow="How it works" title="Four careful steps," gold="a few seconds each.">
           Every question runs through the same pipeline, and you see it happen: understanding, searching, reading, then
           the answer streams in.
@@ -633,11 +608,8 @@ function HowItWorks() {
               return (
                 <li
                   key={step.title}
-                  data-reveal
-                  data-spotlight
                   data-active={index === active || undefined}
                   data-done={index < active || undefined}
-                  style={{ '--d': `${index * 120}ms` }}
                   onPointerEnter={() => setActive(index)}
                   className="lp-card lp-step icon-nudge relative overflow-hidden p-5"
                 >
@@ -663,13 +635,11 @@ function HowItWorks() {
 
 /* ------------------------------------------------------------------ Features */
 
-function FeatureCard({ icon: Icon, title, text, className, delay, visual: Visual }) {
+function FeatureCard({ icon: Icon, title, text, className, visual: Visual }) {
   return (
     <article
-      data-reveal
-      data-spotlight
+      data-play
       data-tilt
-      style={{ '--d': delay }}
       className={cn('lp-card lp-feature icon-nudge group flex flex-col overflow-hidden p-4', className)}
     >
       <Visual />
@@ -699,6 +669,18 @@ const FEATURES = [
     visual: HonestVisual,
   },
   {
+    icon: BadgeCheck,
+    title: 'Every figure double-checked',
+    text: 'Amounts, dates and years in an answer are matched against the sources it cites. If one isn’t there, the answer tells you to verify it.',
+    visual: VerifyVisual,
+  },
+  {
+    icon: CalendarCheck,
+    title: 'Knows which year it’s quoting',
+    text: 'Each answer says which academic session its sources cover, and warns you when a document is out of date.',
+    visual: FreshVisual,
+  },
+  {
     icon: MessageSquareText,
     title: 'Follow-ups just work',
     text: 'It remembers the conversation. Ask about BE fees, then “and for hostel?” and it knows what you mean.',
@@ -707,14 +689,33 @@ const FEATURES = [
   {
     icon: Mic,
     title: 'Type, talk, or Hinglish',
-    text: 'Ask the way you’d ask a senior. Tap the mic to speak instead of typing.',
+    text: 'Ask the way you’d ask a senior. In Chrome or Edge, tap the mic to speak instead of typing.',
     visual: VoiceVisual,
+  },
+  {
+    icon: ListChecks,
+    title: 'Complete lists, nothing skipped',
+    text: 'Ask for every hostel, club or scholarship and it reads the whole page the list lives on, so no item is left out.',
+    visual: ListVisual,
+  },
+  {
+    icon: History,
+    title: 'Your chats, organised',
+    text: 'History follows you across devices. Search every chat with Ctrl K, pin the ones you need, and rename, archive or delete the rest.',
+    visual: HistoryVisual,
+    className: 'md:col-span-2 lg:col-span-1 min-[105rem]:col-span-2',
   },
   {
     icon: RotateCcw,
     title: 'Regenerate & branch',
     text: 'Try another answer, or edit your question. Every version is kept, so you can flip between them.',
     visual: BranchVisual,
+  },
+  {
+    icon: Sparkles,
+    title: 'Suggestions when you’re stuck',
+    text: 'Starter questions on an empty chat, and up to three follow-ups for any answer whenever you ask for them.',
+    visual: SuggestVisual,
   },
   {
     icon: Megaphone,
@@ -729,6 +730,12 @@ const FEATURES = [
     visual: ShareVisual,
   },
   {
+    icon: SlidersHorizontal,
+    title: 'Tuned to you',
+    text: 'Add your campus, programme and year once, and answers that depend on them fit you. Light or dark theme, your call.',
+    visual: PersonalVisual,
+  },
+  {
     icon: Smartphone,
     title: 'Install it like an app',
     text: 'Add ThaparGenie to your home screen and open it in one tap, on Android, iPhone or desktop.',
@@ -738,15 +745,15 @@ const FEATURES = [
 
 function Features() {
   return (
-    <section id="features" className="landing-section mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8">
+    <section id="features" className="landing-section lp-wrap">
       <SectionHeading index="03" eyebrow="Features" title="Built for the questions students" gold="actually ask.">
-        Not a general chatbot. A focused assistant that knows TIET, admits what it doesn’t know, and keeps up with new
-        notices.
+        Not a general chatbot. A focused assistant that knows TIET, checks its own numbers, admits what it doesn’t
+        know, and keeps up with new notices.
       </SectionHeading>
 
-      <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {FEATURES.map((feature, index) => (
-          <FeatureCard key={feature.title} {...feature} delay={`${(index % 3) * 80}ms`} />
+      <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-3 min-[105rem]:grid-cols-4">
+        {FEATURES.map((feature) => (
+          <FeatureCard key={feature.title} {...feature} />
         ))}
       </div>
     </section>
@@ -771,8 +778,6 @@ function FaqAsk({ signedIn }) {
   const [draft, setDraft] = useState('');
   return (
     <form
-      data-reveal
-      style={{ '--d': '300ms' }}
       className="lp-faq-ask mt-8"
       data-filled={draft.trim() ? '' : undefined}
       onSubmit={(event) => {
@@ -809,7 +814,7 @@ function FaqAsk({ signedIn }) {
 
 function FaqItem({ item, index }) {
   return (
-    <details data-reveal style={{ '--d': `${index * 60}ms` }} className="lp-faq">
+    <details className="lp-faq">
       <summary>
         <span className="lp-faq__num">0{index + 1}</span>
         <span className="lp-faq__q">{item.q}</span>
@@ -843,7 +848,7 @@ function FaqItem({ item, index }) {
 
 function Faq({ signedIn }) {
   return (
-    <section id="faq" className="landing-section mx-auto grid max-w-[76rem] gap-12 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16 lg:px-8">
+    <section id="faq" className="landing-section lp-wrap grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-10">
       <div className="lg:sticky lg:top-28 lg:self-start">
         <SectionHeading index="06" align="left" eyebrow="FAQ" title="Questions," gold="answered.">
           Open a question and ThaparGenie answers it, the same way it answers yours.
@@ -863,7 +868,7 @@ function Footer() {
   const slide = useSlideClick();
   return (
     <footer className="lp-footer relative z-[1] overflow-hidden border-t">
-      <div className="relative mx-auto flex max-w-[76rem] flex-col gap-8 px-4 pt-12 pb-8 sm:px-6 md:flex-row md:items-start md:justify-between lg:px-8">
+      <div className="lp-wrap relative flex flex-col gap-8 pt-12 pb-8 md:flex-row md:items-start md:justify-between">
         <div className="max-w-sm">
           <Brand />
           <p className="mt-3 text-sm text-muted-foreground">
@@ -879,11 +884,11 @@ function Footer() {
           <a href="https://webkiosk.thapar.edu" target="_blank" rel="noreferrer" className="lp-footlink">Webkiosk</a>
         </nav>
       </div>
-      <p aria-hidden="true" data-reveal className="lp-footer__word">
+      <p aria-hidden="true" className="lp-footer__word">
         ThaparGenie
       </p>
       <div className="relative border-t">
-        <p className="mx-auto max-w-[76rem] px-4 py-5 text-xs text-muted-foreground sm:px-6 lg:px-8">
+        <p className="lp-wrap py-5 text-xs text-muted-foreground">
           © {new Date().getFullYear()} ThaparGenie. Always double-check important details with the linked official source.
         </p>
       </div>
@@ -894,8 +899,8 @@ function Footer() {
 export default function LandingPage() {
   const { user } = useAuth();
   const signedIn = Boolean(user);
-  const rootRef = useReveal();
-  usePointerEffects(rootRef);
+  const rootRef = usePlayOnView();
+  useTilt(rootRef);
   // Momentum scrolling: the wheel glides to a stop instead of jumping in steps.
   useEffect(() => startSmoothScroll(), []);
 
@@ -908,7 +913,7 @@ export default function LandingPage() {
       <LandingNav />
       <SectionRail />
       <main id="main" className="relative z-[1]">
-        <Hero />
+        <Hero signedIn={signedIn} />
         <TopicMarquee />
         <Stats />
         <IdeaSection />

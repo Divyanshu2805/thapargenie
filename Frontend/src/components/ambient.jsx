@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { onScrollFrame } from '@/lib/scroll-frame';
 import { cn } from '@/lib/utils';
 
 // The quiet backdrop shared by the landing page, the sign-in screens and the chat app:
@@ -49,21 +50,7 @@ export function Ambient({ fixed = false, className }) {
   useEffect(() => {
     const node = ref.current;
     if (!fixed || !node || reducedMotion()) return undefined;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      node.style.setProperty('--ambient-progress', (max > 0 ? window.scrollY / max : 0).toFixed(4));
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
+    return onScrollFrame(({ progress }) => node.style.setProperty('--ambient-progress', progress.toFixed(3)));
   }, [fixed]);
 
   return (

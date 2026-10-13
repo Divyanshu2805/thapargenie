@@ -18,18 +18,6 @@
   initial-value: 0;
 }
 
-@property --px {
-  syntax: '<length-percentage>';
-  inherits: false;
-  initial-value: 72%;
-}
-
-@property --py {
-  syntax: '<length-percentage>';
-  inherits: false;
-  initial-value: 30%;
-}
-
 @property --lp-days {
   syntax: '<integer>';
   inherits: false;
@@ -56,51 +44,31 @@ html.lenis body {
     --maroon-deep: #4b0f19;
     --cream: #fff7ec;
     --amber: #e9a13b;
+    --lp-gutter: clamp(1rem, 4vw, 4rem);
+    --lp-max: 84rem;
     font-size: 1rem;
+  }
+
+  /* From here up the section rail sits in the left margin, so the gutter makes room for it. */
+  @media (min-width: 85rem) {
+    .landing {
+      --lp-gutter: max(6.5rem, 9.5vw);
+    }
   }
 
   .landing [id] {
     scroll-margin-top: 5rem;
   }
 
-  /* ================================================================ Reveal on scroll */
+  /* ================================================================ Width */
 
-  .landing [data-reveal] {
-    opacity: 0;
-    translate: 0 28px;
-    transition:
-      opacity 0.8s var(--ease-out) var(--d, 0ms),
-      translate 0.8s var(--ease-out) var(--d, 0ms);
-  }
-
-  .landing [data-reveal].is-visible {
-    opacity: 1;
-    translate: 0 0;
-  }
-
-  /* Headings reveal word by word instead of fading as a block. */
-  .landing [data-reveal='words'] {
-    opacity: 1;
-    translate: none;
-  }
-
-  .lp-split__mask {
-    display: inline-block;
-    margin-bottom: -0.14em;
-    overflow: hidden;
-    padding-bottom: 0.14em;
-    vertical-align: top;
-  }
-
-  .lp-split__word {
-    display: inline-block;
-    transform: translateY(108%) rotate(4deg);
-    transform-origin: left bottom;
-    transition: transform 0.95s var(--ease-out) calc(var(--d0, 0ms) + var(--i) * 55ms);
-  }
-
-  .is-visible .lp-split__word {
-    transform: none;
+  /*
+   * One measure for every section: the content grows with the screen inside a gutter, then
+   * stops widening on large displays.
+   */
+  .lp-wrap {
+    margin-inline: auto;
+    width: min(100% - 2 * var(--lp-gutter), var(--lp-max));
   }
 
   /* ================================================================ Type */
@@ -117,6 +85,7 @@ html.lenis body {
     font-weight: 740;
     letter-spacing: -0.035em;
     line-height: 1.06;
+    text-wrap: balance;
   }
 
   .lp-line {
@@ -139,8 +108,9 @@ html.lenis body {
     color: transparent;
   }
 
-  /* On the light page the gold turns maroon-to-amber so it keeps its contrast. */
+  /* On the light page the gold turns maroon-to-amber so it keeps its contrast, and holds still. */
   .landing-gold.lp-gold-on-light {
+    animation: none;
     background-image: linear-gradient(100deg, #8c1c2b 0%, #b3452a 35%, #d98a2b 50%, #b3452a 65%, #8c1c2b 100%);
   }
 
@@ -178,14 +148,7 @@ html.lenis body {
     background: currentColor;
     height: 1.5px;
     opacity: 0.6;
-    scale: 0 1;
-    transform-origin: left;
-    transition: scale 0.9s var(--ease-out) 0.25s;
     width: 2.5rem;
-  }
-
-  .lp-kicker.is-visible .lp-kicker__rule {
-    scale: 1 1;
   }
 
   .lp-kicker--dark {
@@ -479,7 +442,7 @@ html.lenis body {
 
   .lp-nav {
     inset-inline: 0;
-    padding: 0 0.75rem;
+    padding: 0 max(0.75rem, var(--lp-gutter) - 1rem);
     position: fixed;
     top: 0;
     transition: padding var(--lp-nav-t) var(--lp-nav-ease);
@@ -507,7 +470,7 @@ html.lenis body {
     gap: 1rem;
     height: 4.5rem;
     margin-inline: auto;
-    max-width: 76rem;
+    max-width: calc(var(--lp-max) + 2rem);
     padding-inline: 0.5rem;
     position: relative;
     transition-duration: var(--lp-nav-t);
@@ -878,9 +841,12 @@ html.lenis body {
 
   /* ================================================================ Hero */
 
+  /* Once scrolled past, the hero stops painting and its loops (photo drift, stars, shimmer) pause. */
   .lp-hero {
     background: #2c070d;
     border-radius: 0 0 1.75rem 1.75rem;
+    contain-intrinsic-size: auto 100vh;
+    content-visibility: auto;
   }
 
   @media (min-width: 40rem) {
@@ -901,18 +867,34 @@ html.lenis body {
     z-index: -3;
   }
 
+  /* Light theme: the sign-in screen's wash (AuthShell.css), a rose glow, a touch of gold and a brighter maroon. */
   .lp-hero__tint {
     background:
-      radial-gradient(55% 55% at 82% 18%, rgb(229 43 54 / 0.35), transparent 70%),
-      linear-gradient(180deg, rgb(44 7 13 / 0.3) 0%, transparent 28%, rgb(24 4 7 / 0.9) 100%),
-      linear-gradient(90deg, rgb(44 7 13 / 0.94) 0%, rgb(75 15 25 / 0.8) 42%, rgb(100 19 33 / 0.5) 72%, rgb(44 7 13 / 0.7) 100%);
+      radial-gradient(65% 60% at 8% 0%, rgb(173 58 72 / 0.55), transparent 70%),
+      radial-gradient(55% 50% at 100% 100%, rgb(217 180 90 / 0.22), transparent 70%),
+      linear-gradient(180deg, transparent 55%, rgb(44 7 13 / 0.6) 100%),
+      linear-gradient(100deg, rgb(100 19 33 / 0.9) 0%, rgb(110 22 38 / 0.74) 45%, rgb(122 27 43 / 0.46) 75%, rgb(74 13 24 / 0.7) 100%);
     inset: 0;
     position: absolute;
     z-index: -2;
   }
 
+  .dark .lp-hero__tint {
+    background:
+      radial-gradient(55% 55% at 82% 18%, rgb(229 43 54 / 0.35), transparent 70%),
+      linear-gradient(180deg, rgb(44 7 13 / 0.3) 0%, transparent 28%, rgb(24 4 7 / 0.9) 100%),
+      linear-gradient(90deg, rgb(44 7 13 / 0.94) 0%, rgb(75 15 25 / 0.8) 42%, rgb(100 19 33 / 0.5) 72%, rgb(44 7 13 / 0.7) 100%);
+  }
+
   @media (max-width: 63.99rem) {
     .lp-hero__tint {
+      background:
+        radial-gradient(80% 45% at 10% 0%, rgb(173 58 72 / 0.55), transparent 70%),
+        radial-gradient(70% 40% at 100% 100%, rgb(217 180 90 / 0.2), transparent 70%),
+        linear-gradient(180deg, rgb(100 19 33 / 0.84) 0%, rgb(84 15 27 / 0.86) 50%, rgb(44 7 13 / 0.94) 100%);
+    }
+
+    .dark .lp-hero__tint {
       background:
         radial-gradient(70% 40% at 50% 10%, rgb(229 43 54 / 0.35), transparent 70%),
         linear-gradient(180deg, rgb(44 7 13 / 0.78) 0%, rgb(60 10 18 / 0.86) 50%, rgb(24 4 7 / 0.95) 100%);
@@ -920,7 +902,7 @@ html.lenis body {
   }
 
   .lp-hero__light {
-    background: radial-gradient(560px circle at var(--px, 72%) var(--py, 30%), rgb(255 196 130 / 0.17), transparent 60%);
+    background: radial-gradient(560px circle at 72% 30%, rgb(255 196 130 / 0.17), transparent 60%);
     inset: 0;
     pointer-events: none;
     position: absolute;
@@ -1005,6 +987,33 @@ html.lenis body {
     font-size: 12.5px;
     line-height: 1.4;
     margin-top: 0.2rem;
+  }
+
+  /* A quiet second link beside the button: white, turning gold on hover. */
+  .lp-hero__more {
+    align-items: center;
+    color: #fff;
+    display: inline-flex;
+    font-size: 0.95rem;
+    font-weight: 600;
+    gap: 0.45rem;
+    transition: color 0.15s;
+  }
+
+  .lp-hero__more::after {
+    content: '\2193';
+    transition: translate 0.35s var(--ease-out);
+    translate: 0 -1px;
+  }
+
+  .lp-hero__more:hover,
+  .lp-hero__more:focus-visible {
+    color: #ffd98a;
+  }
+
+  .lp-hero__more:hover::after,
+  .lp-hero__more:focus-visible::after {
+    translate: 0 1px;
   }
 
   .lp-hero__scroll {
@@ -1337,11 +1346,10 @@ html.lenis body {
 
   #idea.landing-section { contain-intrinsic-size: auto 620px; }
   #how.landing-section { contain-intrinsic-size: auto 570px; }
-  #features.landing-section { contain-intrinsic-size: auto 1160px; }
+  #features.landing-section { contain-intrinsic-size: auto 1640px; }
   #privacy.landing-section { contain-intrinsic-size: auto 990px; }
   #admins.landing-section { contain-intrinsic-size: auto 920px; }
   #faq.landing-section { contain-intrinsic-size: auto 430px; }
-  #ask.landing-section { contain-intrinsic-size: auto 610px; }
 
   .landing-band {
     background: linear-gradient(
@@ -1369,8 +1377,6 @@ html.lenis body {
     position: relative;
     transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift));
     transition:
-      opacity 0.8s var(--ease-out) var(--d, 0ms),
-      translate 0.8s var(--ease-out) var(--d, 0ms),
       transform 0.5s var(--ease-out),
       box-shadow 0.4s,
       border-color 0.4s;
@@ -1382,34 +1388,9 @@ html.lenis body {
       0 12px 30px -20px rgb(0 0 0 / 0.7);
   }
 
-  /* A soft light inside, and a brighter one on the border, both under the pointer. */
-  .lp-card::before,
-  .lp-card::after {
-    border-radius: inherit;
-    content: '';
-    opacity: 0;
+  /* While the page glides, cards ignore the pointer, so none lifts and repaints as it passes under it. */
+  html.lenis-scrolling .landing .lp-card {
     pointer-events: none;
-    position: absolute;
-    transition: opacity 0.4s;
-  }
-
-  .lp-card::before {
-    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), color-mix(in oklab, var(--primary) 10%, transparent), transparent 45%);
-    inset: 0;
-    z-index: -1;
-  }
-
-  .lp-card::after {
-    background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), var(--primary), color-mix(in oklab, var(--amber) 60%, transparent) 35%, transparent 70%);
-    inset: -1px;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    padding: 1px;
   }
 
   .lp-card:hover {
@@ -1417,11 +1398,6 @@ html.lenis body {
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.7),
       0 28px 50px -24px rgb(40 18 22 / 0.35);
-  }
-
-  .lp-card:hover::before,
-  .lp-card:hover::after {
-    opacity: 1;
   }
 
   .lp-icon {
@@ -3418,8 +3394,6 @@ html.lenis body {
     overflow: hidden;
     position: relative;
     transition:
-      opacity 0.8s var(--ease-out) var(--d, 0ms),
-      translate 0.8s var(--ease-out) var(--d, 0ms),
       border-color 0.35s,
       box-shadow 0.35s;
   }
@@ -3686,20 +3660,9 @@ html.lenis body {
     background-image: linear-gradient(180deg, color-mix(in oklab, var(--accent-foreground) 18%, transparent), transparent 85%);
   }
 
-  .landing .lp-footer__word {
-    translate: 0 40%;
-    transition:
-      opacity 1.2s var(--ease-out),
-      translate 1.2s var(--ease-out);
-  }
-
-  .landing .lp-footer__word.is-visible {
-    translate: 0 0;
-  }
-
   /* ================================================================ Section rail */
 
-  /* Numbered rail on wide screens. Labels show on hover, so it never covers the content. */
+  /* Numbered rail in the left margin on wide screens. Labels show on hover, so it never covers the content. */
   .lp-rail {
     display: none;
   }
@@ -4076,8 +4039,6 @@ html.lenis body {
     max-width: 28rem;
     padding: 1rem;
     transition:
-      opacity 0.8s var(--ease-out) var(--d, 0ms),
-      translate 0.8s var(--ease-out) var(--d, 0ms),
       border-color 0.3s,
       box-shadow 0.3s;
   }
@@ -4559,7 +4520,7 @@ html.lenis body {
   .lp-fviz--notices {
     align-content: center;
     display: grid;
-    gap: 0.35rem;
+    gap: 0.25rem;
   }
 
   .lp-notice {
@@ -4570,7 +4531,7 @@ html.lenis body {
     display: flex;
     font-size: 11px;
     gap: 0.45rem;
-    padding: 0.3rem 0.5rem;
+    padding: 0.25rem 0.5rem;
   }
 
   .lp-notice--pinned {
@@ -4741,6 +4702,390 @@ html.lenis body {
 
   .lp-feature.is-visible .lp-phone__add {
     animation: lp-press-install 7s ease infinite;
+  }
+
+  /* Checked figures: each number in the answer is found in a source and ticked. */
+  .lp-fviz--verify {
+    align-content: center;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .lp-verify__text {
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+
+  .lp-verify__text b {
+    border-radius: 0.3rem;
+    font-weight: 650;
+    padding: 0 0.1rem;
+  }
+
+  .lp-feature.is-visible .lp-verify__text b {
+    animation: lp-figure 6s ease calc(0.4s + var(--i) * 0.55s) infinite;
+  }
+
+  .lp-verify__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .lp-verify__chip,
+  .lp-fresh__state {
+    align-items: center;
+    background: color-mix(in oklab, var(--success) 13%, var(--card));
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--success) 30%, transparent);
+    color: var(--success);
+    display: inline-flex;
+    flex-shrink: 0;
+    font-size: 10.5px;
+    font-weight: 650;
+    gap: 0.2rem;
+    padding: 0.1rem 0.45rem;
+  }
+
+  .lp-feature.is-visible .lp-verify__chip {
+    animation: lp-pop-loop 6s var(--ease-out) calc(0.6s + var(--i) * 0.55s) infinite backwards;
+  }
+
+  .lp-verify__ok,
+  .lp-fresh__line,
+  .lp-list__count {
+    align-items: center;
+    color: var(--muted-foreground);
+    display: flex;
+    font-size: 10.5px;
+    gap: 0.35rem;
+  }
+
+  .lp-feature.is-visible :is(.lp-verify__ok, .lp-fresh__line, .lp-list__count) {
+    animation: lp-late 6s var(--ease-out) infinite;
+  }
+
+  /* Freshness: the answer names the session it covers; the old document is flagged. */
+  .lp-fviz--fresh {
+    align-content: center;
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .lp-fresh__doc {
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    display: flex;
+    font-size: 11px;
+    gap: 0.45rem;
+    padding: 0.3rem 0.35rem 0.3rem 0.55rem;
+  }
+
+  .lp-fresh__doc[data-old] {
+    color: var(--muted-foreground);
+  }
+
+  .lp-fresh__state {
+    font-size: 9.5px;
+    font-weight: 700;
+  }
+
+  .lp-fresh__doc[data-old] .lp-fresh__state {
+    background: color-mix(in oklab, var(--amber) 20%, var(--card));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--amber) 55%, transparent);
+    color: #8a5a10;
+  }
+
+  .dark .lp-fresh__doc[data-old] .lp-fresh__state {
+    color: #ffd98a;
+  }
+
+  .lp-fresh__line b {
+    color: var(--foreground);
+  }
+
+  .lp-feature.is-visible .lp-fresh__doc {
+    animation: lp-slide-loop 6s var(--ease-out) calc(0.3s + var(--i) * 0.35s) infinite backwards;
+  }
+
+  /* Complete lists: every item on the page is counted in, none dropped. */
+  .lp-fviz--list {
+    align-content: center;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .lp-list__q {
+    background: var(--primary);
+    border-radius: 0.8rem 0.8rem 0.25rem 0.8rem;
+    color: #fff;
+    font-size: 11.5px;
+    justify-self: end;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .lp-list__grid {
+    display: grid;
+    gap: 0.25rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .lp-list__grid span {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    font-size: 10px;
+    font-weight: 650;
+    padding: 0.1rem 0;
+    text-align: center;
+  }
+
+  .lp-feature.is-visible .lp-list__grid span {
+    animation: lp-pop-loop 6s var(--ease-out) calc(0.5s + var(--i) * 0.12s) infinite backwards;
+  }
+
+  .lp-list__count svg {
+    color: var(--success);
+  }
+
+  /* History: a search finds the chats; on a wide card the same chats show on two devices. */
+  .lp-fviz--history {
+    align-items: center;
+    container-type: inline-size;
+    display: flex;
+    gap: 0.9rem;
+  }
+
+  .lp-history__main {
+    display: grid;
+    flex: 1;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+
+  .lp-history__search {
+    align-items: center;
+    background: var(--card);
+    border: 1px solid color-mix(in oklab, var(--primary) 30%, var(--border));
+    border-radius: 0.6rem;
+    display: flex;
+    font-size: 11.5px;
+    gap: 0.4rem;
+    padding: 0.3rem 0.35rem 0.3rem 0.5rem;
+  }
+
+  .lp-history__typed {
+    display: inline-block;
+    font-weight: 600;
+    margin-right: auto;
+  }
+
+  .lp-feature.is-visible .lp-history__typed {
+    animation: lp-type-loop 7s steps(6) infinite;
+  }
+
+  .lp-history__search kbd {
+    background: var(--muted);
+    border-radius: 0.3rem;
+    color: var(--muted-foreground);
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+  }
+
+  .lp-history__chat {
+    align-items: center;
+    border-radius: 0.5rem;
+    color: var(--muted-foreground);
+    display: flex;
+    font-size: 11px;
+    gap: 0.4rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .lp-history__chat[data-pinned] {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .lp-history__chat mark {
+    background: color-mix(in oklab, var(--amber) 40%, transparent);
+    border-radius: 0.2rem;
+    color: inherit;
+  }
+
+  .lp-history__tools {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 0.4rem;
+  }
+
+  .lp-feature.is-visible .lp-history__chat {
+    animation: lp-slide-loop 7s var(--ease-out) calc(1.4s + var(--i) * 0.3s) infinite backwards;
+  }
+
+  .lp-feature.is-visible .lp-history__tools svg {
+    animation: lp-tile 7s ease calc(3.6s + var(--i) * 0.5s) infinite;
+  }
+
+  .lp-history__sync {
+    display: none;
+  }
+
+  @container (min-width: 30rem) {
+    .lp-history__sync {
+      align-content: center;
+      align-self: stretch;
+      border-left: 1px dashed var(--border);
+      color: var(--muted-foreground);
+      display: grid;
+      font-size: 10.5px;
+      gap: 0.5rem;
+      justify-items: center;
+      padding-left: 0.9rem;
+      text-align: center;
+      width: 36%;
+    }
+  }
+
+  .lp-history__devices {
+    align-items: center;
+    color: var(--foreground);
+    display: inline-flex;
+    gap: 0.45rem;
+  }
+
+  .lp-history__link {
+    display: inline-flex;
+    gap: 0.2rem;
+  }
+
+  .lp-history__link i {
+    background: var(--primary);
+    border-radius: 50%;
+    height: 4px;
+    opacity: 0.25;
+    width: 4px;
+  }
+
+  .dark .lp-history__link i {
+    background: var(--accent-foreground);
+  }
+
+  .lp-feature.is-visible .lp-history__link i {
+    animation: lp-sync 1.5s ease-in-out infinite;
+  }
+
+  .lp-feature.is-visible .lp-history__link i:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .lp-feature.is-visible .lp-history__link i:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  /* Suggestions: three questions to ask next slide in. */
+  .lp-fviz--suggest {
+    align-content: center;
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .lp-suggest__label,
+  .lp-personal__label {
+    color: var(--muted-foreground);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .lp-suggest__label {
+    align-items: center;
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .lp-suggest__idea {
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    display: flex;
+    font-size: 11px;
+    gap: 0.4rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .lp-suggest__idea svg {
+    color: var(--muted-foreground);
+  }
+
+  .lp-feature.is-visible .lp-suggest__idea {
+    animation: lp-slide-loop 6s var(--ease-out) calc(0.3s + var(--i) * 0.3s) infinite backwards;
+  }
+
+  /* Personalisation: campus, programme and year fill in; the theme switch flips. */
+  .lp-fviz--personal {
+    align-content: center;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .lp-personal__fields {
+    display: grid;
+    gap: 0.3rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lp-personal__field {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    display: grid;
+    font-size: 11px;
+    min-width: 0;
+    padding: 0.3rem 0.45rem;
+  }
+
+  .lp-feature.is-visible .lp-personal__field {
+    animation: lp-pop-loop 7s var(--ease-out) calc(0.3s + var(--i) * 0.35s) infinite backwards;
+  }
+
+  .lp-personal__theme {
+    background: var(--muted);
+    border-radius: 999px;
+    display: grid;
+    font-size: 10.5px;
+    font-weight: 650;
+    grid-template-columns: 1fr 1fr;
+    padding: 0.15rem;
+    position: relative;
+    width: 9.5rem;
+  }
+
+  .lp-personal__theme > span:not(.lp-personal__thumb) {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.25rem;
+    justify-content: center;
+    padding: 0.2rem 0;
+    position: relative;
+  }
+
+  .lp-personal__thumb {
+    background: var(--card);
+    border-radius: 999px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+    inset: 0.15rem 50% 0.15rem 0.15rem;
+    position: absolute;
+  }
+
+  .lp-feature.is-visible .lp-personal__thumb {
+    animation: lp-thumb 7s var(--ease-out) infinite;
   }
 }
 
@@ -5228,6 +5573,27 @@ html.lenis body {
   0%, 48% { opacity: 0; scale: 0.3; }
   56%, 90% { opacity: 1; scale: 1; }
   97%, 100% { opacity: 0; scale: 1; }
+}
+
+@keyframes lp-figure {
+  0%, 20%, 100% { background: transparent; }
+  5%, 13% { background: color-mix(in oklab, var(--amber) 38%, transparent); }
+}
+
+@keyframes lp-pop-loop {
+  0% { opacity: 0; scale: 0.6; }
+  6%, 82% { opacity: 1; scale: 1; }
+  92%, 100% { opacity: 0; scale: 1; }
+}
+
+@keyframes lp-sync {
+  0%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+
+@keyframes lp-thumb {
+  0%, 40%, 100% { translate: 0 0; }
+  50%, 90% { translate: 100% 0; }
 }
 
 @keyframes lp-ripple {

@@ -1,7 +1,7 @@
-import { ArrowUp, Check, FileText, Globe, LoaderCircle, Mic, SquareArrowOutUpRight } from 'lucide-react';
+import { ArrowUp, Check, FileText, Globe, Mic, SquareArrowOutUpRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { LogoGlyph, LogoMark } from '@/components/brand/Brand';
+import { LogoMark } from '@/components/brand/Brand';
 import { cn } from '@/lib/utils';
 
 import { prefersReducedMotion, useInView } from './landing-hooks';
@@ -10,7 +10,8 @@ import { prefersReducedMotion, useInView } from './landing-hooks';
 // pipeline runs through its stages, then the answer streams in with its citations.
 // The content is illustrative; the page says so under the window.
 
-const STAGES = ['Understanding', 'Searching', 'Reading', 'Writing'];
+// The first verb the app shows for each stage (features/chat/thinking.jsx).
+const STAGES = ['Understanding', 'Searching', 'Reading', 'Composing'];
 const CITE_UNITS = 2;
 const ROW_UNITS = 8;
 
@@ -175,35 +176,15 @@ function useScript(enabled) {
   return state;
 }
 
-function StageRow({ phase, n }) {
-  // How many stages are finished, and which one is running.
-  const finished = phase === 'stages' ? n : phase === 'answer' ? STAGES.length - 1 : STAGES.length;
+/** The app's "working on it" line: the current stage's verb with a shimmer, and the seconds so far. */
+function ThinkingLine({ stage }) {
+  const seconds = Math.round(stage * 0.65);
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {STAGES.map((stage, index) => {
-        const done = index < finished;
-        const active = index === finished;
-        return (
-          <span
-            key={stage}
-            className={cn(
-              'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-all duration-300',
-              done && 'border-transparent bg-success/10 text-success',
-              active && 'border-primary/30 bg-accent text-accent-foreground',
-              !done && !active && 'text-muted-foreground/60',
-            )}
-          >
-            {done ? (
-              <Check className="size-3" strokeWidth={3} />
-            ) : active ? (
-              <LoaderCircle className="size-3 animate-spin" />
-            ) : (
-              <span className="size-1.5 rounded-full bg-current opacity-50" />
-            )}
-            {stage}
-          </span>
-        );
-      })}
+    <div className="flex min-h-6 items-center gap-2">
+      <span key={stage} className="shimmer-text animate-rise font-medium">
+        {STAGES[stage]}…
+      </span>
+      {seconds ? <span className="text-[11px] text-muted-foreground tabular-nums">({seconds}s)</span> : null}
     </div>
   );
 }
@@ -278,11 +259,9 @@ export default function HeroDemo() {
 
             {asked ? (
               <div className="landing-bubble flex gap-2.5">
-                <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-white ring-1 ring-black/5">
-                  <LogoGlyph motion={answered ? 'none' : 'think'} className="h-3.5 w-auto" />
-                </span>
+                <LogoMark motion={answering ? 'none' : 'loop'} className="mt-0.5 size-6 shrink-0 rounded-md" />
                 <div className="min-w-0 flex-1 space-y-2.5">
-                  <StageRow phase={state.phase} n={state.n} />
+                  {answering ? null : <ThinkingLine stage={state.n} />}
                   {answering ? (
                     <div className={cn('space-y-2.5', !answered && 'streaming-caret')}>{renderAnswer(scene.answer, budget)}</div>
                   ) : null}
