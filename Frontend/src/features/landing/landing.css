@@ -931,6 +931,25 @@ html.lenis body {
     translate: 0 calc(var(--scroll, 0) * 0.12px);
   }
 
+  /* On load the whole text column glides in from the left edge of the window and the demo from
+     the right. Only transform animates, so the copy's scroll fade (opacity/translate) is untouched,
+     and the per-element entrances inside the hero are dropped so the column moves as one piece. */
+  .lp-hero__copy,
+  .lp-hero__side {
+    animation: lp-hero-from-left 1.35s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+    will-change: transform;
+  }
+
+  .lp-hero__side {
+    animation-name: lp-hero-from-right;
+    animation-delay: 0.2s;
+  }
+
+  .lp-hero__copy .landing-enter,
+  .lp-hero__copy .lp-line__inner {
+    animation: none;
+  }
+
   .lp-proof {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5157,6 +5176,16 @@ html.lenis body {
 @keyframes lp-line-in {
   from { opacity: 0; transform: translateY(105%) rotate(3deg); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes lp-hero-from-left {
+  from { transform: translateX(-100vw); }
+  to { transform: none; }
+}
+
+@keyframes lp-hero-from-right {
+  from { transform: translateX(100vw); }
+  to { transform: none; }
 }
 
 @keyframes landing-enter {
