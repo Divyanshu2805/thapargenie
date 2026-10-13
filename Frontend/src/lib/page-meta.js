@@ -9,7 +9,7 @@ export const SITE_URL = 'https://thapargenie.divyanshuagrahari.dev';
 const NAME = 'ThaparGenie';
 
 const PUBLIC_PAGES = {
-  '/': { title: `${NAME} · Answers about Thapar, straight from the source`, canonical: '/' },
+  '/': { title: NAME, canonical: '/' },
   '/privacy': { title: `Privacy notice · ${NAME}`, canonical: '/privacy' },
 };
 
