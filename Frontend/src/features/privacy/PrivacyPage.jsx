@@ -36,7 +36,8 @@ const SECTIONS = [
     body: [
       'Firebase (Google) handles sign-in, email verification and password resets.',
       'Render runs the ThaparGenie server, and Supabase hosts the database and uploaded official documents, both in Singapore.',
-      'An AI model provider (Google Gemini by default) receives question text and retrieved official passages to write answers. It never receives your name, email or account id.',
+      'An AI model provider (Google Gemini by default) receives question text, the chat around it, retrieved official passages and, if you have set them, your campus, programme and year, to write answers. It never receives your name, email or account id.',
+      'Sentry receives technical reports when the server hits an error: what failed and where, with a request id and an internal account number. It never receives your questions, answers, name or email.',
       'If you speak a question, your browser turns the speech into text with its own service (Google in Chrome, Microsoft in Edge). ThaparGenie receives only the text, and no audio is recorded or kept.',
     ],
   },
