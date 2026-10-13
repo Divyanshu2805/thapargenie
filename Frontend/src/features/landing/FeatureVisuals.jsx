@@ -1,9 +1,34 @@
-import { Check, Copy, Download, History, Link2, Megaphone, Mic, Pin, Printer, SearchX, Share2 } from 'lucide-react';
+import {
+  Archive,
+  CalendarCheck,
+  Check,
+  Copy,
+  CornerDownRight,
+  Download,
+  History,
+  Laptop,
+  Link2,
+  Megaphone,
+  MessageSquare,
+  Mic,
+  Moon,
+  Pencil,
+  Pin,
+  Printer,
+  Search,
+  SearchX,
+  Share2,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Sun,
+  TriangleAlert,
+} from 'lucide-react';
 
 import { LogoGlyph } from '@/components/brand/Brand';
 
 // Small working visuals for the feature cards. Each loops quietly once its card is on screen
-// (the card carries data-reveal, which adds .is-visible); landing.css holds the timing.
+// (the card carries data-play, which adds .is-visible); landing.css holds the timing.
 
 export function CiteVisual() {
   return (
@@ -63,6 +88,168 @@ export function HonestVisual() {
         <span className="min-w-0">
           <span className="block font-semibold text-foreground">Not in the official documents</span>
           <span className="block">Try the hostel office instead.</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function VerifyVisual() {
+  const figures = ['₹98,000', '2026–27', '15 July'];
+  return (
+    <div className="lp-fviz lp-fviz--verify" aria-hidden="true">
+      <p className="lp-verify__text">
+        The hostel fee is <b style={{ '--i': 0 }}>{figures[0]}</b> for <b style={{ '--i': 1 }}>{figures[1]}</b>, due by{' '}
+        <b style={{ '--i': 2 }}>{figures[2]}</b>.
+      </p>
+      <div className="lp-verify__row">
+        {figures.map((figure, index) => (
+          <span key={figure} className="lp-verify__chip" style={{ '--i': index }}>
+            <Check className="size-3" strokeWidth={3} />
+            {figure}
+          </span>
+        ))}
+      </div>
+      <span className="lp-verify__ok">
+        <ShieldCheck className="size-3.5 shrink-0" />
+        Every figure found in a cited source
+      </span>
+    </div>
+  );
+}
+
+export function FreshVisual() {
+  const docs = [
+    ['Fee structure 2026–27.pdf', 'Current', false],
+    ['Fee structure 2024–25.pdf', 'Outdated', true],
+  ];
+  return (
+    <div className="lp-fviz lp-fviz--fresh" aria-hidden="true">
+      {docs.map(([name, state, old], index) => (
+        <div key={name} className="lp-fresh__doc" data-old={old || undefined} style={{ '--i': index }}>
+          <span className="min-w-0 flex-1 truncate">{name}</span>
+          <span className="lp-fresh__state">
+            {old ? <TriangleAlert className="size-3" /> : <Check className="size-3" strokeWidth={3} />}
+            {state}
+          </span>
+        </div>
+      ))}
+      <span className="lp-fresh__line">
+        <CalendarCheck className="size-3.5 shrink-0" />
+        <span className="min-w-0 truncate">
+          Sources cover <b>2026–27</b> · latest 12 Jun 2026
+        </span>
+      </span>
+    </div>
+  );
+}
+
+export function ListVisual() {
+  const hostels = 'ABCDEFGHIJKL'.split('');
+  return (
+    <div className="lp-fviz lp-fviz--list" aria-hidden="true">
+      <span className="lp-list__q">List all the hostels</span>
+      <div className="lp-list__grid">
+        {hostels.map((letter, index) => (
+          <span key={letter} style={{ '--i': index }}>
+            {letter}
+          </span>
+        ))}
+      </div>
+      <span className="lp-list__count">
+        <Check className="size-3" strokeWidth={3} />
+        12 of 12 listed · whole page read
+      </span>
+    </div>
+  );
+}
+
+export function HistoryVisual() {
+  const chats = [
+    [Pin, ' fee for first-years', true],
+    [MessageSquare, ' rules and timings', false],
+  ];
+  return (
+    <div className="lp-fviz lp-fviz--history" aria-hidden="true">
+      <div className="lp-history__main">
+        <div className="lp-history__search">
+          <Search className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="lp-history__typed">hostel</span>
+          <kbd>Ctrl K</kbd>
+        </div>
+        {chats.map(([Icon, rest, pinned], index) => (
+          <div key={rest} className="lp-history__chat" data-pinned={pinned || undefined} style={{ '--i': index }}>
+            <Icon className="size-3 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">
+              <mark>Hostel</mark>
+              {rest}
+            </span>
+            <span className="lp-history__tools">
+              <Pencil className="size-3" style={{ '--i': 0 }} />
+              <Archive className="size-3" style={{ '--i': 1 }} />
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="lp-history__sync">
+        <span className="lp-history__devices">
+          <Laptop className="size-5" />
+          <span className="lp-history__link">
+            <i />
+            <i />
+            <i />
+          </span>
+          <Smartphone className="size-4" />
+        </span>
+        Same chats on every device
+      </div>
+    </div>
+  );
+}
+
+export function SuggestVisual() {
+  const ideas = ['When is the fee due?', 'Can I pay in instalments?', 'Is there a late fine?'];
+  return (
+    <div className="lp-fviz lp-fviz--suggest" aria-hidden="true">
+      <span className="lp-suggest__label">
+        <Sparkles className="size-3" />
+        Ask next
+      </span>
+      {ideas.map((idea, index) => (
+        <span key={idea} className="lp-suggest__idea" style={{ '--i': index }}>
+          <CornerDownRight className="size-3 shrink-0" />
+          <span className="min-w-0 truncate">{idea}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function PersonalVisual() {
+  const fields = [
+    ['Campus', 'Patiala'],
+    ['Programme', 'BE COE'],
+    ['Year', '2nd'],
+  ];
+  return (
+    <div className="lp-fviz lp-fviz--personal" aria-hidden="true">
+      <div className="lp-personal__fields">
+        {fields.map(([label, value], index) => (
+          <span key={label} className="lp-personal__field" style={{ '--i': index }}>
+            <span className="lp-personal__label">{label}</span>
+            <span className="truncate font-semibold">{value}</span>
+          </span>
+        ))}
+      </div>
+      <div className="lp-personal__theme">
+        <span className="lp-personal__thumb" />
+        <span>
+          <Sun className="size-3" />
+          Light
+        </span>
+        <span>
+          <Moon className="size-3" />
+          Dark
         </span>
       </div>
     </div>

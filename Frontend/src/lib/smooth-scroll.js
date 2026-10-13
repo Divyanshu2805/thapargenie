@@ -11,8 +11,8 @@ export function startSmoothScroll() {
   if (lenis || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return () => {};
   const instance = new Lenis({
     autoRaf: true,
-    lerp: 0.09,
-    wheelMultiplier: 0.9,
+    lerp: 0.08,
+    wheelMultiplier: 1,
     anchors: true,
     // Inner scrollers (menus, the mobile nav sheet) keep their own native scroll.
     allowNestedScroll: true,

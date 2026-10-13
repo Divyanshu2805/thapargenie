@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { onScrollFrame } from '@/lib/scroll-frame';
+
 export function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
@@ -9,13 +11,14 @@ function finePointer() {
 }
 
 /**
- * Fades in every `[data-reveal]` element under the returned ref the first time it scrolls
- * into view (adds `.is-visible`). Each element can set `--d` to delay its entrance.
+ * Starts the looping visuals: every `[data-play]` element under the returned ref gets
+ * `.is-visible` the first time it scrolls into view. Nothing fades or slides in; the page's
+ * content is simply there as you scroll.
  */
-export function useReveal() {
+export function usePlayOnView() {
   const ref = useRef(null);
   useEffect(() => {
-    const items = ref.current?.querySelectorAll('[data-reveal]') ?? [];
+    const items = ref.current?.querySelectorAll('[data-play]') ?? [];
     if (typeof IntersectionObserver === 'undefined') {
       items.forEach((item) => item.classList.add('is-visible'));
       return undefined;
@@ -55,46 +58,15 @@ export function useInView(ref, { once = false, rootMargin = '0px' } = {}) {
   return inView;
 }
 
-/** Counts from 0 up to `target` once `active` turns true, easing out. */
-export function useCountUp(target, active, duration = 1400) {
-  const [value, setValue] = useState(0);
-  const [still] = useState(prefersReducedMotion);
-  useEffect(() => {
-    if (!active || still) return undefined;
-    let frame;
-    const start = performance.now();
-    const tick = (now) => {
-      const progress = Math.min(1, (now - start) / duration);
-      setValue(Math.round(target * (1 - (1 - progress) ** 3)));
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [target, active, still, duration]);
-  return still && active ? target : value;
-}
-
 /** Whether the page has left the very top. */
 export function useScrollState(threshold = 24) {
   const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    let frame = 0;
-    const update = () => {
-      frame = 0;
+  useEffect(
+    () =>
       // A little hysteresis so hovering around the threshold doesn't flip the bar back and forth.
-      const y = window.scrollY;
-      setScrolled((was) => (was ? y > threshold / 3 : y > threshold));
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [threshold]);
+      onScrollFrame(({ y }) => setScrolled((was) => (was ? y > threshold / 3 : y > threshold))),
+    [threshold],
+  );
   return { scrolled };
 }
 
@@ -119,15 +91,13 @@ export function useScrollSpy(ids) {
 }
 
 /**
- * Pointer effects for everything under `ref`, with one listener:
- * `[data-spotlight]` gets --mx/--my (a light that follows the pointer), and
- * `[data-tilt]` gets --rx/--ry (a gentle 3D tilt; mouse only, and only with motion).
+ * Tilts the `[data-tilt]` card under the pointer a few degrees (--rx/--ry), with one listener
+ * for everything under `ref`. Mouse only, and only with motion.
  */
-export function usePointerEffects(ref) {
+export function useTilt(ref) {
   useEffect(() => {
     const root = ref.current;
-    if (!root) return undefined;
-    const moving = finePointer() && !prefersReducedMotion();
+    if (!root || !finePointer() || prefersReducedMotion()) return undefined;
     let tilt = null;
 
     const settle = () => {
@@ -138,14 +108,6 @@ export function usePointerEffects(ref) {
 
     const onMove = (event) => {
       if (!(event.target instanceof Element)) return;
-      const spot = event.target.closest('[data-spotlight]');
-      if (spot) {
-        const rect = spot.getBoundingClientRect();
-        spot.style.setProperty('--mx', `${event.clientX - rect.left}px`);
-        spot.style.setProperty('--my', `${event.clientY - rect.top}px`);
-      }
-      if (!moving) return;
-
       const nextTilt = event.target.closest('[data-tilt]');
       if (nextTilt !== tilt) {
         settle();
