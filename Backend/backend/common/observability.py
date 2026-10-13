@@ -16,7 +16,7 @@ user_id_var = contextvars.ContextVar('user_id', default='-')
 
 access_logger = logging.getLogger('thapargenie.access')
 
-# Paths polled by uptime checks and keep-alive pings; logging them only adds noise.
+# Paths polled by uptime checks; logging them only adds noise.
 QUIET_PREFIXES = ('/health/',)
 
 

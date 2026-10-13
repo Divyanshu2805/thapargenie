@@ -90,9 +90,9 @@ Cloudflare edge it is 3.
 #### Sleeping
 
 A free instance sleeps after 15 minutes without traffic and takes up to a minute to wake.
-An external monitor calling `/health/live/` every 5 minutes prevents it; so does a paid
-instance. `keepalive.yml` does the same from GitHub, but its scheduler is too irregular to
-rely on.
+An external monitor (UptimeRobot) calling `/health/live/` every 5 minutes prevents it; so
+does a paid instance. GitHub's scheduler is too irregular for the job: a ten-minute
+schedule there fired two or three times a day.
 
 ### Web app (Firebase Hosting)
 
@@ -115,8 +115,7 @@ A `production` environment, limited to `main`, holds what the workflows need:
 | `deploy-frontend.yml` | `FIREBASE_SERVICE_ACCOUNT` | The seven `VITE_*` values |
 | `maintenance.yml` | `DJANGO_SECRET_KEY`, `DATABASE_URL`, `FIREBASE_PROJECT_ID`, `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BACKUP_AGE_RECIPIENT` | `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CHAT_MODEL`, `FAST_MODEL`, `EMBED_MODEL` |
 
-Repository variables: `MAINTENANCE_ENABLED=true` switches the scheduled jobs on, and
-`KEEPALIVE_URL` switches the keep-alive ping on.
+Repository variable: `MAINTENANCE_ENABLED=true` switches the scheduled jobs on.
 
 ## Rebuilding from nothing
 
