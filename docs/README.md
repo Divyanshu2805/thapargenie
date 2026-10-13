@@ -36,9 +36,8 @@ Start with the section that matches what you are trying to do.
   the answer-quality problems found so far.
 - [Where to change things](architecture/where-to-change.md): the file to open for a task.
 
-## Contributing
+## Engineering
 
-- [`CONTRIBUTING.md`](../CONTRIBUTING.md): the workflow, the checks and the commit style.
 - [Engineering practices](practices/README.md): conventions, testing, security guardrails,
   known pitfalls, definition of done.
 - [`SECURITY.md`](../SECURITY.md): reporting a vulnerability.

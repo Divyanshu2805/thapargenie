@@ -283,7 +283,7 @@ Everything lives in [`docs/`](docs/README.md):
 | [Engineering practices](docs/practices/README.md) | Conventions, testing, guardrails, pitfalls, definition of done |
 | [Project metrics](docs/metrics.md) · [Load testing](docs/load-testing.md) | Measured quality, speed and capacity |
 | [Deployment](docs/deployment/README.md) · [Operations](docs/deployment/operations.md) | Running it in production |
-| [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | Workflow and checks; reporting a vulnerability |
+| [Security](SECURITY.md) | Reporting a vulnerability |
 
 ## License
 
