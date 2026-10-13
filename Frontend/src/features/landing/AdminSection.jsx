@@ -40,9 +40,9 @@ const STEPS = [
 
 const TOOLS = [
   { icon: FileUp, title: 'Upload anything official', text: 'PDFs, Word files, spreadsheets, web pages or quick FAQs, scanned pages included.' },
-  { icon: SearchX, title: 'See the gaps', text: 'Unanswered questions, grouped and ranked by how often they’re asked.' },
+  { icon: SearchX, title: 'See the gaps', text: 'Unanswered questions, grouped and ranked by how often they’re asked, and a nightly check that search quality hasn’t slipped.' },
   { icon: FlaskConical, title: 'Tune in the playground', text: 'See which passages a question found and why, then fix and re-test.' },
-  { icon: ClipboardList, title: 'Stay in control', text: 'Approve users, post notices and banners, set limits, read the audit log.' },
+  { icon: ClipboardList, title: 'Stay in control', text: 'Approve users, post notices and banners, set limits and the AI budget, and read the audit log, all behind two-factor sign-in.' },
 ];
 
 function FeedbackScene() {
@@ -322,10 +322,10 @@ export default function AdminSection() {
   const Scene = SCENES[active];
 
   return (
-    <section id="admins" className="landing-section mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8">
+    <section id="admins" className="landing-section lp-wrap">
       <div className="grid items-end gap-6 lg:grid-cols-[1.1fr_1fr]">
         <SectionHeading index="05" align="left" eyebrow="For admins" title="Kept accurate by the people who" gold="run the campus." />
-        <p data-reveal style={{ '--d': '200ms' }} className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg lg:justify-self-end">
+        <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:justify-self-end">
           A dashboard for the team behind the knowledge base. Every wrong answer a student reports becomes a fix the next
           student benefits from.
         </p>
@@ -333,11 +333,11 @@ export default function AdminSection() {
 
       <div
         ref={ref}
-        className="lp-cycle mt-12 grid items-center gap-8 lg:grid-cols-[1.35fr_1fr] lg:gap-10"
+        className="lp-cycle mt-12 grid items-center gap-8 lg:grid-cols-[1.35fr_1fr] lg:gap-8"
         data-running={(inView && !still) || undefined}
         onAnimationEnd={onAnimationEnd}
       >
-        <div data-reveal className="lp-dash" aria-hidden="true">
+        <div className="lp-dash" aria-hidden="true">
           <div className="lp-dash__top">
             <LogoMark className="size-6 rounded-md" />
             <span className="text-[12px] font-semibold">ThaparGenie</span>
@@ -365,7 +365,7 @@ export default function AdminSection() {
 
         <ol className="grid gap-2.5">
           {STEPS.map((step, index) => (
-            <li key={step.title} data-reveal style={{ '--d': `${index * 90}ms` }}>
+            <li key={step.title}>
               <button
                 type="button"
                 onClick={() => setActive(index)}
@@ -389,7 +389,7 @@ export default function AdminSection() {
           const Icon = tool.icon;
           const Visual = TOOL_VISUALS[index];
           return (
-            <li key={tool.title} data-reveal data-tilt data-spotlight style={{ '--d': `${index * 80}ms` }} className="lp-card lp-tool icon-nudge p-4">
+            <li key={tool.title} data-play data-tilt className="lp-card lp-tool icon-nudge p-4">
               <Visual />
               <div className="mt-4 flex items-center gap-2.5 px-1">
                 <span className="lp-icon lp-icon--sm">

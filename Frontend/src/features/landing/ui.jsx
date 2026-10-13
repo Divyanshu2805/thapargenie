@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useSlideClick } from '@/lib/page-slide';
@@ -73,33 +72,14 @@ export function Cta({ to, children, className, size = 'lg', blend = false }) {
   );
 }
 
-/** "01 ── The idea": a numbered section label whose rule draws in. */
+/** "01 ── The idea": a numbered section label. */
 export function Kicker({ index, children, dark = false, className }) {
   return (
-    <p data-reveal className={cn('lp-kicker', dark && 'lp-kicker--dark', className)}>
+    <p className={cn('lp-kicker', dark && 'lp-kicker--dark', className)}>
       <span className="lp-kicker__num">{index}</span>
       <span aria-hidden="true" className="lp-kicker__rule" />
       {children}
     </p>
-  );
-}
-
-/** A heading whose words rise one after another from behind a mask. `gold` words glow. */
-export function SplitHeading({ as: Tag = 'h2', text, gold = '', className, delay = 0 }) {
-  const words = text.split(' ');
-  const golden = gold ? gold.split(' ') : [];
-  return (
-    <Tag data-reveal="words" className={cn('lp-split', className)}>
-      {[...words, ...golden].map((word, index) => (
-        <Fragment key={`${word}-${index}`}>
-          <span className="lp-split__mask">
-            <span className="lp-split__word" style={{ '--i': index, '--d0': `${delay}ms` }}>
-              {index >= words.length ? <span className="landing-gold lp-gold-on-light">{word}</span> : word}
-            </span>
-          </span>{' '}
-        </Fragment>
-      ))}
-    </Tag>
   );
 }
 
@@ -109,11 +89,11 @@ export function SectionHeading({ index, eyebrow, title, gold, children, align = 
       <Kicker index={index} dark={dark} className={align === 'center' ? 'justify-center' : undefined}>
         {eyebrow}
       </Kicker>
-      <SplitHeading text={title} gold={gold} className={cn('landing-h2 mt-5', dark && 'text-white')} />
+      <h2 className={cn('landing-h2 mt-5', dark && 'text-white')}>
+        {title} {gold ? <span className="landing-gold lp-gold-on-light">{gold}</span> : null}
+      </h2>
       {children ? (
         <p
-          data-reveal
-          style={{ '--d': '220ms' }}
           className={cn('mt-5 text-base leading-relaxed sm:text-lg', dark ? 'text-white/70' : 'text-muted-foreground')}
         >
           {children}

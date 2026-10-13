@@ -62,6 +62,25 @@ describe('HelpPage', () => {
     expect(await screen.findByText(/You have 7 questions left today/)).toBeInTheDocument();
   });
 
+  it('shows only the eight best-covered topics', async () => {
+    api.getCoverage.mockResolvedValue({
+      total_documents: 100,
+      categories: Array.from({ length: 10 }, (_, index) => ({
+        category: `topic_${index}`,
+        label: `Topic ${index}`,
+        // Topics 3 and 7 have the fewest documents.
+        documents: index === 3 ? 1 : index === 7 ? 2 : 10 + index,
+        updated_at: null,
+      })),
+    });
+    renderAt('/help');
+
+    expect(await screen.findByRole('heading', { name: 'Topic 0' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: /^Topic \d$/ })).toHaveLength(8);
+    expect(screen.queryByRole('heading', { name: 'Topic 3' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Topic 7' })).not.toBeInTheDocument();
+  });
+
   it('puts a picked example in the new-chat box without sending it', async () => {
     renderAt('/help');
 

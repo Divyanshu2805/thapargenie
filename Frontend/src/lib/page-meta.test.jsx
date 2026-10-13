@@ -15,7 +15,7 @@ describe('pageMeta', () => {
   });
 
   it('names each page in the tab', () => {
-    expect(pageMeta('/').title).toContain('Answers about Thapar');
+    expect(pageMeta('/').title).toBe('ThaparGenie');
     expect(pageMeta('/login/').title).toBe('Sign in · ThaparGenie');
     expect(pageMeta('/admin/gaps').title).toBe('Admin · ThaparGenie');
     expect(pageMeta('/chat/').title).toBe('ThaparGenie');

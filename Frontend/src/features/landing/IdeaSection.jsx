@@ -56,8 +56,7 @@ function BeforeAfter() {
   return (
     <div
       ref={ref}
-      data-reveal
-      style={{ '--d': '260ms', '--pos': `${pos}%` }}
+      style={{ '--pos': `${pos}%` }}
       data-dragging={dragging || undefined}
       data-touched={touched || undefined}
       className="lp-compare"
@@ -178,7 +177,7 @@ function SourceOrbit() {
   const reading = !answered && step > 0 ? SOURCES[uses[step - 1]].name : null;
 
   return (
-    <div ref={ref} data-reveal className="landing-converge" data-answered={answered || undefined} aria-hidden="true">
+    <div ref={ref} data-play className="landing-converge" data-answered={answered || undefined} aria-hidden="true">
       <svg className="landing-converge__lines" viewBox="0 0 100 100" preserveAspectRatio="none">
         {SOURCES.map((source, index) => {
           const angle = (index / SOURCES.length) * Math.PI * 2 - Math.PI / 2;
@@ -252,7 +251,7 @@ function SourceOrbit() {
 
 export default function IdeaSection() {
   return (
-    <section id="idea" className="landing-section mx-auto grid max-w-[76rem] items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
+    <section id="idea" className="landing-section lp-wrap grid items-center gap-14 lg:grid-cols-2 lg:gap-10">
       <div>
         <SectionHeading index="01" align="left" eyebrow="The idea" title="College information lives in a" gold="hundred places.">
           The fee structure is in one PDF, the hostel rules in another, and the date you need is buried in a notice from

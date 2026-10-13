@@ -137,13 +137,13 @@ function AutoDelete() {
 
 export default function PrivacySection() {
   return (
-    <section id="privacy" className="landing-section mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8">
-      <div data-reveal className="lp-privacy relative isolate overflow-hidden rounded-[2rem] px-5 py-14 sm:px-10 lg:px-12 lg:py-16">
+    <section id="privacy" className="landing-section lp-wrap">
+      <div data-play className="lp-privacy relative isolate overflow-hidden rounded-[2rem] px-5 py-14 sm:px-10 lg:px-12 lg:py-16">
         <Contours className="lp-privacy__contours" />
         <span aria-hidden="true" className="lp-privacy__glow" />
         <div className="relative grid items-end gap-6 lg:grid-cols-[1.1fr_1fr]">
           <SectionHeading index="04" align="left" eyebrow="Privacy by design" title="Ask freely. Your questions" gold="stay yours." />
-          <p data-reveal style={{ '--d': '200ms' }} className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg lg:justify-self-end">
+          <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:justify-self-end">
             ThaparGenie collects as little as it can, keeps it for as short as it can, and hands you the controls.
             Here’s what that looks like inside the app.
           </p>
@@ -153,7 +153,7 @@ export default function PrivacySection() {
           <Tile
             label="What the AI receives"
             title="Your identity stays out of the AI"
-            text="Only the question and the passages that answer it are sent. Never your name, email or account."
+            text="Only the question, the chat around it, the passages that answer it and, if you’ve added them, your campus, programme and year. Never your name, email or account."
           >
             <RequestInspector />
           </Tile>

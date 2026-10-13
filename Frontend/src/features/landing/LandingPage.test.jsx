@@ -89,11 +89,15 @@ describe('LandingPage', () => {
     const demo = document.querySelector('.landing-demo');
     expect(demo).not.toHaveTextContent('Hostel fee structure 2026–27.pdf');
     // Each step schedules the next after a render, so time moves in small steps until the sources show.
+    let thinking = false;
     for (let step = 0; step < 400 && !demo.textContent.includes('Page 3'); step += 1) {
       act(() => vi.advanceTimersByTime(50));
+      thinking ||= demo.textContent.includes('Understanding…');
     }
     expect(demo).toHaveTextContent('What is the hostel fee for first-year girls?');
-    expect(demo).toHaveTextContent('Understanding');
+    // The thinking line shows while the answer is on its way, and is gone once it has arrived.
+    expect(thinking).toBe(true);
+    expect(demo).not.toHaveTextContent('Understanding…');
     expect(demo).toHaveTextContent('₹98,000');
     expect(demo).toHaveTextContent('Hostel fee structure 2026–27.pdf');
   });
