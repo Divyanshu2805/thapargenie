@@ -166,7 +166,7 @@ Lighthouse 12, mobile emulation with simulated throttling, against the live site
 | API routes | 67 |
 | Management commands | 14 |
 | React components | 93 files |
-| Scheduled jobs | 4, plus a keep-alive ping |
+| Scheduled jobs | 4 |
 | Architecture decision records | 13 |
 
 ## Re-measuring

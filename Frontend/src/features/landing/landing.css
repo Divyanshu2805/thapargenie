@@ -901,11 +901,20 @@ html.lenis body {
     }
   }
 
+  /*
+   * A dim warm light that follows the pointer (usePointerLight). It is a fixed-size disc moved
+   * by a transform, so following the pointer never repaints the hero.
+   */
   .lp-hero__light {
-    background: radial-gradient(560px circle at 72% 30%, rgb(255 196 130 / 0.17), transparent 60%);
-    inset: 0;
+    background: radial-gradient(closest-side, rgb(255 196 130 / 0.1), transparent 60%);
+    height: 70rem;
+    left: 72%;
+    margin: -35rem 0 0 -35rem;
     pointer-events: none;
     position: absolute;
+    top: 30%;
+    width: 70rem;
+    will-change: transform;
     z-index: -1;
   }
 
@@ -1386,6 +1395,46 @@ html.lenis body {
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.05),
       0 12px 30px -20px rgb(0 0 0 / 0.7);
+  }
+
+  /* A faint light inside, and a slightly brighter one on the border, both under the pointer. */
+  .lp-card::before,
+  .lp-card::after {
+    border-radius: inherit;
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    transition: opacity 0.4s;
+  }
+
+  .lp-card::before {
+    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), color-mix(in oklab, var(--primary) 6%, transparent), transparent 45%);
+    inset: 0;
+    z-index: -1;
+  }
+
+  .lp-card::after {
+    background: radial-gradient(
+      240px circle at var(--mx, 50%) var(--my, 0%),
+      color-mix(in oklab, var(--primary) 55%, transparent),
+      color-mix(in oklab, var(--amber) 28%, transparent) 35%,
+      transparent 70%
+    );
+    inset: -1px;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    padding: 1px;
+  }
+
+  .lp-card:hover::before,
+  .lp-card:hover::after {
+    opacity: 1;
   }
 
   /* While the page glides, cards ignore the pointer, so none lifts and repaints as it passes under it. */
