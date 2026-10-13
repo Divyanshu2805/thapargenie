@@ -21,7 +21,7 @@ What ThaparGenie is built with, and what each piece is for. Versions are the one
 | cryptography | 50.0 | Encrypting staff two-factor keys |
 | gunicorn | 26.2 | The production server, threaded workers |
 | whitenoise | 6.12 | Static files for the OpenAPI page |
-| sentry-sdk | 2.70 | Optional error tracking |
+| sentry-sdk | 2.70 | Error tracking, active when `SENTRY_DSN` is set |
 
 Every runtime dependency has a permissive licence (MIT, BSD or Apache). PyMuPDF was turned
 down for its AGPL licence.
