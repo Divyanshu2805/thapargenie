@@ -91,14 +91,17 @@ export function useScrollSpy(ids) {
 }
 
 /**
- * Tilts the `[data-tilt]` card under the pointer a few degrees (--rx/--ry), with one listener
- * for everything under `ref`. Mouse only, and only with motion.
+ * Pointer effects for the cards under `ref`, with one listener and at most one update a frame:
+ * the `.lp-card` under the pointer gets --mx/--my (a soft light that follows it), and a
+ * `[data-tilt]` card also gets --rx/--ry (a gentle 3D tilt). Mouse only, and only with motion.
  */
-export function useTilt(ref) {
+export function usePointerEffects(ref) {
   useEffect(() => {
     const root = ref.current;
     if (!root || !finePointer() || prefersReducedMotion()) return undefined;
     let tilt = null;
+    let frame = 0;
+    let last = null;
 
     const settle = () => {
       if (!tilt) return;
@@ -106,20 +109,30 @@ export function useTilt(ref) {
       tilt.style.setProperty('--ry', '0deg');
     };
 
-    const onMove = (event) => {
-      if (!(event.target instanceof Element)) return;
-      const nextTilt = event.target.closest('[data-tilt]');
+    const update = () => {
+      frame = 0;
+      const { target, x, y } = last;
+      const card = target.closest('.lp-card');
+      const rect = card?.getBoundingClientRect();
+      if (card) {
+        card.style.setProperty('--mx', `${x - rect.left}px`);
+        card.style.setProperty('--my', `${y - rect.top}px`);
+      }
+      const nextTilt = card?.hasAttribute('data-tilt') ? card : null;
       if (nextTilt !== tilt) {
         settle();
         tilt = nextTilt;
       }
       if (tilt) {
-        const rect = tilt.getBoundingClientRect();
-        const x = (event.clientX - rect.left) / rect.width - 0.5;
-        const y = (event.clientY - rect.top) / rect.height - 0.5;
-        tilt.style.setProperty('--ry', `${x * 5}deg`);
-        tilt.style.setProperty('--rx', `${y * -5}deg`);
+        tilt.style.setProperty('--ry', `${((x - rect.left) / rect.width - 0.5) * 5}deg`);
+        tilt.style.setProperty('--rx', `${((y - rect.top) / rect.height - 0.5) * -5}deg`);
       }
+    };
+
+    const onMove = (event) => {
+      if (!(event.target instanceof Element)) return;
+      last = { target: event.target, x: event.clientX, y: event.clientY };
+      if (!frame) frame = requestAnimationFrame(update);
     };
 
     const onLeave = () => {
@@ -132,8 +145,44 @@ export function useTilt(ref) {
     return () => {
       root.removeEventListener('pointermove', onMove);
       root.removeEventListener('pointerleave', onLeave);
+      if (frame) cancelAnimationFrame(frame);
     };
   }, [ref]);
+}
+
+/**
+ * Moves the element in `lightRef` so its centre sits under the pointer while it is over the
+ * element in `areaRef`. Only a transform changes, so nothing is repainted. Mouse only.
+ */
+export function usePointerLight(areaRef, lightRef) {
+  useEffect(() => {
+    const area = areaRef.current;
+    const light = lightRef.current;
+    if (!area || !light || !finePointer() || prefersReducedMotion()) return undefined;
+    let frame = 0;
+    let point = null;
+
+    const update = () => {
+      frame = 0;
+      const rect = area.getBoundingClientRect();
+      // The light rests at 72% / 30% of the area (landing.css); the transform is the offset from there.
+      const dx = point.x - rect.left - rect.width * 0.72;
+      const dy = point.y - rect.top - rect.height * 0.3;
+      light.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0)`;
+    };
+
+    const onMove = (event) => {
+      if (event.pointerType !== 'mouse') return;
+      point = { x: event.clientX, y: event.clientY };
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+
+    area.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      area.removeEventListener('pointermove', onMove);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [areaRef, lightRef]);
 }
 
 /**

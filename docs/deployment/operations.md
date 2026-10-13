@@ -21,10 +21,6 @@ GitHub starts scheduled runs late, in practice 2 to 4 hours after the listed tim
 has a dry-run variant under *Run workflow*: `purge-dry-run`, `refresh-dry-run`,
 `context-long-dry-run`. Jobs never overlap (one concurrency group).
 
-`keepalive.yml` pings `/health/ready/` every 10 minutes from 07:30 to 23:30 IST when the
-repository variable `KEEPALIVE_URL` is set. It is best effort; an external monitor is what
-actually keeps a free instance awake.
-
 ## Backups
 
 `pg_dump --format=custom` is piped straight into [`age`](https://age-encryption.org), so
