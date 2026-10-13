@@ -17,8 +17,14 @@
   <img src="https://img.shields.io/badge/React-19-0a0b0d?logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Vite-8-0a0b0d?logo=vite" alt="Vite" />
   <img src="https://img.shields.io/badge/Tailwind-4-0a0b0d?logo=tailwindcss" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Firebase-Auth-0a0b0d?logo=firebase" alt="Firebase Authentication" />
+  <img src="https://img.shields.io/badge/Firebase-Auth_and_Hosting-0a0b0d?logo=firebase" alt="Firebase Authentication and Hosting" />
   <img src="https://img.shields.io/badge/Supabase-Storage-0a0b0d?logo=supabase" alt="Supabase" />
+  <img src="https://img.shields.io/badge/TanStack_Query-5-0a0b0d?logo=reactquery" alt="TanStack Query" />
+  <img src="https://img.shields.io/badge/Radix_UI-shadcn-0a0b0d?logo=radixui" alt="Radix UI" />
+  <img src="https://img.shields.io/badge/Render-API-0a0b0d?logo=render" alt="Render" />
+  <img src="https://img.shields.io/badge/Sentry-Errors-0a0b0d?logo=sentry" alt="Sentry" />
+  <img src="https://img.shields.io/badge/pytest-Backend_tests-0a0b0d?logo=pytest" alt="pytest" />
+  <img src="https://img.shields.io/badge/Vitest-Frontend_tests-0a0b0d?logo=vitest" alt="Vitest" />
   <img src="https://img.shields.io/badge/Playwright-E2E-0a0b0d?logo=playwright" alt="Playwright" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-0a0b0d" alt="MIT License" /></a>
 </p>
@@ -185,6 +191,7 @@ The rules are in the [security model](docs/architecture/security-model.md) and t
 | Web app | React 19, Vite 8, Tailwind CSS 4, Radix UI, TanStack Query, React Router |
 | Sign-in and files | Firebase Authentication, Supabase Storage |
 | Quality | pytest, Vitest, Playwright, ruff, ESLint, Locust, GitHub Actions |
+| Hosting and operations | Firebase Hosting, Render, Supabase, Sentry |
 
 Details and versions: [tech stack](docs/tech-stack.md).
 
