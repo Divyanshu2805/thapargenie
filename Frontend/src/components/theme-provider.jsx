@@ -2,24 +2,22 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 // Must match the key read by public/theme-init.js.
 export const THEME_STORAGE_KEY = 'thapargenie-theme';
-// Only light and dark are user-choosable; the system preference is used once, to seed a
-// first-time visitor's theme, then never revisited (no live "system" mode to track).
+// Only light and dark are user-choosable. A first-time visitor starts in dark, whatever
+// their device is set to; a choice made with the toggle is remembered.
 const THEMES = new Set(['light', 'dark']);
+// The browser's toolbar colour for each theme (the page background in index.css).
+const TOOLBAR = { light: '#faf8f6', dark: '#141011' };
 
 const ThemeContext = createContext(null);
-
-function systemPrefersDark() {
-  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
 
 function readStoredTheme() {
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
     if (THEMES.has(stored)) return stored;
   } catch {
-    // Storage may be blocked; fall back to the system preference below.
+    // Storage may be blocked; fall back to the default below.
   }
-  return systemPrefersDark() ? 'dark' : 'light';
+  return 'dark';
 }
 
 export function ThemeProvider({ children }) {
@@ -29,6 +27,7 @@ export function ThemeProvider({ children }) {
     const root = document.documentElement;
     root.classList.toggle('dark', theme === 'dark');
     root.style.colorScheme = theme;
+    document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => meta.setAttribute('content', TOOLBAR[theme]));
   }, [theme]);
 
   const setTheme = useCallback((next) => {

@@ -152,7 +152,7 @@ More: [architecture overview](docs/architecture/README.md) ·
 | What | Measured |
 |---|---|
 | Search quality | recall@5 between **0.94 and 1.00** and MRR between 0.91 and 1.00 across four scored runs on the production knowledge base, re-scored every night |
-| Tests | **572** backend tests, **245** frontend tests and 5 browser journeys; 92% statement coverage of the answer, chat and knowledge code, with an 80% floor in CI |
+| Tests | **572** backend tests, **246** frontend tests and 5 browser journeys; 92% statement coverage of the answer, chat and knowledge code, with an 80% floor in CI |
 | Capacity | **400 students** using the app at once on half a CPU with no failed requests, in a load test of 102,194 requests; 8 answers at once at full speed on the free instance production runs on |
 | Speed | A full answer in **10.2 s** at the median; the first word in about 8 s |
 | Accessibility | Lighthouse **100** on every page measured |
