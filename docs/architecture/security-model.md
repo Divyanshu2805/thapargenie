@@ -90,14 +90,4 @@ review, exports, shares, two-factor events, scheduled jobs, and refused attempts
 admin API (one event per user, path and reason per 5 minutes). Staff read them under
 **Audit log**.
 
-## Accepted risks
-
-| Risk | Why it is accepted |
-|---|---|
-| Rate limits are counted per worker process | With 2 workers a limit can be used up to twice over. The daily question limit and the one-stream rule are exact, because they live in the database. See [ADR 0011](decisions/0011-rate-limit-counters-in-process-memory.md) |
-| A student disabled in the Firebase console keeps access for up to 60 seconds | It saves a Firebase round trip on every student request; suspension inside the app applies at once. See [ADR 0013](decisions/0013-revocation-check-cached-for-students.md) |
-| `style-src 'unsafe-inline'` in the content security policy | The toast library injects a style element; no user content reaches styles, and scripts stay strict |
-| Rotating `DJANGO_SECRET_KEY` invalidates staff authenticator keys | Staff enrol again after a rotation |
-| The restore steps have never been exercised | Documented in [operations](../deployment/operations.md#restore), not yet drilled |
-
 To report a vulnerability, see [`SECURITY.md`](../../SECURITY.md).
