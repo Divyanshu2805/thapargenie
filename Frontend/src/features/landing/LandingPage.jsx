@@ -68,8 +68,9 @@ import {
   useInView,
   usePlayOnView,
   useScrollSpy,
+  usePointerEffects,
+  usePointerLight,
   useScrollState,
-  useTilt,
 } from './landing-hooks';
 import PrivacySection from './PrivacySection';
 import { Cta, SectionHeading } from './ui';
@@ -357,6 +358,9 @@ const HERO_LINES = [
 
 function Hero({ signedIn }) {
   const ref = useRef(null);
+  const lightRef = useRef(null);
+  // A dim warm light follows the pointer across the photo.
+  usePointerLight(ref, lightRef);
 
   // The photo drifts slower than the page and the copy fades as you scroll past. The value is
   // set only on the two layers that use it (it doesn't inherit; see landing.css), so a scroll
@@ -378,7 +382,7 @@ function Hero({ signedIn }) {
     <section id="top" ref={ref} className="lp-hero relative isolate overflow-hidden text-white">
       <div aria-hidden="true" className="lp-hero__photo" style={{ '--photo': `url(${campusPhoto})` }} />
       <div aria-hidden="true" className="lp-hero__tint" />
-      <div aria-hidden="true" className="lp-hero__light" />
+      <div ref={lightRef} aria-hidden="true" className="lp-hero__light" />
       <div aria-hidden="true" className="lp-grain" />
       <div aria-hidden="true" className="landing-stars">
         {Array.from({ length: 12 }, (_, index) => (
@@ -900,7 +904,7 @@ export default function LandingPage() {
   const { user } = useAuth();
   const signedIn = Boolean(user);
   const rootRef = usePlayOnView();
-  useTilt(rootRef);
+  usePointerEffects(rootRef);
   // Momentum scrolling: the wheel glides to a stop instead of jumping in steps.
   useEffect(() => startSmoothScroll(), []);
 
