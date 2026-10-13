@@ -46,6 +46,19 @@
     linear-gradient(165deg, rgb(100 19 33 / 0.9) 0%, rgb(44 7 13 / 0.94) 100%);
 }
 
+/* A dim warm light that follows the pointer: a disc moved by a transform, never repainted. */
+.auth-hero__light {
+  background: radial-gradient(closest-side, rgb(255 196 130 / 0.1), transparent 60%);
+  height: 70rem;
+  left: 50%;
+  margin: -35rem 0 0 -35rem;
+  pointer-events: none;
+  position: absolute;
+  top: 36%;
+  width: 70rem;
+  will-change: transform;
+}
+
 .auth-hero__content {
   align-items: center;
   color: #fff;
