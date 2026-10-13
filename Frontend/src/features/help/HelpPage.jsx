@@ -31,6 +31,17 @@ import { cn } from '@/lib/utils';
 // The "What can I ask?" page. Topics come from the knowledge base;
 // the examples and limits below are written for students.
 
+// Only the best-covered topics are shown: the ones with the most documents behind them, where
+// answers are least likely to come back empty.
+const MAX_TOPICS = 8;
+
+/** The `MAX_TOPICS` categories with the most documents, kept in the order they arrived. */
+function bestCovered(categories) {
+  if (categories.length <= MAX_TOPICS) return categories;
+  const kept = new Set(categories.toSorted((a, b) => b.documents - a.documents).slice(0, MAX_TOPICS));
+  return categories.filter((topic) => kept.has(topic));
+}
+
 const TOPICS = {
   fees_scholarships: {
     icon: IndianRupee,
@@ -136,7 +147,7 @@ export default function HelpPage() {
       <div>
         <SplitSection
           icon={BookOpen}
-          title="Topics I can answer"
+          title="Topics I answer best"
           description={`${
             coverage.data
               ? `From ${formatNumber(coverage.data.total_documents)} official document${coverage.data.total_documents === 1 ? '' : 's'}. `
@@ -154,7 +165,7 @@ export default function HelpPage() {
             <p className="text-sm text-muted-foreground">The topic list couldn’t be loaded. You can still ask any question about the institute.</p>
           ) : (
             <ul className="stagger grid gap-4 sm:grid-cols-2">
-              {coverage.data.categories.map((topic, index, all) => (
+              {bestCovered(coverage.data.categories).map((topic, index, all) => (
                 <TopicCard
                   key={topic.category}
                   topic={topic}

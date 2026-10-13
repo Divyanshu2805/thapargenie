@@ -62,8 +62,8 @@ Keyboard: <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> search,
 
 - **Notices**: announcements posted by admins, with important ones marked, and a list of
   official documents added in the last 30 days.
-- **What can I ask?**: the topics the knowledge base covers, with document counts, what it
-  cannot help with, and tips.
+- **What can I ask?**: the eight topics the knowledge base covers best (the ones with the
+  most documents), with document counts, what it cannot help with, and tips.
 - **Feedback**: suggestions and problems about the site itself, with an optional rating and
   a choice about being contacted.
 - **Settings**: personalisation, light or dark theme, export every chat as JSON, delete all
