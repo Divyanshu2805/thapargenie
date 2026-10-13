@@ -69,11 +69,11 @@ import {
   usePlayOnView,
   useScrollSpy,
   usePointerEffects,
-  usePointerLight,
   useScrollState,
 } from './landing-hooks';
 import PrivacySection from './PrivacySection';
 import { Cta, SectionHeading } from './ui';
+import { usePointerLight } from '@/hooks/use-pointer-light';
 import { onScrollFrame } from '@/lib/scroll-frame';
 import { scrollToTop, startSmoothScroll } from '@/lib/smooth-scroll';
 import './landing.css';
@@ -359,8 +359,8 @@ const HERO_LINES = [
 function Hero({ signedIn }) {
   const ref = useRef(null);
   const lightRef = useRef(null);
-  // A dim warm light follows the pointer across the photo.
-  usePointerLight(ref, lightRef);
+  // A dim warm light follows the pointer across the photo; it rests where landing.css puts it.
+  usePointerLight(ref, lightRef, 0.72, 0.3);
 
   // The photo drifts slower than the page and the copy fades as you scroll past. The value is
   // set only on the two layers that use it (it doesn't inherit; see landing.css), so a scroll

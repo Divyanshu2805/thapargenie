@@ -151,41 +151,6 @@ export function usePointerEffects(ref) {
 }
 
 /**
- * Moves the element in `lightRef` so its centre sits under the pointer while it is over the
- * element in `areaRef`. Only a transform changes, so nothing is repainted. Mouse only.
- */
-export function usePointerLight(areaRef, lightRef) {
-  useEffect(() => {
-    const area = areaRef.current;
-    const light = lightRef.current;
-    if (!area || !light || !finePointer() || prefersReducedMotion()) return undefined;
-    let frame = 0;
-    let point = null;
-
-    const update = () => {
-      frame = 0;
-      const rect = area.getBoundingClientRect();
-      // The light rests at 72% / 30% of the area (landing.css); the transform is the offset from there.
-      const dx = point.x - rect.left - rect.width * 0.72;
-      const dy = point.y - rect.top - rect.height * 0.3;
-      light.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0)`;
-    };
-
-    const onMove = (event) => {
-      if (event.pointerType !== 'mouse') return;
-      point = { x: event.clientX, y: event.clientY };
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-
-    area.addEventListener('pointermove', onMove, { passive: true });
-    return () => {
-      area.removeEventListener('pointermove', onMove);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [areaRef, lightRef]);
-}
-
-/**
  * Steps that take turns. The active item shows a `.lp-progress` bar; when its `lp-progress`
  * animation ends, the next item takes over. CSS pauses the bar on hover, and nothing runs
  * unless the caller sets `data-running` (on screen, motion allowed).
