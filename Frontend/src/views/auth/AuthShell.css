@@ -257,7 +257,7 @@
 }
 
 .dark .auth-back:hover {
-  color: var(--accent-foreground);
+  color: #ffd98a;
 }
 
 .auth-back__icon {
