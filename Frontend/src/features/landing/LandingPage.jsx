@@ -437,7 +437,7 @@ function Hero({ signedIn }) {
           </dl>
         </div>
 
-        <div className="landing-enter mx-auto w-full max-w-lg lg:max-w-none" style={{ '--d': '450ms' }}>
+        <div className="lp-hero__side mx-auto w-full max-w-lg lg:max-w-none">
           <HeroDemo />
         </div>
       </div>

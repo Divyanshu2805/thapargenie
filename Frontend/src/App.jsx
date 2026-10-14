@@ -36,6 +36,7 @@ const GapsPage = lazy(() => import('./features/admin/GapsPage'));
 const SettingsAdminPage = lazy(() => import('./features/admin/SettingsAdminPage'));
 const UsersPage = lazy(() => import('./features/admin/UsersPage'));
 const AuditLogPage = lazy(() => import('./features/admin/AuditLogPage'));
+const NotFoundPage = lazy(() => import('./views/not-found/NotFoundPage'));
 const NoticesAdminPage = lazy(() => import('./features/admin/NoticesAdminPage'));
 
 function SignedOutRoute({ children }) {
@@ -101,10 +102,10 @@ export default function App() {
           <Route path="settings" element={<SettingsAdminPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="audit-log" element={<AuditLogPage />} />
-          <Route path="*" element={<Navigate to="/admin/" replace />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/chat/" replace />} />
+        {/* Anything else, /admin/ addresses included, gets the not-found page. */}
+        <Route path="*" element={<Suspense fallback={<AuthLoading message="Loading…" />}><NotFoundPage /></Suspense>} />
       </Routes>
     </BrowserRouter>
   );
