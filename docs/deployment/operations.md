@@ -24,9 +24,9 @@ has a dry-run variant under *Run workflow*: `purge-dry-run`, `refresh-dry-run`,
 
 ## Demo account
 
-The sign-in page offers a shared student, Aarav Sharma (`demo@divyanshuagrahari.dev`; the
-address is `DEMO_ACCOUNT_EMAIL`). Its password is public on purpose and sits in
-`Frontend/src/config/demo.js` and `userauths/demo.py`: change both together.
+Anyone can sign in as a shared student, Aarav Sharma (`demo@divyanshuagrahari.dev`; the
+address is `DEMO_ACCOUNT_EMAIL`). The login is published in the README, not on the sign-in
+page. The password is public on purpose and defaults to the value in `userauths/demo.py`.
 
 **Once, from a shell that can reach production Firebase** (the Render shell, or a laptop
 with `gcloud auth application-default login`), with the production environment set:

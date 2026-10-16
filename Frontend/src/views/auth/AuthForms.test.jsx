@@ -19,7 +19,6 @@ vi.mock('../../utils/auth', () => ({
   requestPasswordReset: mocks.requestPasswordReset,
 }));
 
-import { DEMO_EMAIL, DEMO_PASSWORD } from '../../config/demo';
 import ForgotPassword from './ForgotPassword/ForgotPassword';
 import Login from './Login/Login';
 import Register from './Register/Register';
@@ -51,16 +50,6 @@ describe('authentication forms', () => {
     await waitFor(() => {
       expect(mocks.login).toHaveBeenCalledWith('student@example.edu', 'secret1', true);
     });
-  });
-
-  it('signs in as the demo student with one click', async () => {
-    mocks.login.mockResolvedValue({});
-    renderWithRouter(<Login />);
-
-    expect(screen.getByText(DEMO_EMAIL)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Try the demo' }));
-
-    await waitFor(() => expect(mocks.login).toHaveBeenCalledWith(DEMO_EMAIL, DEMO_PASSWORD, false));
   });
 
   it('keeps Google sign-in behind an explicit user click', async () => {
