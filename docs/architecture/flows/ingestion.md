@@ -5,19 +5,6 @@ How a document becomes searchable passages. Adding a document
 `queued` and hands it to a background thread (`knowledge/jobs.py`). The work itself is in
 `knowledge/ingest/pipeline.py`.
 
-```mermaid
-flowchart LR
-  U[Upload, URL or text] --> Q[queued]
-  Q -->|claim| P[processing]
-  P --> E[Extract to Markdown]
-  E --> C[Chunk]
-  C --> X[Context sentences · optional]
-  X --> M[Embed]
-  M --> S[Swap passages in one transaction]
-  S --> R[ready]
-  P -->|any failure| F[failed, with a readable message]
-```
-
 ## Steps
 
 1. **Claim.** The row moves from `queued` to `processing` in one `UPDATE`, so a document

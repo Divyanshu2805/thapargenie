@@ -3,21 +3,6 @@
 Firebase Authentication proves who someone is. The API decides what they may do. No
 password ever reaches the API.
 
-```mermaid
-sequenceDiagram
-  participant B as Browser
-  participant F as Firebase Auth
-  participant A as API
-  participant D as PostgreSQL
-  B->>F: email and password, or Google
-  F-->>B: ID token (1 hour, refreshed by the SDK)
-  B->>A: request with the token as a Bearer header
-  A->>F: verify signature and revocation
-  A->>D: find or create the user for this Firebase UID
-  A->>A: email verified? account approved? staff? second step passed?
-  A-->>B: response
-```
-
 ## Every request (`api/authentication.py`)
 
 1. The token is verified with the Firebase Admin SDK: signature, audience, issuer, expiry

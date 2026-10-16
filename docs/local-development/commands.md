@@ -78,6 +78,7 @@ Run from `Backend/backend` as `python manage.py <command>`.
 | `purge_data` | Applies the retention rules. `--dry-run`, `--skip-storage` |
 | `secure_database` | Turns on row level security for every table and revokes Supabase's API roles. `--check` only reports |
 | `createcachetable` | Creates the table behind the default cache. Needed once per database |
+| `seed_demo` | Creates or resets the public demo account (Aarav Sharma) and its sample chats; `--content-only` skips Firebase. See [operations](../deployment/operations.md#demo-account) |
 | `seed_e2e` | Creates the end-to-end test accounts in the Auth emulator and one searchable document. Emulator only |
 
 ## Dependencies

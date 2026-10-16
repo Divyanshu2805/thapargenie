@@ -48,6 +48,7 @@ post notices from a separate dashboard.
 | | |
 |---|---|
 | **Live app** | [thapargenie.divyanshuagrahari.dev](https://thapargenie.divyanshuagrahari.dev) |
+| **Demo login** | `demo@divyanshuagrahari.dev` / `Demo-Thapar-2026!`, or the **Try the demo** button on the sign-in page. A shared, public student account (Aarav Sharma) with a few questions already asked: it can't change its profile or sign others out, and it is put back every day |
 | **Getting in** | Register with an email and verify it. New accounts are approved by an admin; when the admins have switched approval off, a verified `thapar.edu` address gets in directly and any other address still waits |
 | **First request** | The API runs on a free instance. If it has been idle, the first request can take up to a minute |
 
@@ -119,18 +120,6 @@ More: [asking a question](docs/architecture/flows/asking-a-question.md).
 A Django API and a React single-page app. They talk JSON over HTTPS; answers stream as
 server-sent events. Everything durable is in one PostgreSQL database, where search runs
 too: there is no separate vector store, queue or cache server.
-
-```mermaid
-flowchart LR
-  B[Browser · React app] -->|static files| H[Firebase Hosting]
-  B -->|sign in| FA[Firebase Authentication]
-  B -->|JSON and SSE with a Firebase ID token| API[Django API on Render]
-  API -->|verify token| FA
-  API --> DB[(Supabase PostgreSQL · pgvector + full-text search)]
-  API --> ST[(Supabase Storage · private bucket)]
-  API -->|analysis, embeddings, answers| LLM[Gemini API]
-  GH[GitHub Actions] -->|CI, deploy, nightly eval, purge, backup| API
-```
 
 The decisions behind it, each with what it was chosen over:
 
