@@ -14,8 +14,8 @@ DEMO_FIRST_NAME = 'Aarav'
 DEMO_LAST_NAME = 'Sharma'
 DEMO_DISPLAY_NAME = f'{DEMO_FIRST_NAME} {DEMO_LAST_NAME}'
 DEMO_PROFILE = {'campus': 'Patiala', 'program': 'B.E. Computer Engineering', 'academic_year': 1}
-# Public, like the email. Meets Firebase's default password policy.
-DEFAULT_DEMO_PASSWORD = 'Demo-Thapar-2026!'  # noqa: S105
+# Public, like the email. Easy to type; Firebase needs at least 6 characters.
+DEFAULT_DEMO_PASSWORD = 'demo1234'  # noqa: S105
 
 # The questions the demo account starts the day with, oldest first.
 DEMO_QUESTIONS = (

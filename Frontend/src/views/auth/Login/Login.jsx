@@ -132,28 +132,15 @@ export default function Login() {
       <p className="auth-card__footer">
         Need an account? <Link className="auth-link" to="/register/">Create one</Link>
       </p>
-      <section className="auth-demo" aria-labelledby="auth-demo-title">
-        <h2 className="auth-demo__title" id="auth-demo-title">Just looking around?</h2>
-        <p className="auth-demo__text">
-          Sign in as Aarav Sharma, a first-year student with a few questions already asked.
-          It is shared by everyone and reset every day.
-        </p>
-        <dl className="auth-demo__credentials">
-          <dt>Email</dt>
-          <dd>{DEMO_EMAIL}</dd>
-          <dt>Password</dt>
-          <dd>{DEMO_PASSWORD}</dd>
-        </dl>
-        <button
-          className="auth-button auth-button--demo"
-          disabled={submitting !== null}
-          onClick={handleDemoLogin}
-          type="button"
-        >
-          {submitting === 'demo' ? 'Opening the demo…' : 'Try the demo'}
-          <AuthArrow busy={submitting === 'demo'} />
-        </button>
-      </section>
+      <button
+        className="auth-button auth-button--demo"
+        disabled={submitting !== null}
+        onClick={handleDemoLogin}
+        type="button"
+      >
+        {submitting === 'demo' ? 'Opening the demo…' : 'Try the demo'}
+        <AuthArrow busy={submitting === 'demo'} />
+      </button>
     </AuthShell>
   );
 }

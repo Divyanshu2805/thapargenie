@@ -57,7 +57,6 @@ describe('authentication forms', () => {
     mocks.login.mockResolvedValue({});
     renderWithRouter(<Login />);
 
-    expect(screen.getByText(DEMO_EMAIL)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try the demo' }));
 
     await waitFor(() => expect(mocks.login).toHaveBeenCalledWith(DEMO_EMAIL, DEMO_PASSWORD, false));
