@@ -3,24 +3,6 @@
 One PostgreSQL database with the `vector` (pgvector) and `pg_trgm` extensions, created by
 the first `common` migration. 20 models across 7 apps, 15 migrations.
 
-```mermaid
-erDiagram
-  USER ||--o| PROFILE : has
-  USER ||--o{ CONVERSATION : owns
-  CONVERSATION ||--o{ MESSAGE : contains
-  MESSAGE ||--o{ MESSAGE : "parent of"
-  MESSAGE ||--o{ MESSAGE_SOURCE : cites
-  MESSAGE ||--o| FEEDBACK : rated
-  MESSAGE ||--o| ANSWER_TRACE : explained
-  MESSAGE ||--o{ SHARED_ANSWER : shared
-  DOCUMENT ||--o{ CHUNK : "split into"
-  MESSAGE_SOURCE }o--o| CHUNK : "snapshot of"
-  MESSAGE_SOURCE }o--o| DOCUMENT : "snapshot of"
-  NOTICE }o--o| DOCUMENT : "answerable copy"
-  USER ||--o{ USAGE_DAILY : counted
-  USER ||--o| SECOND_FACTOR : enrols
-```
-
 ## Tables
 
 ### Identity and access

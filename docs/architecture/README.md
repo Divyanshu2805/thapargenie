@@ -5,19 +5,6 @@ single-page app (`Frontend`). They talk JSON over HTTPS, except answers, which s
 server-sent events. Everything durable lives in one PostgreSQL database; uploaded originals
 live in a private storage bucket.
 
-```mermaid
-flowchart LR
-  B[Browser · React app] -->|static files| H[Firebase Hosting]
-  B -->|sign in| FA[Firebase Authentication]
-  B -->|JSON and SSE with a Firebase ID token| API[Django API · gunicorn on Render]
-  API -->|verify token, check revocation| FA
-  API --> DB[(Supabase PostgreSQL · pgvector + full-text search)]
-  API --> ST[(Supabase Storage · private bucket)]
-  API -->|analysis, embeddings, answers, PDF reading| LLM[Gemini API]
-  GH[GitHub Actions] -->|CI, deploy, purge, eval, backup, refresh| API
-  GH --> DB
-```
-
 ## Where it runs
 
 | Part | Host |
