@@ -25,6 +25,7 @@ RRF_K = 60
 LIST_SIZE = 40
 BOOST = 0.10
 DUPLICATE_OVERLAP = 0.85
+PER_DOCUMENT = 3
 # Which lists retrieve() fuses. Answers always use both; one alone is for measuring what
 # each contributes (eval_rag --retriever).
 HYBRID, VECTOR, KEYWORD = 'hybrid', 'vector', 'keyword'
@@ -289,7 +290,27 @@ def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25, retriever=
         candidates.append(candidate)
     apply_boosts(candidates, analysis)
     candidates.sort(key=lambda c: c.score, reverse=True)
-    return Retrieval(drop_near_duplicates(candidates)[:limit], lists)
+    candidates = drop_near_duplicates(candidates)
+    if not analysis.wants_complete_list:
+        candidates = spread_documents(candidates)
+    return Retrieval(candidates[:limit], lists)
+
+
+def spread_documents(candidates, per_document=PER_DOCUMENT):
+    """Let no document hold more than `per_document` of the leading places.
+
+    One long document of near-identical passages (a list of hundreds of names) appears
+    in every list at a middling rank, and fusion rewards appearing in many lists, so it
+    could fill the whole top of the ranking and push a passage that two lists ranked
+    first down to 19th. Its other passages are kept, in order, after the first
+    `per_document` of every document. A "list all" question skips this: it needs many
+    passages of one document."""
+    leading, rest, counts = [], [], {}
+    for candidate in candidates:
+        seen = counts.get(candidate.document_id, 0)
+        counts[candidate.document_id] = seen + 1
+        (leading if seen < per_document else rest).append(candidate)
+    return leading + rest
 
 
 def _words(text):

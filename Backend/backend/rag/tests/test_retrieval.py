@@ -29,6 +29,7 @@ from rag.retrieve import (
     fuse,
     keyword_query,
     retrieve,
+    spread_documents,
 )
 
 
@@ -177,6 +178,20 @@ class FusionTests(SimpleTestCase):
         ]
         self.assertEqual([c.chunk_id for c in drop_near_duplicates(items)], ['a', 'b'])
 
+    def test_one_document_cannot_fill_the_top(self):
+        flood = [candidate(chunk_id=f'flood-{i}', document_id='big') for i in range(6)]
+        other = candidate(chunk_id='answer', document_id='cutoffs')
+        spread = spread_documents([*flood, other], per_document=3)
+        self.assertEqual(
+            [c.chunk_id for c in spread],
+            ['flood-0', 'flood-1', 'flood-2', 'answer', 'flood-3', 'flood-4', 'flood-5'],
+        )
+
+    def test_spreading_keeps_order_and_every_passage(self):
+        items = [candidate(chunk_id=f'{doc}{i}', document_id=doc) for i in range(2) for doc in 'ab']
+        spread = spread_documents(items, per_document=3)
+        self.assertEqual([c.chunk_id for c in spread], [c.chunk_id for c in items])
+
     def test_keyword_query_is_safe_or_query(self):
         self.assertEqual(keyword_query("UCS301 fee's & (drop) 2026-27"),
                          'ucs301 | fee | s | drop | 2026 | 27')
@@ -246,6 +261,19 @@ class RetrieveTests(TestCase):
     def test_unknown_retriever_is_refused(self):
         with self.assertRaises(ValueError):
             retrieve(self.llm, self.hostel_analysis(), retriever='bm25')
+
+    def test_a_long_document_is_spread_out_unless_the_whole_list_is_wanted(self):
+        add_document('Scorecard list', [f'Hostel fee query number {i} for boys.' for i in range(8)])
+        for whole_list in (False, True):
+            analysis = self.hostel_analysis()
+            analysis.wants_complete_list = whole_list
+            with self.subTest(whole_list=whole_list), \
+                    mock.patch('rag.retrieve.spread_documents', wraps=spread_documents) as spread:
+                result = retrieve(self.llm, analysis)
+                self.assertEqual(spread.called, not whole_list)
+                leading = [c.title for c in result.candidates[:3 + 2]]
+                if not whole_list:
+                    self.assertLessEqual(leading.count('Scorecard list'), 3)
 
 
 class ParallelKeywordSearchTests(TransactionTestCase):
