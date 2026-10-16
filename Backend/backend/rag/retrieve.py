@@ -25,6 +25,10 @@ RRF_K = 60
 LIST_SIZE = 40
 BOOST = 0.10
 DUPLICATE_OVERLAP = 0.85
+# Which lists retrieve() fuses. Answers always use both; one alone is for measuring what
+# each contributes (eval_rag --retriever).
+HYBRID, VECTOR, KEYWORD = 'hybrid', 'vector', 'keyword'
+RETRIEVERS = (HYBRID, VECTOR, KEYWORD)
 
 _TOKEN = re.compile(r'[a-z0-9]+')
 
@@ -254,15 +258,22 @@ class Retrieval:
         }
 
 
-def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25):
+def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25, retriever=HYBRID):
     """`keywords` is a KeywordSearch started earlier (the pipeline starts it before it
-    embeds the queries); without one it is started here, before embedding."""
-    keywords = keywords or KeywordSearch(analysis)
-    if vectors is None:
-        queries = analysis.search_queries
-        vectors = llm.embed_queries(queries) if queries else []
-    lists = vector_lists(vectors)
-    keyword_ids = keywords.result()
+    embeds the queries); without one it is started here, before embedding. `retriever`
+    leaves out the keyword list (VECTOR) or the vector lists (KEYWORD); the rest of the
+    ranking - fusion, boosts, de-duplication - is the same either way."""
+    if retriever not in RETRIEVERS:
+        raise ValueError(f'Unknown retriever {retriever!r}; expected one of {RETRIEVERS}.')
+    if retriever != VECTOR:
+        keywords = keywords or KeywordSearch(analysis)
+    lists = {}
+    if retriever != KEYWORD:
+        if vectors is None:
+            queries = analysis.search_queries
+            vectors = llm.embed_queries(queries) if queries else []
+        lists = vector_lists(vectors)
+    keyword_ids = keywords.result() if retriever != VECTOR else []
     if keyword_ids:
         lists['keyword'] = keyword_ids
     scores, ranks = fuse(lists)

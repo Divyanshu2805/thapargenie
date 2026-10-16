@@ -1,7 +1,9 @@
 """The nightly search-quality check."""
 
 from datetime import timedelta
+from io import StringIO
 from types import SimpleNamespace
+from unittest import mock
 
 from api.models import AuditEvent
 from common.tests.helpers import client_for, make_user
@@ -50,6 +52,22 @@ class RecordTests(TestCase):
     def test_record_refuses_partial_runs(self):
         with self.assertRaises(CommandError):
             call_command('eval_rag', '--record', 'manual', '--answers')
+
+    def test_a_single_retriever_run_is_never_recorded_or_answered(self):
+        for extra in (['--record', 'nightly'], ['--answers']):
+            with self.subTest(extra=extra), self.assertRaises(CommandError):
+                call_command('eval_rag', '--retriever', 'vector', *extra)
+        self.assertFalse(EvalRun.objects.exists())
+
+    def test_retriever_reaches_the_evaluation(self):
+        llm = SimpleNamespace(usage=SimpleNamespace(calls=3))
+        out = StringIO()
+        with mock.patch('rag.management.commands.eval_rag.get_llm', return_value=llm), \
+                mock.patch('rag.management.commands.eval_rag.evaluation.run',
+                           return_value=report([1, 1])) as evaluate:
+            call_command('eval_rag', '--retriever', 'keyword', stdout=out)
+        self.assertEqual(evaluate.call_args.kwargs['retriever'], 'keyword')
+        self.assertIn('retriever  keyword', out.getvalue())
 
 
 class WarningTests(TestCase):

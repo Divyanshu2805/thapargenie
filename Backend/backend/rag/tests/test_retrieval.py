@@ -18,6 +18,9 @@ from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events
 from rag.rerank import MIN_SCORE, rerank
 from rag.retrieve import (
     BOOST,
+    HYBRID,
+    KEYWORD,
+    VECTOR,
     Candidate,
     KeywordSearch,
     _keyword_executor,
@@ -207,6 +210,42 @@ class RetrieveTests(TestCase):
         result = retrieve(self.llm, analysis)
         self.assertEqual(result.lists['keyword'][0],
                          str(Chunk.objects.get(content__startswith='UCS301').pk))
+
+    def hostel_analysis(self):
+        return QueryAnalysis(question='boys hostel fee', standalone_query='boys hostel fee',
+                             keywords='hostel fee boys')
+
+    def test_vector_retriever_never_runs_the_keyword_search(self):
+        with mock.patch('rag.retrieve.keyword_list') as keyword_list:
+            result = retrieve(self.llm, self.hostel_analysis(), retriever=VECTOR)
+        keyword_list.assert_not_called()
+        self.assertEqual(set(result.lists), {'vector:0'})
+        self.assertEqual(result.candidates[0].title, 'Hostel fee structure')
+        self.assertNotIn('Old hostel fees', [c.title for c in result.candidates])
+
+    def test_keyword_retriever_embeds_nothing(self):
+        with mock.patch.object(self.llm, 'embed_queries') as embed_queries:
+            result = retrieve(self.llm, self.hostel_analysis(), retriever=KEYWORD)
+        embed_queries.assert_not_called()
+        self.assertEqual(set(result.lists), {'keyword'})
+        self.assertEqual(result.candidates[0].title, 'Hostel fee structure')
+        self.assertNotIn('Old hostel fees', [c.title for c in result.candidates])
+
+    def test_hybrid_is_the_default_and_fuses_both(self):
+        default = retrieve(self.llm, self.hostel_analysis())
+        hybrid = retrieve(self.llm, self.hostel_analysis(), retriever=HYBRID)
+        self.assertEqual(default.lists, hybrid.lists)
+        self.assertEqual([c.chunk_id for c in default.candidates],
+                         [c.chunk_id for c in hybrid.candidates])
+
+    def test_keyword_retriever_with_no_keyword_match_returns_nothing(self):
+        analysis = QueryAnalysis(question='zzqx', standalone_query='zzqx', keywords='zzqx')
+        result = retrieve(self.llm, analysis, retriever=KEYWORD)
+        self.assertEqual((result.candidates, result.lists), ([], {}))
+
+    def test_unknown_retriever_is_refused(self):
+        with self.assertRaises(ValueError):
+            retrieve(self.llm, self.hostel_analysis(), retriever='bm25')
 
 
 class ParallelKeywordSearchTests(TransactionTestCase):

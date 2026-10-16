@@ -18,7 +18,7 @@ from rag.analysis import Intent, analyze
 from rag.context import sources_for
 from rag.pipeline import AnswerType, answer
 from rag.rerank import KEEP, rerank
-from rag.retrieve import retrieve
+from rag.retrieve import HYBRID, retrieve
 
 GOLDEN = Path(__file__).parent / 'eval' / 'golden.json'
 
@@ -124,7 +124,7 @@ def names_all(text, items):
     return all(item.lower() in text for item in items)
 
 
-def evaluate_case(llm, case, *, use_rerank=False, with_answers=False):
+def evaluate_case(llm, case, *, use_rerank=False, with_answers=False, retriever=HYBRID):
     result = CaseResult(case=case)
     history = case.get('history', [])
     analysis = analyze(llm, case['question'], history=history)
@@ -134,7 +134,7 @@ def evaluate_case(llm, case, *, use_rerank=False, with_answers=False):
     if expected_intent:
         result.intent_ok = analysis.intent == expected_intent
     if analysis.intent == Intent.COLLEGE and (case['expected'] or case.get('expect_all')):
-        retrieval = retrieve(llm, analysis)
+        retrieval = retrieve(llm, analysis, retriever=retriever)
         kept = retrieval.candidates[:KEEP]
         if use_rerank:
             kept, _ = rerank(llm, analysis.standalone_query, retrieval.candidates)
@@ -156,11 +156,12 @@ def evaluate_case(llm, case, *, use_rerank=False, with_answers=False):
     return result
 
 
-def run(llm, cases, *, use_rerank=False, with_answers=False, on_result=None):
+def run(llm, cases, *, use_rerank=False, with_answers=False, on_result=None, retriever=HYBRID):
     report = Report()
     for case in cases:
         try:
-            result = evaluate_case(llm, case, use_rerank=use_rerank, with_answers=with_answers)
+            result = evaluate_case(llm, case, use_rerank=use_rerank, with_answers=with_answers,
+                                   retriever=retriever)
         except Exception as exc:  # one broken case must not hide the rest of the report
             result = CaseResult(case=case, error=f'{type(exc).__name__}: {exc}')
         report.results.append(result)
