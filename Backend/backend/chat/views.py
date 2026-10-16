@@ -26,6 +26,7 @@ from rest_framework import status
 from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from userauths.demo import forbid_demo
 
 from chat import answering, cache, coverage, engine, quota, sharing, suggestions
 from chat.models import (
@@ -162,6 +163,7 @@ class ConversationListView(APIView):
 
     @extend_schema(operation_id='conversations_delete_all', tags=['chat'], responses={204: None})
     def delete(self, request):
+        forbid_demo(request.user)
         owned = Conversation.objects.owned_by(request.user)
         count = owned.count()
         owned.delete()
