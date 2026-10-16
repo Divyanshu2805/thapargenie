@@ -4,32 +4,6 @@ From `POST /api/v1/conversations/<id>/messages/` to a stored, cited answer. Two 
 the work: `chat/answering.py` owns admission checks and persistence, and `rag/pipeline.py`
 turns a question into events without saving anything.
 
-```mermaid
-sequenceDiagram
-  participant B as Browser
-  participant C as chat/answering.py
-  participant P as rag/pipeline.py
-  participant M as Gemini
-  participant D as PostgreSQL
-  B->>C: question + client_request_id
-  C->>D: checks, save question and an empty "streaming" answer (one transaction)
-  C-->>B: meta
-  C->>P: answer_events(question, history, memory, profile)
-  par first question of a chat
-    P->>D: answer cache lookup
-  and
-    P->>M: analysis (fast model)
-  end
-  P->>M: embed the phrasings
-  P->>D: vector search + full-text search
-  P-->>B: sources
-  P->>M: answer from the sources (streamed)
-  P-->>B: delta, delta, ...
-  P->>P: grounding check
-  C->>D: save answer, sources, trace, usage
-  C-->>B: done
-```
-
 ## 1. Admission (`chat/answering.py: start_turn`)
 
 One transaction, with the conversation row locked:
