@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-import { DEMO_EMAIL, DEMO_PASSWORD } from '../../../config/demo';
 import { holdAuthRedirect, useSlideNavigate } from '../../../lib/page-slide';
 import { authErrorMessage, login, loginWithGoogle } from '../../../utils/auth';
 import AuthArrow from '../AuthArrow';
@@ -30,12 +29,17 @@ export default function Login() {
     navigate(safeReturnPath(location.state?.from), { replace: true, state: draft ? { draft } : undefined });
   };
 
-  const signInWithPassword = async (address, secret, provider) => {
+  const handlePasswordLogin = async (event) => {
+    event.preventDefault();
     setError('');
-    setSubmitting(provider);
+    if (!email.trim() || !password) {
+      setError('Enter both your email address and password.');
+      return;
+    }
+    setSubmitting('password');
     const release = holdAuthRedirect();
     try {
-      await login(address, secret, rememberMe);
+      await login(email, password, rememberMe);
       finishSignIn();
     } catch (caughtError) {
       setError(authErrorMessage(caughtError));
@@ -44,17 +48,6 @@ export default function Login() {
       setSubmitting(null);
     }
   };
-
-  const handlePasswordLogin = (event) => {
-    event.preventDefault();
-    if (!email.trim() || !password) {
-      setError('Enter both your email address and password.');
-      return;
-    }
-    return signInWithPassword(email, password, 'password');
-  };
-
-  const handleDemoLogin = () => signInWithPassword(DEMO_EMAIL, DEMO_PASSWORD, 'demo');
 
   const handleGoogleLogin = async () => {
     setError('');
@@ -132,15 +125,6 @@ export default function Login() {
       <p className="auth-card__footer">
         Need an account? <Link className="auth-link" to="/register/">Create one</Link>
       </p>
-      <button
-        className="auth-button auth-button--demo"
-        disabled={submitting !== null}
-        onClick={handleDemoLogin}
-        type="button"
-      >
-        {submitting === 'demo' ? 'Opening the demo…' : 'Try the demo'}
-        <AuthArrow busy={submitting === 'demo'} />
-      </button>
     </AuthShell>
   );
 }

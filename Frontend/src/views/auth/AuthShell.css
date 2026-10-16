@@ -888,17 +888,3 @@
   animation: none;
   transform: none;
 }
-
-/* The shared demo account on the sign-in page. */
-.auth-button.auth-button--demo {
-  margin-top: 0.85rem;
-  background: var(--card);
-  border-color: var(--input);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
-  color: var(--foreground);
-}
-
-.auth-button.auth-button--demo:hover:not(:disabled) {
-  background: var(--hover);
-  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
-}
