@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from userauths.demo import forbid_demo, is_demo
 from userauths.models import EligibilityState
 
 from api.authentication import IdentityServiceUnavailable
@@ -64,6 +65,7 @@ def _me_payload(request):
         'eligibility_state': request.user.eligibility_state,
         'onboarding_status': _onboarding_status(request.user, identity),
         'is_staff': request.user.is_staff,
+        'is_demo': is_demo(request.user),
         'preferences': {
             'campus': profile.campus,
             'program': profile.program,
@@ -86,6 +88,7 @@ class MeView(APIView):
         return Response(_me_payload(request))
 
     def patch(self, request):
+        forbid_demo(request.user)
         serializer = MeUpdateSerializer(
             request.user.profile,
             data=request.data,
@@ -100,6 +103,7 @@ class RevokeSessionsView(APIView):
     permission_classes = [IsAuthenticated, HasRecentFirebaseAuthentication]
 
     def post(self, request):
+        forbid_demo(request.user)
         try:
             valid_after = revoke_firebase_sessions(request.auth.uid)
         except FirebaseIdentityUnavailable as exc:

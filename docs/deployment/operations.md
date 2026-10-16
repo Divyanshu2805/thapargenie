@@ -12,6 +12,7 @@ tab always go ahead.
 | Job | Schedule (IST) | Does |
 |---|---|---|
 | `eval` | Daily, 02:00 | Scores search quality on the 23 evaluation questions (about 40 model calls) and records it for the Overview. Fails below recall@5 0.9, so GitHub emails the owner |
+| `demo` | Daily, 03:30 | Puts the public [demo account](#demo-account) back: deletes what the last visitor did and asks any missing sample question again |
 | `purge` | Daily, 03:00 | Marks documents past their "valid until" date not current, then applies the [retention rules](../schema/README.md#retention) |
 | `backup` | Mondays, 03:30 | An encrypted dump of the database, kept as a workflow artifact for 35 days |
 | `refresh` | Sundays, 04:00 | Re-reads every web page added by URL and re-processes the ones whose text changed |
@@ -20,6 +21,31 @@ tab always go ahead.
 GitHub starts scheduled runs late, in practice 2 to 4 hours after the listed time. Each job
 has a dry-run variant under *Run workflow*: `purge-dry-run`, `refresh-dry-run`,
 `context-long-dry-run`. Jobs never overlap (one concurrency group).
+
+## Demo account
+
+The sign-in page offers a shared student, Aarav Sharma (`demo@divyanshuagrahari.dev`; the
+address is `DEMO_ACCOUNT_EMAIL`). Its password is public on purpose and sits in
+`Frontend/src/config/demo.js` and `userauths/demo.py`: change both together.
+
+**Once, from a shell that can reach production Firebase** (the Render shell, or a laptop
+with `gcloud auth application-default login`), with the production environment set:
+
+```bash
+python manage.py seed_demo
+```
+
+This creates the Firebase account and the local one, then asks the seven sample questions
+through the live pipeline, so the chats carry real answers and citations. Run it again to
+change the password (`DEMO_ACCOUNT_PASSWORD`) or to repair the Firebase account.
+
+The daily `demo` job runs `seed_demo --content-only`: no Firebase, only the database. A chat
+counts as a sample while it is still one untouched question and answer; the job deletes
+everything else the demo account made (including feedback) and asks again only the samples
+that are missing, so a quiet day makes no model calls. The API refuses the demo account its
+profile changes, "sign out everywhere" and "delete all chats" (`403 demo_account_locked`).
+Firebase itself cannot be stopped from changing the demo's password for anyone who knows
+it: re-run `seed_demo` if that happens.
 
 ## Backups
 

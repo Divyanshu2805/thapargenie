@@ -7,7 +7,7 @@ limits are collected in [project metrics](metrics.md).
 
 | Role | How they get in | What they can do |
 |---|---|---|
-| Visitor | Not signed in | Landing page, sign in, register, reset password, the privacy notice, a shared answer |
+| Visitor | Not signed in | Landing page, sign in (or the shared demo student), register, reset password, the privacy notice, a shared answer |
 | Pending user | Signed in, email unverified or account not yet approved | A status screen (verify, pending, denied, suspended), resend verification, sign out |
 | Student | Verified email and an approved account | Chat, history, notices, settings, feedback |
 | Admin | A student with staff access, granted from the command line only | Everything a student can, plus the admin dashboard after a two-factor step |

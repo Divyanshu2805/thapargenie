@@ -48,6 +48,7 @@ post notices from a separate dashboard.
 | | |
 |---|---|
 | **Live app** | [thapargenie.divyanshuagrahari.dev](https://thapargenie.divyanshuagrahari.dev) |
+| **Demo login** | `demo@divyanshuagrahari.dev` / `Demo-Thapar-2026!`, or the **Try the demo** button on the sign-in page. A shared, public student account (Aarav Sharma) with a few questions already asked: it can't change its profile or sign others out, and it is put back every day |
 | **Getting in** | Register with an email and verify it. New accounts are approved by an admin; when the admins have switched approval off, a verified `thapar.edu` address gets in directly and any other address still waits |
 | **First request** | The API runs on a free instance. If it has been idle, the first request can take up to a minute |
 
