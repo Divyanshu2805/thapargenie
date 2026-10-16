@@ -25,6 +25,11 @@ RRF_K = 60
 LIST_SIZE = 40
 BOOST = 0.10
 DUPLICATE_OVERLAP = 0.85
+PER_DOCUMENT = 3
+# Which lists retrieve() fuses. Answers always use both; one alone is for measuring what
+# each contributes (eval_rag --retriever).
+HYBRID, VECTOR, KEYWORD = 'hybrid', 'vector', 'keyword'
+RETRIEVERS = (HYBRID, VECTOR, KEYWORD)
 
 _TOKEN = re.compile(r'[a-z0-9]+')
 
@@ -254,15 +259,22 @@ class Retrieval:
         }
 
 
-def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25):
+def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25, retriever=HYBRID):
     """`keywords` is a KeywordSearch started earlier (the pipeline starts it before it
-    embeds the queries); without one it is started here, before embedding."""
-    keywords = keywords or KeywordSearch(analysis)
-    if vectors is None:
-        queries = analysis.search_queries
-        vectors = llm.embed_queries(queries) if queries else []
-    lists = vector_lists(vectors)
-    keyword_ids = keywords.result()
+    embeds the queries); without one it is started here, before embedding. `retriever`
+    leaves out the keyword list (VECTOR) or the vector lists (KEYWORD); the rest of the
+    ranking - fusion, boosts, de-duplication - is the same either way."""
+    if retriever not in RETRIEVERS:
+        raise ValueError(f'Unknown retriever {retriever!r}; expected one of {RETRIEVERS}.')
+    if retriever != VECTOR:
+        keywords = keywords or KeywordSearch(analysis)
+    lists = {}
+    if retriever != KEYWORD:
+        if vectors is None:
+            queries = analysis.search_queries
+            vectors = llm.embed_queries(queries) if queries else []
+        lists = vector_lists(vectors)
+    keyword_ids = keywords.result() if retriever != VECTOR else []
     if keyword_ids:
         lists['keyword'] = keyword_ids
     scores, ranks = fuse(lists)
@@ -278,7 +290,27 @@ def retrieve(llm, analysis, *, vectors=None, keywords=None, limit=25):
         candidates.append(candidate)
     apply_boosts(candidates, analysis)
     candidates.sort(key=lambda c: c.score, reverse=True)
-    return Retrieval(drop_near_duplicates(candidates)[:limit], lists)
+    candidates = drop_near_duplicates(candidates)
+    if not analysis.wants_complete_list:
+        candidates = spread_documents(candidates)
+    return Retrieval(candidates[:limit], lists)
+
+
+def spread_documents(candidates, per_document=PER_DOCUMENT):
+    """Let no document hold more than `per_document` of the leading places.
+
+    One long document of near-identical passages (a list of hundreds of names) appears
+    in every list at a middling rank, and fusion rewards appearing in many lists, so it
+    could fill the whole top of the ranking and push a passage that two lists ranked
+    first down to 19th. Its other passages are kept, in order, after the first
+    `per_document` of every document. A "list all" question skips this: it needs many
+    passages of one document."""
+    leading, rest, counts = [], [], {}
+    for candidate in candidates:
+        seen = counts.get(candidate.document_id, 0)
+        counts[candidate.document_id] = seen + 1
+        (leading if seen < per_document else rest).append(candidate)
+    return leading + rest
 
 
 def _words(text):

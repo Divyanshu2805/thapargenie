@@ -53,7 +53,7 @@ carried out end to end.
 ## Answer quality
 
 Problems found in real conversations. Each is a pattern, not one question: the example is
-only how it was found. All three below are fixed and have regression questions in
+only how it was found. All four below are fixed and have regression questions in
 `rag/eval/golden.json`.
 
 ### 1. Remarks about the chat got the greeting
@@ -96,13 +96,24 @@ characters and longer pages in windows; `contextualize_documents` adds them to s
 pages. Applied to production on 2026-10-06 (652 documents, 4,646 passages, about 1,060
 model calls), and to the 21 longest pages on 2026-10-09.
 
+### 4. One long document filled the top of the ranking
+
+**Found** 2026-10-10 by the nightly check, and again on 2026-10-16: the page for
+`jee-cutoff-first-round-2026` ranked 18th or 19th on about one run in ten, and 1st on the rest.
+
+**Cause.** When query analysis wrote one of its alternate queries and its keywords a little
+differently, two of the four lists missed the cut-off PDF while two still ranked it first.
+The JEE scorecard notice - over 100 near-identical passages - appeared in all four lists at
+middling ranks, and fusion rewards appearing in many lists, so its passages took all 18
+places above the answer.
+
+**Fix** (2026-10-16). No document may hold more than three of the leading places; its other
+passages follow, in order (`spread_documents` in `rag/retrieve.py`). "List all" questions
+skip this. The failing analysis, replayed, now ranks the PDF 4th. On the production
+knowledge base the same day, recall@5 was 0.94 before and 1.00 in three runs after.
+
 ### Open
 
-- **Run-to-run variation.** The nightly check on 2026-10-10 ranked the page for
-  `jee-cutoff-first-round-2026` 18th, after two nights at rank 1 with no change to the
-  code. Query analysis is a model call, and a different rewrite can move a result. If it
-  repeats, compare the rewritten question between a passing and a failing night
-  (`manage.py eval_rag --case jee-cutoff-first-round-2026`).
 - **Tiny passages from short scans** can rank above fuller ones.
 
 ## Catching the next one

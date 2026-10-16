@@ -18,6 +18,9 @@ from rag.pipeline import NOT_FOUND, AnswerType, answer, answer_events
 from rag.rerank import MIN_SCORE, rerank
 from rag.retrieve import (
     BOOST,
+    HYBRID,
+    KEYWORD,
+    VECTOR,
     Candidate,
     KeywordSearch,
     _keyword_executor,
@@ -26,6 +29,7 @@ from rag.retrieve import (
     fuse,
     keyword_query,
     retrieve,
+    spread_documents,
 )
 
 
@@ -174,6 +178,20 @@ class FusionTests(SimpleTestCase):
         ]
         self.assertEqual([c.chunk_id for c in drop_near_duplicates(items)], ['a', 'b'])
 
+    def test_one_document_cannot_fill_the_top(self):
+        flood = [candidate(chunk_id=f'flood-{i}', document_id='big') for i in range(6)]
+        other = candidate(chunk_id='answer', document_id='cutoffs')
+        spread = spread_documents([*flood, other], per_document=3)
+        self.assertEqual(
+            [c.chunk_id for c in spread],
+            ['flood-0', 'flood-1', 'flood-2', 'answer', 'flood-3', 'flood-4', 'flood-5'],
+        )
+
+    def test_spreading_keeps_order_and_every_passage(self):
+        items = [candidate(chunk_id=f'{doc}{i}', document_id=doc) for i in range(2) for doc in 'ab']
+        spread = spread_documents(items, per_document=3)
+        self.assertEqual([c.chunk_id for c in spread], [c.chunk_id for c in items])
+
     def test_keyword_query_is_safe_or_query(self):
         self.assertEqual(keyword_query("UCS301 fee's & (drop) 2026-27"),
                          'ucs301 | fee | s | drop | 2026 | 27')
@@ -207,6 +225,55 @@ class RetrieveTests(TestCase):
         result = retrieve(self.llm, analysis)
         self.assertEqual(result.lists['keyword'][0],
                          str(Chunk.objects.get(content__startswith='UCS301').pk))
+
+    def hostel_analysis(self):
+        return QueryAnalysis(question='boys hostel fee', standalone_query='boys hostel fee',
+                             keywords='hostel fee boys')
+
+    def test_vector_retriever_never_runs_the_keyword_search(self):
+        with mock.patch('rag.retrieve.keyword_list') as keyword_list:
+            result = retrieve(self.llm, self.hostel_analysis(), retriever=VECTOR)
+        keyword_list.assert_not_called()
+        self.assertEqual(set(result.lists), {'vector:0'})
+        self.assertEqual(result.candidates[0].title, 'Hostel fee structure')
+        self.assertNotIn('Old hostel fees', [c.title for c in result.candidates])
+
+    def test_keyword_retriever_embeds_nothing(self):
+        with mock.patch.object(self.llm, 'embed_queries') as embed_queries:
+            result = retrieve(self.llm, self.hostel_analysis(), retriever=KEYWORD)
+        embed_queries.assert_not_called()
+        self.assertEqual(set(result.lists), {'keyword'})
+        self.assertEqual(result.candidates[0].title, 'Hostel fee structure')
+        self.assertNotIn('Old hostel fees', [c.title for c in result.candidates])
+
+    def test_hybrid_is_the_default_and_fuses_both(self):
+        default = retrieve(self.llm, self.hostel_analysis())
+        hybrid = retrieve(self.llm, self.hostel_analysis(), retriever=HYBRID)
+        self.assertEqual(default.lists, hybrid.lists)
+        self.assertEqual([c.chunk_id for c in default.candidates],
+                         [c.chunk_id for c in hybrid.candidates])
+
+    def test_keyword_retriever_with_no_keyword_match_returns_nothing(self):
+        analysis = QueryAnalysis(question='zzqx', standalone_query='zzqx', keywords='zzqx')
+        result = retrieve(self.llm, analysis, retriever=KEYWORD)
+        self.assertEqual((result.candidates, result.lists), ([], {}))
+
+    def test_unknown_retriever_is_refused(self):
+        with self.assertRaises(ValueError):
+            retrieve(self.llm, self.hostel_analysis(), retriever='bm25')
+
+    def test_a_long_document_is_spread_out_unless_the_whole_list_is_wanted(self):
+        add_document('Scorecard list', [f'Hostel fee query number {i} for boys.' for i in range(8)])
+        for whole_list in (False, True):
+            analysis = self.hostel_analysis()
+            analysis.wants_complete_list = whole_list
+            with self.subTest(whole_list=whole_list), \
+                    mock.patch('rag.retrieve.spread_documents', wraps=spread_documents) as spread:
+                result = retrieve(self.llm, analysis)
+                self.assertEqual(spread.called, not whole_list)
+                leading = [c.title for c in result.candidates[:3 + 2]]
+                if not whole_list:
+                    self.assertLessEqual(leading.count('Scorecard list'), 3)
 
 
 class ParallelKeywordSearchTests(TransactionTestCase):
