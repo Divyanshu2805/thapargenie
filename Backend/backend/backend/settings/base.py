@@ -168,7 +168,9 @@ REST_FRAMEWORK = {
 }
 
 # The shared public demo account (see userauths/demo.py). Its password is public on purpose.
-DEMO_ACCOUNT_EMAIL = os.getenv("DEMO_ACCOUNT_EMAIL", "demo@divyanshuagrahari.dev").strip().casefold()
+DEMO_ACCOUNT_EMAIL = (
+    os.getenv("DEMO_ACCOUNT_EMAIL", "demo@divyanshuagrahari.dev").strip().casefold()
+)
 
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
 CORS_ALLOW_HEADERS = (*default_headers, "x-request-id")
