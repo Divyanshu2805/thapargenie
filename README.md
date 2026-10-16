@@ -120,18 +120,6 @@ A Django API and a React single-page app. They talk JSON over HTTPS; answers str
 server-sent events. Everything durable is in one PostgreSQL database, where search runs
 too: there is no separate vector store, queue or cache server.
 
-```mermaid
-flowchart LR
-  B[Browser · React app] -->|static files| H[Firebase Hosting]
-  B -->|sign in| FA[Firebase Authentication]
-  B -->|JSON and SSE with a Firebase ID token| API[Django API on Render]
-  API -->|verify token| FA
-  API --> DB[(Supabase PostgreSQL · pgvector + full-text search)]
-  API --> ST[(Supabase Storage · private bucket)]
-  API -->|analysis, embeddings, answers| LLM[Gemini API]
-  GH[GitHub Actions] -->|CI, deploy, nightly eval, purge, backup| API
-```
-
 The decisions behind it, each with what it was chosen over:
 
 | Decision | Why |
