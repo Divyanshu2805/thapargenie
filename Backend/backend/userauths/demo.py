@@ -9,9 +9,10 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
+# Firebase uids cannot change, so this keeps the uid the account was first made with.
 DEMO_UID = 'demo-aarav-sharma'
-DEMO_FIRST_NAME = 'Aarav'
-DEMO_LAST_NAME = 'Sharma'
+DEMO_FIRST_NAME = 'Demo'
+DEMO_LAST_NAME = 'User'
 DEMO_DISPLAY_NAME = f'{DEMO_FIRST_NAME} {DEMO_LAST_NAME}'
 DEMO_PROFILE = {'campus': 'Patiala', 'program': 'B.E. Computer Engineering', 'academic_year': 1}
 # Public, like the email. Easy to type; Firebase needs at least 6 characters.
@@ -36,7 +37,9 @@ class DemoAccountLocked(APIException):
 
 
 def is_demo(user):
-    return bool(user) and getattr(user, 'email', '') == settings.DEMO_ACCOUNT_EMAIL
+    # The uid keeps the account locked while it is moved to a new DEMO_ACCOUNT_EMAIL.
+    return bool(user) and (getattr(user, 'email', '') == settings.DEMO_ACCOUNT_EMAIL
+                           or getattr(user, 'firebase_uid', None) == DEMO_UID)
 
 
 def forbid_demo(user):

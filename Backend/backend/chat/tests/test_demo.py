@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.utils import timezone
-from userauths.demo import DEMO_QUESTIONS, is_demo
+from userauths.demo import DEMO_QUESTIONS, DEMO_UID, is_demo
 from userauths.models import User
 
 from chat.models import Conversation, Feedback, Message, SiteFeedback, UsageDaily
@@ -26,6 +26,11 @@ class DemoLockTests(ChatTestCase):
         self.assertTrue(is_demo(self.demo))
         self.assertFalse(is_demo(self.user))
         self.assertFalse(is_demo(None))
+
+    def test_the_demo_uid_stays_locked_under_an_old_email(self):
+        old = make_user('old-demo@example.com')
+        old.firebase_uid = DEMO_UID
+        self.assertTrue(is_demo(old))
 
     def test_me_says_who_is_the_demo(self):
         self.assertTrue(self.demo_client.get(ME).data['is_demo'])
@@ -72,10 +77,10 @@ class SeedDemoTests(ChatTestCase):
         with self.assertRaises(CommandError):
             call_command('seed_demo', '--content-only', verbosity=0)
 
-    def test_it_makes_the_demo_a_student_called_aarav_with_sample_chats(self):
+    def test_it_makes_the_demo_a_student_called_demo_user_with_sample_chats(self):
         self.seed()
         self.demo.refresh_from_db()
-        self.assertEqual((self.demo.first_name, self.demo.last_name), ('Aarav', 'Sharma'))
+        self.assertEqual((self.demo.first_name, self.demo.last_name), ('Demo', 'User'))
         self.assertFalse(self.demo.is_staff)
         self.assertEqual(self.demo.profile.program, 'B.E. Computer Engineering')
         asked = list(Message.objects.filter(conversation__user=self.demo, role='user')
@@ -83,6 +88,18 @@ class SeedDemoTests(ChatTestCase):
         self.assertEqual(asked, list(self.questions))
         self.assertEqual(Message.objects.filter(conversation__user=self.demo,
                                                 status='complete').count(), 4)
+
+    def test_an_account_made_under_an_old_email_moves_to_the_new_one(self):
+        self.demo.email, self.demo.firebase_uid = 'old-demo@example.com', DEMO_UID
+        self.demo.save()
+        for _ in self.questions:
+            self.fake.queue(ANALYSIS, ANSWER)
+        with mock.patch('chat.management.commands.seed_demo._ensure_firebase_user',
+                        return_value=DEMO_UID):
+            call_command('seed_demo', verbosity=0)
+        self.demo.refresh_from_db()
+        self.assertEqual(self.demo.email, settings.DEMO_ACCOUNT_EMAIL)
+        self.assertEqual(User.objects.filter(firebase_uid=DEMO_UID).count(), 1)
 
     def test_the_seeding_questions_do_not_use_up_the_allowance(self):
         self.seed()

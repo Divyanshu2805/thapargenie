@@ -1,4 +1,4 @@
-"""Create or reset the shared demo account (Aarav Sharma) and its sample chats.
+"""Create or reset the shared demo account (Demo User) and its sample chats.
 
     python manage.py seed_demo                 # first run, or to change the password
     python manage.py seed_demo --content-only  # the daily reset: database only
@@ -46,7 +46,11 @@ def _ensure_firebase_user(email, password):
     try:
         existing = auth.get_user_by_email(email, app=app)
     except auth.UserNotFoundError:
-        return auth.create_user(uid=DEMO_UID, app=app, **fields).uid
+        try:
+            # The account made under an earlier DEMO_ACCOUNT_EMAIL moves to the new one.
+            existing = auth.get_user(DEMO_UID, app=app)
+        except auth.UserNotFoundError:
+            return auth.create_user(uid=DEMO_UID, app=app, **fields).uid
     return auth.update_user(existing.uid, app=app, **fields).uid
 
 
@@ -59,6 +63,7 @@ def _ensure_local_user(email, uid):
             raise CommandError('The demo account does not exist yet. Run seed_demo without '
                                '--content-only first.')
         user = User(email=email)
+    user.email = email
     if uid:
         user.firebase_uid = uid
     user.first_name, user.last_name = DEMO_FIRST_NAME, DEMO_LAST_NAME
