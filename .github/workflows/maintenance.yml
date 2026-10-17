@@ -74,7 +74,7 @@ jobs:
           ${{ inputs.job == 'purge-dry-run' && '--dry-run' || '' }}
 
   demo:
-    # Puts the public demo account (Aarav Sharma) back: removes what the last visitor did and
+    # Puts the public demo account (Demo User) back: removes what the last visitor did and
     # asks any missing sample question again. A day with no changes makes no AI calls. The
     # Firebase account itself is made once by hand (docs/deployment/operations.md).
     if: >-

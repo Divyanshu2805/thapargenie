@@ -24,7 +24,7 @@ has a dry-run variant under *Run workflow*: `purge-dry-run`, `refresh-dry-run`,
 
 ## Demo account
 
-Anyone can sign in as a shared student, Aarav Sharma (`demo@divyanshuagrahari.dev`; the
+Anyone can sign in as a shared student, Demo User (`demo@thapargenie.dev`; the
 address is `DEMO_ACCOUNT_EMAIL`). The login is published in the README, not on the sign-in
 page. The password is public on purpose and defaults to the value in `userauths/demo.py`.
 
@@ -37,7 +37,9 @@ python manage.py seed_demo
 
 This creates the Firebase account and the local one, then asks the seven sample questions
 through the live pipeline, so the chats carry real answers and citations. Run it again to
-change the password (`DEMO_ACCOUNT_PASSWORD`) or to repair the Firebase account.
+change the password (`DEMO_ACCOUNT_PASSWORD`), to repair the Firebase account, or after
+changing `DEMO_ACCOUNT_EMAIL` (it finds the account by its fixed uid and moves it to the new
+address; until then the daily job stops with "does not exist yet").
 
 The daily `demo` job runs `seed_demo --content-only`: no Firebase, only the database. A chat
 counts as a sample while it is still one untouched question and answer; the job deletes
