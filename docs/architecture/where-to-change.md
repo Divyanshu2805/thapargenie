@@ -53,7 +53,7 @@ The file to open for a given task. Paths under `Backend/backend/` unless they st
 
 | To change | Open |
 |---|---|
-| Token checks | `api/authentication.py`, `api/firebase.py` (protected: see [conventions](../practices/coding-conventions.md#the-auth-code)) |
+| Token checks | `api/authentication.py`, `api/firebase.py` |
 | Who gets in without approval | `access/policy.py`, `OPEN_ACCESS_EMAIL_DOMAINS` |
 | Approving, suspending, inviting | `access/services.py` |
 | Two-factor rules | `access/two_factor.py`, `access/permissions.py` |

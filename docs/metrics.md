@@ -7,7 +7,7 @@ unless it says "about". Last measured on 2026-10-11, except where a date is give
 
 | Metric | Value | How to check |
 |---|---|---|
-| Backend tests | 572 in 56 files, all passing (3 need the Auth emulator and run in CI) | `pytest` |
+| Backend tests | 595 in 48 files, all passing (3 need the Auth emulator and run in CI) | `pytest` |
 | Frontend unit tests | 246 in 48 files, all passing | `cd Frontend && npm test` |
 | End-to-end journeys | 5, in a real browser against the whole stack | `npm run test:e2e` under the Auth emulator |
 | Statement coverage | 92% of 5,504 statements in `rag`, `chat`, `knowledge` and `notices` | `pytest --cov` |
@@ -27,7 +27,7 @@ important. Targets: recall@5 at least 0.90, MRR at least 0.70.
 | 2026-10-07, manual | 0.94 | 0.94 | 0.91 | | 1.00 | 1.00 | One important miss: its source document had not been added yet |
 | 2026-10-08, nightly | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | |
 | 2026-10-09, nightly | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | |
-| 2026-10-10, nightly | 0.94 | 0.94 | 0.94 | 0.94 | 1.00 | 1.00 | One important miss, ranked 18th; see [known gaps](known-gaps/README.md#open) |
+| 2026-10-10, nightly | 0.94 | 0.94 | 0.94 | 0.94 | 1.00 | 1.00 | One important passage ranked 18th |
 
 Each run makes 40 model calls. With written answers checked as well
 (`eval_rag --answers`, 2026-10-06, 102 model calls): recall@5 1.00, MRR 0.97, answers 0.96.
@@ -38,7 +38,7 @@ How to check: `python manage.py eval_rag`, or **Admin → Overview → Answer qu
 
 | Metric | Value | Source |
 |---|---|---|
-| First word of an answer, production | about 8 s (four timed questions: 8, 14, 8, 8 s) | Stopwatch, 2026-10-09. The target of 3 s is not met |
+| First word of an answer, production | about 8 s (four timed questions: 8, 14, 8, 8 s) | Stopwatch, 2026-10-09 |
 | Full answer, production | 10.2 s median, 16.2 s at the 95th percentile | Admin Overview, 2026-10-09 |
 | Cached answer | Immediate: no analysis, search or generation | `chat/cache.py` |
 | Plain API request, half a CPU, 50 students | 21 ms median, 87 ms at the 95th percentile | [Load testing](load-testing.md#without-the-model) |

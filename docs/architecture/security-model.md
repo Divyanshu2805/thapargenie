@@ -1,7 +1,6 @@
 # Security model
 
-The boundaries ThaparGenie keeps, and the code that enforces each. The rules a change must
-not break are restated as a checklist in [security guardrails](../practices/security-guardrails.md).
+The boundaries ThaparGenie keeps, and the code that enforces each.
 
 ## Layers on every request
 
@@ -89,5 +88,3 @@ access changes, every admin change to documents, passages, notices and settings,
 review, exports, shares, two-factor events, scheduled jobs, and refused attempts on the
 admin API (one event per user, path and reason per 5 minutes). Staff read them under
 **Audit log**.
-
-To report a vulnerability, see [`SECURITY.md`](../../SECURITY.md).

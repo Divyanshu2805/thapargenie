@@ -72,4 +72,5 @@ screen, and the history sent to the model is the chain from the root to that lea
 ## Measuring it
 
 `manage.py ask "question" --trace` prints every step for one question. `manage.py eval_rag`
-scores search against `rag/eval/golden.json`; see [testing](../../practices/testing.md#search-quality).
+scores search against `rag/eval/golden.json`; see [commands](../../local-development/commands.md) and
+[project metrics](../../metrics.md#answer-quality).

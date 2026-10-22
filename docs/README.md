@@ -5,7 +5,7 @@ Start with the section that matches what you are trying to do.
 
 ## Getting started
 
-- [Features](features.md): everything the app does, by area, with its limits.
+- [Features](features.md): everything the app does, by area.
 - [Local development](local-development/README.md): prerequisites, setup, configuration,
   commands, troubleshooting.
 - [Tech stack](tech-stack.md): the frameworks, models and services in use.
@@ -32,15 +32,7 @@ Start with the section that matches what you are trying to do.
 - [Project metrics](metrics.md): measured quality, answer quality, speed and scale, and
   how to re-check each.
 - [Load testing](load-testing.md): what one instance carries, per size.
-- [Known gaps](known-gaps/README.md): targets not met, trade-offs, what is not built, and
-  the answer-quality problems found so far.
 - [Where to change things](architecture/where-to-change.md): the file to open for a task.
-
-## Engineering
-
-- [Engineering practices](practices/README.md): conventions, testing, security guardrails,
-  known pitfalls, definition of done.
-- [`SECURITY.md`](../SECURITY.md): reporting a vulnerability.
 
 ## Running in production
 

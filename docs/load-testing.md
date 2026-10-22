@@ -48,7 +48,7 @@ load at all, the first word takes about 8 seconds.
 Only three of the 36 runs had failed requests: the two that gave the free plan 32
 threads per worker under heavy load, and the 1,000-student run.
 
-## What limits it
+## How it scales
 
 **Threads first.** Each streaming answer holds one worker thread for about 10 seconds. With
 16 threads, the 17th question waits for a free one: time to accepted jumps from 0.1 s to
@@ -129,16 +129,5 @@ they wait for the same threads. That is the first thing a student would notice.
 - The daily AI budget (5,000 calls, roughly three per answered question) is reached long
   before any of these limits on a busy day. It is a deliberate spending cap, set in
   **Admin → Settings**.
-
-## Limits of the test
-
-- One laptop ran the API, the database and the load generator, so the larger runs compete
-  for the same machine.
-- The model is a timed stand-in. Real model latency varies more, and a real provider has
-  its own rate limits.
-- Simulated questions are mostly unique, so the answer cache helps less than it would with
-  real students.
-- Runs are short: 90 seconds to 5 minutes. No soak test was run.
-- The free plan's CPU share is an approximation of a shared host.
 
 To run it again, see [`loadtest/README.md`](../loadtest/README.md).

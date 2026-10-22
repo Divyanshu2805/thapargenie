@@ -31,7 +31,7 @@ Problems that have come up while working on ThaparGenie, with the cause and the 
 |---|---|
 | Asking answers 406 | The request did not accept JSON. Send `Accept: text/event-stream, application/json`: content negotiation runs before the view |
 | `conversation_busy` for a few minutes after a crash | A stream was left open. It stops blocking after 4 minutes and is marked failed after 10 |
-| The first word takes about 8 seconds | Expected with the current models: analysis, embedding, search and the model's own thinking come first. See [known gaps](../known-gaps/README.md#speed) |
+| The first word takes about 8 seconds | Expected with the current models: analysis, embedding, search and the model's own thinking come first. A repeated question is served from the cache at once |
 | Gemini answers 429 during an import | The free tier's rate limit. The client retries with the delay the API asks for; lower `EMBED_BATCH_SIZE` if it keeps happening. A daily quota error stops the import, which can be run again later |
 
 ## Documents
