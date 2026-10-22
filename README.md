@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://thapargenie.divyanshuagrahari.dev"><img src="docs/assets/banner.jpg" alt="ThaparGenie" width="820" /></a>
+  <a href="https://thapargenie.divyanshuagrahari.dev"><img src="docs/assets/banner.jpg" alt="ThaparGenie" width="900" /></a>
 </p>
 
 <p align="center">
@@ -9,275 +9,227 @@
 
 <p align="center">
   <a href="https://github.com/Divyanshu2805/thapargenie/actions/workflows/ci.yml"><img src="https://github.com/Divyanshu2805/thapargenie/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
-  <img src="https://img.shields.io/badge/Python-3.13-0a0b0d?logo=python" alt="Python" />
-  <img src="https://img.shields.io/badge/Django-5.2-0a0b0d?logo=django" alt="Django" />
-  <img src="https://img.shields.io/badge/DRF-3.18-0a0b0d?logo=django" alt="Django REST Framework" />
+  <img src="https://img.shields.io/badge/Python-3.13-0a0b0d?logo=python" alt="Python 3.13" />
+  <img src="https://img.shields.io/badge/Django-5.2-0a0b0d?logo=django" alt="Django 5.2" />
   <img src="https://img.shields.io/badge/PostgreSQL-pgvector-0a0b0d?logo=postgresql" alt="PostgreSQL with pgvector" />
   <img src="https://img.shields.io/badge/Gemini-API-0a0b0d?logo=googlegemini" alt="Gemini" />
-  <img src="https://img.shields.io/badge/React-19-0a0b0d?logo=react" alt="React" />
-  <img src="https://img.shields.io/badge/Vite-8-0a0b0d?logo=vite" alt="Vite" />
-  <img src="https://img.shields.io/badge/Tailwind-4-0a0b0d?logo=tailwindcss" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/React-19-0a0b0d?logo=react" alt="React 19" />
+  <img src="https://img.shields.io/badge/Vite-8-0a0b0d?logo=vite" alt="Vite 8" />
+  <img src="https://img.shields.io/badge/Tailwind-4-0a0b0d?logo=tailwindcss" alt="Tailwind CSS 4" />
   <img src="https://img.shields.io/badge/Firebase-Auth_and_Hosting-0a0b0d?logo=firebase" alt="Firebase Authentication and Hosting" />
-  <img src="https://img.shields.io/badge/Supabase-Storage-0a0b0d?logo=supabase" alt="Supabase" />
-  <img src="https://img.shields.io/badge/TanStack_Query-5-0a0b0d?logo=reactquery" alt="TanStack Query" />
-  <img src="https://img.shields.io/badge/Radix_UI-shadcn-0a0b0d?logo=radixui" alt="Radix UI" />
+  <img src="https://img.shields.io/badge/Supabase-Postgres_and_Storage-0a0b0d?logo=supabase" alt="Supabase" />
   <img src="https://img.shields.io/badge/Render-API-0a0b0d?logo=render" alt="Render" />
-  <img src="https://img.shields.io/badge/Sentry-Errors-0a0b0d?logo=sentry" alt="Sentry" />
-  <img src="https://img.shields.io/badge/pytest-Backend_tests-0a0b0d?logo=pytest" alt="pytest" />
-  <img src="https://img.shields.io/badge/Vitest-Frontend_tests-0a0b0d?logo=vitest" alt="Vitest" />
   <img src="https://img.shields.io/badge/Playwright-E2E-0a0b0d?logo=playwright" alt="Playwright" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-0a0b0d" alt="MIT License" /></a>
 </p>
 
-<p align="center">
-  <a href="https://thapargenie.divyanshuagrahari.dev"><b>thapargenie.divyanshuagrahari.dev</b></a>
-</p>
-
 ---
 
-Students at Thapar Institute of Engineering and Technology (TIET) look for fees, hostel
-rules, cutoffs, calendars and syllabi across dozens of pages and PDFs. **ThaparGenie**
-answers the question directly, from the official documents, with a numbered link to every
-source it used, and says so plainly when the documents do not cover it.
+Students at Thapar Institute of Engineering and Technology (TIET) look for fees, hostel rules, cutoffs, calendars and syllabi across dozens of pages and PDFs. **ThaparGenie** answers the question directly, from the official documents, with a numbered link to every source it used, and says so plainly when the documents don't cover it.
 
-Admins run the knowledge base, review feedback, see which questions went unanswered and
-post notices from a separate dashboard.
+Every figure in an answer is checked against the sources it cites before the answer is stored. Admins run the knowledge base from a separate dashboard: they upload documents, review feedback, see which questions went unanswered and post notices.
 
 ## Try it
 
 | | |
 |---|---|
-| **Live app** | [thapargenie.divyanshuagrahari.dev](https://thapargenie.divyanshuagrahari.dev) |
-| **Demo login** | `demo@thapargenie.dev` / `demo1234`. A shared, public student account (Demo User) with a few questions already asked: it can't change its profile or sign others out, and it is put back every day |
-| **Getting in** | Register with an email and verify it. New accounts are approved by an admin; when the admins have switched approval off, a verified `thapar.edu` address gets in directly and any other address still waits |
-| **First request** | The API runs on a free instance. If it has been idle, the first request can take up to a minute |
+| **App** | [thapargenie.divyanshuagrahari.dev](https://thapargenie.divyanshuagrahari.dev) |
+| **Demo login** | `demo@thapargenie.dev` / `demo1234` |
 
-## Screenshots
+The demo account already has a few questions asked, so you land straight in a chat with cited answers. It's shared and resets every day, so it can't change its profile or sign others out. Register with an email to get your own account. New accounts are verified by email and approved by an admin. The API sleeps when idle, so the first request after a quiet spell takes up to a minute.
 
 <p align="center">
   <img src="docs/assets/screenshots/answer.webp" alt="A chat: a question about the hostel fee, the answer with a numbered citation, the session the sources cover and the source document" width="900" />
 </p>
 
-| | |
-|---|---|
-| <img src="docs/assets/screenshots/home.webp" alt="The chat home screen with starter questions and the conversation history" /> | <img src="docs/assets/screenshots/admin-overview.webp" alt="The admin overview: questions per day, answer outcomes, AI calls against the daily budget and the knowledge base" /> |
-| Starter questions, history and the daily allowance | Admin overview: activity, AI budget and the knowledge base |
-| <img src="docs/assets/screenshots/admin-documents.webp" alt="The admin documents page listing documents with category, status and passage count" /> | <img src="docs/assets/screenshots/admin-playground.webp" alt="The admin playground showing an answer, whether it was grounded and the time each step took" /> |
-| Documents: search, filter and act in bulk | Playground: every step of an answer, with timings |
-
-Taken on a local stack with sample documents, so the figures shown are not TIET's.
-
 ## Features
 
 **Asking**
-- Questions in English or Hinglish, with follow-ups understood from the chat
-- Streamed answers with a citation on every fact; each opens the official page or file
-- Every figure in an answer (amounts, years, dates) is checked against the sources it
-  cites, and the answer is flagged when one is not found
-- A line saying which academic session the sources cover, with a warning for outdated ones
-- An honest "I couldn't find this" with where to look, instead of a guess
-- "List all" questions load the whole page, so no item is left out
-- Follow-up suggestions on request, voice input, and starter questions
+- Questions in English or Hinglish, with follow-ups understood from the chat.
+- Streamed answers with a citation on every fact. Each one opens the official page or file.
+- Every figure (amounts, years, dates) is matched against the sources it cites, and the answer is flagged when one isn't found.
+- A line saying which academic session the sources cover, with a warning when they are out of date.
+- A clear "I couldn't find this" with where to look, instead of a guess.
+- "List all" questions read the whole page, so no item is left out.
+- Follow-up suggestions, voice input and starter questions.
 
 **Conversations**
-- History across devices with search, pin, archive and rename
-- Branches: regenerate an answer or edit a question and flip between versions
-- Download as Markdown, print, or share one answer as a public link that lasts 7 days
-- Notices from admins, a "What can I ask?" page, site feedback, light and dark themes,
-  and install as an app
+- History across devices with search, pin, archive and rename.
+- Branches: regenerate an answer or edit a question and flip between versions.
+- Download as Markdown, print, or share one answer as a public link for 7 days.
+- Notices from admins, a "What can I ask?" page, light and dark themes, and install as an app.
 
 **Admin dashboard**
-- Documents: upload PDF, Word, Excel, CSV, HTML or text, add a web page by URL, edit
-  details, act on 100 at once, view and edit individual passages
-- Insight: usage, answer outcomes, latency, AI spend against a daily budget, feedback
-  review, unanswered questions, and a nightly search-quality score with regression warnings
-- A playground that shows how any question was analysed, searched and answered
-- Users and invitations, notices, runtime settings, CSV exports and an audit log
-- Two-factor sign-in for staff
+- Documents: upload PDF, Word, Excel, CSV, HTML or text, add a web page by URL, edit details, act on 100 at once, and view or edit single passages.
+- Insight: usage, answer outcomes, latency, AI spend against a daily budget, feedback review, unanswered questions, and a nightly search-quality score with regression warnings.
+- A playground that shows how any question was analysed, searched and answered, with the time each step took.
+- Users and invitations, notices, runtime settings, CSV exports and an audit log.
+- Two-factor sign-in for staff.
 
-Everything, with its limits: [features](docs/features.md).
+## Screenshots
 
-## How an answer is made
-
-1. **Admit.** The daily limit, the AI budget and one-stream-per-student are checked, and
-   the question is saved before anything else, so it is never lost.
-2. **Understand.** One fast model call classifies the message and rewrites it as a
-   standalone English question with alternative phrasings and keywords.
-3. **Search.** Vector search (pgvector) and Postgres full-text search run side by side and
-   are merged with reciprocal rank fusion.
-4. **Build sources.** The best passages are merged with their neighbours into numbered
-   sources within a token budget.
-5. **Answer.** The chat model streams an answer from those sources only, citing them.
-6. **Check.** Every figure is matched against the cited sources; the answer, its sources
-   and a trace of each step are stored.
-
-A greeting, a personal-record request or an off-topic question never reaches search, and
-the first question of a chat can be served from a semantic cache.
-More: [asking a question](docs/architecture/flows/asking-a-question.md).
-
-## Architecture
-
-A Django API and a React single-page app. They talk JSON over HTTPS; answers stream as
-server-sent events. Everything durable is in one PostgreSQL database, where search runs
-too: there is no separate vector store, queue or cache server.
-
-The decisions behind it, each with what it was chosen over:
-
-| Decision | Why |
+| | |
 |---|---|
-| [Hybrid search inside PostgreSQL](docs/architecture/decisions/0002-hybrid-search-inside-postgres.md) | Loose questions and exact course codes both found, in one system and one transaction |
-| [Server-sent events over fetch](docs/architecture/decisions/0004-server-sent-events-over-fetch.md) | Streaming over plain HTTP, with a bearer token |
-| [Conversations as a tree](docs/architecture/decisions/0007-messages-as-a-tree.md) | Regenerate and edit without losing what was said |
-| [Citations stored as snapshots](docs/architecture/decisions/0008-citation-snapshots.md) | Old answers stay readable after a document is replaced |
-| [Background work in the web process](docs/architecture/decisions/0005-in-process-background-work.md) | No queue service to run; state in the database survives restarts |
-| [Staff two-factor inside the app](docs/architecture/decisions/0012-staff-two-factor-in-the-app.md) | A stolen password alone never reaches the admin API |
+| <img src="docs/assets/screenshots/home.webp" alt="The chat home screen with starter questions and the conversation history" /> | <img src="docs/assets/screenshots/admin-overview.webp" alt="The admin overview: questions per day, answer outcomes, AI calls against the daily budget and the knowledge base" /> |
+| Starter questions and history | Admin overview |
+| <img src="docs/assets/screenshots/admin-documents.webp" alt="The admin documents page listing documents with category, status and passage count" /> | <img src="docs/assets/screenshots/admin-playground.webp" alt="The admin playground showing an answer, whether it was grounded and the time each step took" /> |
+| Documents | Playground |
 
-More: [architecture overview](docs/architecture/README.md) ·
-[security model](docs/architecture/security-model.md) ·
-[all thirteen decisions](docs/architecture/decisions/README.md)
+Screenshots are from a local stack with sample documents.
 
-## Quality
+## Results
 
-| What | Measured |
+| | |
 |---|---|
-| Search quality | recall@5 between **0.94 and 1.00** and MRR between 0.91 and 1.00 across four scored runs on the production knowledge base, re-scored every night |
-| Tests | **572** backend tests, **246** frontend tests and 5 browser journeys; 92% statement coverage of the answer, chat and knowledge code, with an 80% floor in CI |
-| Capacity | **400 students** using the app at once on half a CPU with no failed requests, in a load test of 102,194 requests; 8 answers at once at full speed on the free instance production runs on |
-| Speed | A full answer in **10.2 s** at the median; the first word in about 8 s |
+| Search quality | recall@5 of **0.94 to 1.00** and MRR of 0.91 to 1.00 across four scored runs on the production knowledge base, re-scored every night |
+| Capacity | **400 students** at once on half a CPU with no failed requests, across a load test of 102,194 requests |
+| Speed | A full streamed answer in **10.2 s** at the median; a repeated question is served from the cache at once |
 | Accessibility | Lighthouse **100** on every page measured |
 | First screen | 218 kB of gzipped JavaScript; every later page loads on demand |
 
-Every figure, with how to re-check it: [project metrics](docs/metrics.md) and
-[load testing](docs/load-testing.md).
+Every figure and how to re-check it is in [project metrics](docs/metrics.md) and [load testing](docs/load-testing.md).
 
-## Security
+## How it works
 
-- **Identity** comes from a verified Firebase ID token on every request, mapped to one
-  account by UID. Accounts need a verified email and approval.
-- **Isolation:** a student reaches only their own chats; anyone else's id looks missing.
-- **Staff** pass a second step with an authenticator app, are granted only from the command
-  line, and need a fresh sign-in for anything irreversible.
-- **Privacy:** the model never receives who is asking, question text is never logged, and
-  admins see feedback under a pseudonym. Old data is deleted on a schedule, and students
-  can export or delete their chats.
-- **Untrusted input:** file types come from content, URLs are fetched only from allowlisted
-  domains with every redirect checked, documents are treated as data and never as
-  instructions, and answers render without raw HTML.
-- **Operations:** production settings refuse to start unsafe, dependencies are pinned and
-  audited in CI, the history is scanned for secrets, and backups are encrypted.
+```mermaid
+flowchart LR
+    B["Browser<br/>(React app)"] -- "sign in" --> FA["Firebase Auth"]
+    B -- "ID token, JSON and SSE" --> API["Django API"]
+    API -- "verify token" --> FA
+    API --> DB[("PostgreSQL<br/>pgvector + full-text")]
+    API --> S[("Supabase Storage")]
+    API --> G["Gemini"]
+    GA["GitHub Actions<br/>scheduled jobs"] --> DB
+```
 
-The rules are in the [security model](docs/architecture/security-model.md) and the
-[security guardrails](docs/practices/security-guardrails.md). Found a problem? See
-[SECURITY.md](SECURITY.md).
+| App | Owns |
+|---|---|
+| `chat` | Conversations as a message tree, the streaming chat API, quotas, the answer cache, sharing, feedback |
+| `rag` | Model clients, question analysis, hybrid search, source building, the answer pipeline, the grounding check, evaluation |
+| `knowledge` | Documents and passages, file storage, the ingestion pipeline |
+| `access` | Users, invitations, the audit log, staff two-factor |
+| `api`, `userauths` | Firebase token checks, identity mapping, the user model and profile |
+| `notices` | Announcements |
 
-## Tech stack
+Everything durable lives in one PostgreSQL database, and search runs there too, so there is no separate vector store, queue or cache server. Identity comes from a verified Firebase ID token on every request, a student reaches only their own chats, and the model never receives who is asking.
 
-| Layer | Technologies |
+Each question goes like this:
+
+```mermaid
+sequenceDiagram
+    participant U as Browser
+    participant C as chat
+    participant R as rag
+    participant L as Gemini
+    participant D as PostgreSQL
+    U->>C: Ask a question
+    C->>D: Check limits, save the question
+    C->>R: Run the pipeline
+    R->>L: Classify and rewrite as a standalone question
+    R->>D: Vector and full-text search, fused by rank
+    R->>R: Build numbered sources within a token budget
+    R->>L: Answer from these sources only
+    L-->>U: Answer streamed with citations
+    R->>R: Match every figure to its cited source
+    C->>D: Store the answer, citations and a trace
+```
+
+A greeting, a personal-record request or an off-topic question gets a fixed reply and never reaches search. The first question of a chat can be answered from a semantic cache.
+
+More detail in [architecture](docs/architecture/README.md), [asking a question](docs/architecture/flows/asking-a-question.md) and the [security model](docs/architecture/security-model.md).
+
+## Stack
+
+| | |
 |---|---|
 | API | Python 3.13, Django 5.2, Django REST Framework, gunicorn |
 | Data | PostgreSQL 17 with pgvector (`halfvec(768)`, HNSW) and full-text search |
-| Models | Google Gemini for analysis, answers and embeddings; an OpenAI adapter behind the same interface |
+| Models | Google Gemini for analysis, answers and embeddings, with an OpenAI adapter behind the same interface |
 | Web app | React 19, Vite 8, Tailwind CSS 4, Radix UI, TanStack Query, React Router |
-| Sign-in and files | Firebase Authentication, Supabase Storage |
-| Quality | pytest, Vitest, Playwright, ruff, ESLint, Locust, GitHub Actions |
-| Hosting and operations | Firebase Hosting, Render, Supabase, Sentry |
+| Services | Firebase Authentication and Hosting, Supabase, Render, Sentry |
+| Testing | pytest, Vitest, Playwright, ruff, ESLint, Locust, GitHub Actions |
 
-Details and versions: [tech stack](docs/tech-stack.md).
+Versions and what each piece is for are in the [tech stack](docs/tech-stack.md).
 
-## Quick start
+## Running locally
 
-Requires Python 3.13, Node 24, Docker, a Firebase project and a Gemini API key.
+You need Python 3.13, Node 24, Docker, a Firebase project and a Gemini API key.
 
 ```bash
 git clone https://github.com/Divyanshu2805/thapargenie.git
 cd thapargenie
 docker compose up -d db                       # PostgreSQL with pgvector
 
-# API
 python -m venv Backend/.venv
 source Backend/.venv/bin/activate             # Windows: Backend\.venv\Scripts\activate
 pip install -r Backend/requirements-dev.txt
-cp Backend/backend/.env.example Backend/backend/.env    # then fill it in
+cp Backend/backend/.env.example Backend/backend/.env
 cd Backend/backend
 python manage.py migrate
 python manage.py createcachetable
 python manage.py runserver
 
-# Web app, in another terminal
+# in another terminal
 cd Frontend
 cp .env.example .env.local                    # Firebase web config and the API URL
 npm ci
 npm run dev
 ```
 
-The app is on <http://localhost:5173> and the API on <http://127.0.0.1:8000>. Approving
-your account, becoming an admin and adding a knowledge base are in
-[local development](docs/local-development/README.md), which also covers running with no
-Gemini key at all.
-
-### Commands
+The app is on http://localhost:5173 and the API on http://127.0.0.1:8000. Two commands help when working on answers:
 
 ```bash
-pytest                                   # backend tests, from the repository root
-cd Frontend && npm test                  # frontend tests
-python manage.py ask "question" --trace  # one question through the pipeline, step by step
-python manage.py eval_rag                # score search quality
+python manage.py ask "question" --trace       # one question through the pipeline, step by step
+python manage.py eval_rag                     # score search quality
 ```
 
-The full list is in [commands](docs/local-development/commands.md).
+Approving your account, becoming an admin, adding a knowledge base and running with no Gemini key are covered in [local development](docs/local-development/README.md).
+
+## Testing and CI
+
+| Suite | |
+|---|---|
+| Backend | 595 tests (pytest), 92% statement coverage of the answer, chat and knowledge code, with an 80% floor |
+| Frontend | 246 tests (Vitest) |
+| Browser | 5 Playwright journeys against the whole stack under the Auth emulator |
+| Search quality | 23 fixed questions scored every night against the production knowledge base |
+
+Every push and pull request runs a secret scan, lint, all three suites with the coverage floor, migration and OpenAPI checks, a dependency audit and a build. Work merges into `dev`, and a release is one pull request from `dev` into `main`. Once CI passes there, the web app deploys to Firebase Hosting and the API to Render. GitHub Actions also runs the scheduled jobs: the nightly search-quality score, a daily purge of expired data, a weekly encrypted backup and a weekly re-read of web pages. See [deployment](docs/deployment/README.md).
 
 ## Repository layout
 
 ```
 Backend/backend/
-  backend/        settings per environment, URL root, gunicorn entry
-  userauths/      users, profiles, invitations
-  api/            Firebase token checks, identity mapping, /me, health, audit events
-  common/         shared building blocks: throttles, event streams, safe URL fetching, logging
-  knowledge/      documents and passages, storage, the ingestion pipeline
-  rag/            model clients, analysis, hybrid search, the answer pipeline, evaluation
-  chat/           conversations, the streaming chat API, quotas, cache, admin statistics
-  access/         user and invitation management, staff two-factor
-  notices/        announcements
+  backend/          settings per environment, URL root, gunicorn entry
+  userauths/        users, profiles, invitations
+  api/              Firebase token checks, identity mapping, /me, health, audit events
+  common/           throttles, event streams, safe URL fetching, logging
+  knowledge/        documents and passages, storage, the ingestion pipeline
+  rag/              model clients, analysis, hybrid search, the answer pipeline, evaluation
+  chat/             conversations, the streaming chat API, quotas, cache, admin statistics
+  access/           user and invitation management, staff two-factor
+  notices/          announcements
 Frontend/
-  src/features/   one folder per feature: chat, admin, landing, notices, settings, ...
-  src/lib/        request wrapper, stream reader, API calls
-  e2e/            Playwright journeys
-loadtest/         the load-test stack and its scripts
-docs/             documentation
+  src/features/     one folder per feature: chat, admin, landing, notices, settings, ...
+  src/lib/          request wrapper, stream reader, API calls
+  e2e/              Playwright journeys
+loadtest/           the load-test stack and its scripts
+docs/               documentation
 .github/workflows/  CI, the frontend deploy, scheduled jobs
 ```
 
-## Deployment
+## Docs
 
-The web app is on Firebase Hosting, the API on Render and the database on Supabase, both in
-Singapore. Work merges into `dev`; a release is one pull request from `dev` into `main`,
-and once CI passes there the API and the web app deploy themselves. GitHub Actions also
-runs the scheduled jobs against production: a nightly search-quality score, a daily purge
-of expired data, a weekly encrypted backup and a weekly re-read of web pages.
-
-See [deployment](docs/deployment/README.md) and [operations](docs/deployment/operations.md).
-
-## Documentation
-
-Everything lives in [`docs/`](docs/README.md):
-
-| Section | Covers |
+| | |
 |---|---|
-| [Features](docs/features.md) | Everything the app does, with its limits |
-| [Local development](docs/local-development/README.md) | Setup, configuration, commands, troubleshooting |
+| [Features](docs/features.md) | Everything the app does, by area |
 | [Architecture](docs/architecture/README.md) | The parts, request flows, security model, decision records |
+| [API](docs/api/README.md) | Every endpoint, the event stream, errors and rate limits |
 | [Data model](docs/schema/README.md) | Tables, indexes, conventions, retention |
-| [API reference](docs/api/README.md) | Every endpoint, the event stream, errors and rate limits |
-| [Engineering practices](docs/practices/README.md) | Conventions, testing, guardrails, pitfalls, definition of done |
-| [Project metrics](docs/metrics.md) · [Load testing](docs/load-testing.md) | Measured quality, speed and capacity |
-| [Deployment](docs/deployment/README.md) · [Operations](docs/deployment/operations.md) | Running it in production |
-| [Security](SECURITY.md) | Reporting a vulnerability |
+| [Local development](docs/local-development/README.md) | Setup, configuration, commands, troubleshooting |
+| [Deployment](docs/deployment/README.md) · [Operations](docs/deployment/operations.md) | Production, releases, scheduled jobs, backups |
+| [Metrics](docs/metrics.md) · [Load testing](docs/load-testing.md) | Every measurement and how it was taken |
 
 ## License
 
-Released under the [MIT License](LICENSE).
-
-## Legal
-
-[Privacy](https://thapargenie.divyanshuagrahari.dev/privacy)
+[MIT](LICENSE) · [Privacy Policy](https://thapargenie.divyanshuagrahari.dev/privacy)
