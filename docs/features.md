@@ -1,7 +1,7 @@
 # Features
 
-Everything ThaparGenie does, by area, with the limits that apply. The numbers behind the
-limits are collected in [project metrics](metrics.md).
+Everything ThaparGenie does, by area. The numbers behind it are collected in
+[project metrics](metrics.md).
 
 ## Who uses it
 

@@ -901,23 +901,6 @@ html.lenis body {
     }
   }
 
-  /*
-   * A dim warm light that follows the pointer (hooks/use-pointer-light.js). It is a fixed-size disc moved
-   * by a transform, so following the pointer never repaints the hero.
-   */
-  .lp-hero__light {
-    background: radial-gradient(closest-side, rgb(255 196 130 / 0.1), transparent 60%);
-    height: 70rem;
-    left: 72%;
-    margin: -35rem 0 0 -35rem;
-    pointer-events: none;
-    position: absolute;
-    top: 30%;
-    width: 70rem;
-    will-change: transform;
-    z-index: -1;
-  }
-
   .lp-grain {
     background-image: var(--grain);
     inset: 0;

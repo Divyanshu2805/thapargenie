@@ -1,10 +1,9 @@
 import { ArrowLeft, ArrowUp, Sparkles } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Ambient } from '@/components/ambient';
 import { LogoGlyph } from '@/components/brand/Brand';
-import { usePointerLight } from '@/hooks/use-pointer-light';
 import { useTypewriter } from '@/hooks/use-typewriter';
 import { preloadLanding } from '@/features/landing/load';
 import { useSlideClick } from '@/lib/page-slide';
@@ -41,19 +40,14 @@ const toLanding = { back: true, ready: () => Boolean(document.querySelector('.la
 
 export default function AuthShell({ title, description, children }) {
   const home = useSlideClick(toLanding);
-  const heroRef = useRef(null);
-  const lightRef = useRef(null);
-  // The same dim warm light as the landing page's hero follows the pointer over the photo.
-  usePointerLight(heroRef, lightRef, 0.5, 0.36);
   // Fetch the landing page ahead so the slide back to it never waits on a download.
   useEffect(() => {
     preloadLanding().catch(() => {});
   }, []);
   return (
     <main className="auth-page">
-      <aside ref={heroRef} className="auth-hero" aria-hidden="true">
+      <aside className="auth-hero" aria-hidden="true">
         <div className="auth-page__overlay" />
-        <div ref={lightRef} className="auth-hero__light" />
         <div className="auth-hero__content">
           <div className="auth-hero__center">
             <Link to="/" onClick={home} tabIndex={-1} className="auth-hero__home">

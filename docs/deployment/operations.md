@@ -61,8 +61,7 @@ Recovery point: up to 7 days on the free database plan. Uploaded files are not i
 
 ### Restore
 
-Target: under 4 hours. These steps are written down but have not yet been exercised end to
-end; practise them into a scratch project.
+Target: under 4 hours. Practise the steps into a scratch project first.
 
 1. Pick the target: a new Supabase project (which keeps the broken one for investigation)
    or the existing one.
